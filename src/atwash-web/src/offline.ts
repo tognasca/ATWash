@@ -98,7 +98,13 @@ export async function pendingCount(tenant:string):Promise<number>{
  const all=await store<Pending[]>('pending','readonly',s=>s.getAll());
  return all.filter(x=>x.tenant===tenant).length;
 }
+let activeSync:Promise<number>|null=null;
 export async function syncPending(token:string):Promise<number>{
+ if(activeSync)return activeSync;
+ activeSync=performSync(token).finally(()=>{activeSync=null});
+ return activeSync;
+}
+async function performSync(token:string):Promise<number>{
  if(!navigator.onLine)return 0;
  const tenant=tenantFromToken(token);
  let count=0;
@@ -110,7 +116,16 @@ export async function syncPending(token:string):Promise<number>{
   if(all.length===0)break;
   const item=all[0];
   if(item.kind==='status'){
-   await api('/orders/'+item.orderId+'/status',token,'PATCH',{status:item.to});
+   const serverOrders=await api<Order[]>('/orders',token);
+   const server=serverOrders.find(x=>x.id===item.orderId);
+   if(!server)throw new Error('Comanda '+item.orderId+' não encontrada. Resolva a pendência manualmente.');
+   if(server.status===item.to){
+    // Already applied by a previous attempt; safe to remove this pending step.
+   }else if(server.status!==item.from){
+    throw new Error('Conflito na comanda '+server.number+': esperado '+item.from+', servidor '+server.status+'. Revise antes de sincronizar.');
+   }else{
+    await api('/orders/'+item.orderId+'/status',token,'PATCH',{status:item.to,expectedStatus:item.from});
+   }
   }else{
    let realId:string;
    let number:string|undefined;
