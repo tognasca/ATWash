@@ -12,9 +12,12 @@ public sealed record ReconcileInput(string BankReference);
 
 public static class FinanceEndpoints
 {
-    private static bool Context(ClaimsPrincipal p, out Guid tenant, out Guid user) =>
-        Guid.TryParse(p.FindFirstValue("tenant_id"),out tenant) && tenant!=Guid.Empty &&
-        Guid.TryParse(p.FindFirstValue(JwtRegisteredClaimNames.Sub),out user);
+    private static bool Context(ClaimsPrincipal p, out Guid tenant, out Guid user)
+    {
+        var hasTenant = Guid.TryParse(p.FindFirstValue("tenant_id"), out tenant);
+        var hasUser = Guid.TryParse(p.FindFirstValue(JwtRegisteredClaimNames.Sub), out user);
+        return hasTenant && tenant != Guid.Empty && hasUser && user != Guid.Empty;
+    }
     private static bool Manager(ClaimsPrincipal p) => p.IsInRole(nameof(UserRole.Owner)) || p.IsInRole(nameof(UserRole.Manager));
     private static bool Cashier(ClaimsPrincipal p) => Manager(p) || p.IsInRole(nameof(UserRole.Attendant));
     private static bool Money(decimal n) => n>=0 && n<=10000000 && decimal.Round(n,2)==n;
