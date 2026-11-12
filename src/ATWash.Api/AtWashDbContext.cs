@@ -12,6 +12,9 @@ public sealed class AtWashDbContext(DbContextOptions<AtWashDbContext> options) :
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<OrderProductItem> OrderProductItems => Set<OrderProductItem>();
     public DbSet<Employee> Employees => Set<Employee>();
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
+    public DbSet<ServiceIngredient> ServiceIngredients => Set<ServiceIngredient>();
+    public DbSet<ServiceExecution> ServiceExecutions => Set<ServiceExecution>();
     public DbSet<WashOrder> Orders => Set<WashOrder>();
     public DbSet<WashOrderItem> OrderItems => Set<WashOrderItem>();
     public DbSet<OrderPayment> Payments => Set<OrderPayment>();
@@ -70,6 +73,29 @@ public sealed class AtWashDbContext(DbContextOptions<AtWashDbContext> options) :
         model.Entity<WashOrder>().HasIndex(x => new { x.TenantId, x.Number }).IsUnique();
         foreach (var entity in model.Model.GetEntityTypes().Where(x => typeof(ITenantEntity).IsAssignableFrom(x.ClrType)))
             model.Entity(entity.ClrType).HasOne(typeof(Tenant)).WithMany().HasForeignKey(nameof(ITenantEntity.TenantId)).OnDelete(DeleteBehavior.Restrict);
+        model.Entity<Employee>().HasAlternateKey(x=>new{x.TenantId,x.Id});
+        model.Entity<Employee>().HasIndex(x=>new{x.TenantId,x.UserId}).IsUnique().HasFilter("\\"UserId\\" IS NOT NULL");
+        model.Entity<Employee>().Property(x=>x.CommissionPercent).HasPrecision(5,2);
+        model.Entity<WashOrder>().HasOne<Employee>().WithMany().HasForeignKey(x=>new{x.TenantId,x.EmployeeId})
+            .HasPrincipalKey(x=>new{x.TenantId,x.Id}).OnDelete(DeleteBehavior.Restrict);
+        model.Entity<Supplier>().HasAlternateKey(x=>new{x.TenantId,x.Id});
+        model.Entity<Product>().HasOne<Supplier>().WithMany().HasForeignKey(x=>new{x.TenantId,x.SupplierId})
+            .HasPrincipalKey(x=>new{x.TenantId,x.Id}).OnDelete(DeleteBehavior.Restrict);
+        model.Entity<Product>().Property(x=>x.MinimumStock).HasPrecision(18,3);
+        model.Entity<Product>().Property(x=>x.AverageCost).HasPrecision(18,2);
+        model.Entity<ServiceIngredient>().HasOne<WashService>().WithMany().HasForeignKey(x=>new{x.TenantId,x.ServiceId})
+            .HasPrincipalKey(x=>new{x.TenantId,x.Id}).OnDelete(DeleteBehavior.Restrict);
+        model.Entity<ServiceIngredient>().HasOne<Product>().WithMany().HasForeignKey(x=>new{x.TenantId,x.ProductId})
+            .HasPrincipalKey(x=>new{x.TenantId,x.Id}).OnDelete(DeleteBehavior.Restrict);
+        model.Entity<ServiceIngredient>().HasIndex(x=>new{x.TenantId,x.ServiceId,x.ProductId}).IsUnique();
+        model.Entity<ServiceIngredient>().Property(x=>x.Quantity).HasPrecision(18,3);
+        model.Entity<ServiceExecution>().HasOne<WashOrder>().WithMany().HasForeignKey(x=>new{x.TenantId,x.OrderId})
+            .HasPrincipalKey(x=>new{x.TenantId,x.Id}).OnDelete(DeleteBehavior.Restrict);
+        model.Entity<ServiceExecution>().HasOne<WashService>().WithMany().HasForeignKey(x=>new{x.TenantId,x.ServiceId})
+            .HasPrincipalKey(x=>new{x.TenantId,x.Id}).OnDelete(DeleteBehavior.Restrict);
+        model.Entity<ServiceExecution>().HasOne<Employee>().WithMany().HasForeignKey(x=>new{x.TenantId,x.EmployeeId})
+            .HasPrincipalKey(x=>new{x.TenantId,x.Id}).OnDelete(DeleteBehavior.Restrict);
+        model.Entity<ServiceExecution>().HasIndex(x=>new{x.TenantId,x.OrderId,x.ServiceId}).IsUnique();
         model.Entity<Product>().HasAlternateKey(x => new { x.TenantId, x.Id });
         model.Entity<StockMovement>().HasOne<Product>().WithMany()
             .HasForeignKey(x => new { x.TenantId, x.ProductId })
