@@ -74,7 +74,7 @@ public static class InventoryEndpoints
     Reason=input.IsConsumption?"Consumo de insumo na comanda":"Venda na comanda"});
    await db.SaveChangesAsync(ct);
    await tx.CommitAsync(ct);
-   return Results.Created($"/api/orders/{id}/products",new{line.Id,line.Total,order.Total,product.Stock});
+   return Results.Created($"/api/orders/{id}/products",new{line.Id,LineTotal=line.Total,OrderTotal=order.Total,product.Stock});
   });
  }
 }
