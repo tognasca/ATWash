@@ -36,7 +36,15 @@ public static class OperationalEndpoints
         {
             if (!CanWrite(principal) || !TryTenant(principal, out var tenant)) return Results.Forbid();
             if (string.IsNullOrWhiteSpace(input.Name) || input.Name.Length > 160) return Results.BadRequest("Invalid customer name");
-            var customer = new Customer { TenantId = tenant, Name = input.Name.Trim(), Phone = input.Phone?.Trim() };
+            if (input.ClientId == Guid.Empty) return Results.BadRequest("Identificador inválido.");
+            if (input.ClientId is Guid customerId)
+            {
+                var existing = await db.Customers.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == tenant && x.Id == customerId, ct);
+                if (existing != null)
+                    return existing.Name == input.Name.Trim() && existing.Phone == input.Phone?.Trim()
+                        ? Results.Ok(new { existing.Id }) : Results.Conflict("Identificador já utilizado.");
+            }
+            var customer = new Customer { Id = input.ClientId ?? Guid.NewGuid(), TenantId = tenant, Name = input.Name.Trim(), Phone = input.Phone?.Trim() };
             db.Customers.Add(customer);
             await db.SaveChangesAsync(ct);
             return Results.Created($"/api/customers/{customer.Id}", new { customer.Id });
@@ -57,9 +65,17 @@ public static class OperationalEndpoints
                 return Results.BadRequest("Invalid vehicle");
             if (!await db.Customers.AnyAsync(x => x.TenantId == tenant && x.Id == input.CustomerId, ct))
                 return Results.BadRequest("Customer does not belong to tenant");
-            if (await db.Vehicles.AnyAsync(x => x.TenantId == tenant && x.Plate == plate, ct))
+            if (await db.Vehicles.AnyAsync(x => x.TenantId == tenant && x.Plate == plate && x.Id != input.ClientId, ct))
                 return Results.Conflict("Esta placa já está cadastrada. Pesquise a placa e reutilize o veículo.");
-            var vehicle = new Vehicle { TenantId = tenant, CustomerId = input.CustomerId,
+            if (input.ClientId == Guid.Empty) return Results.BadRequest("Identificador inválido.");
+            if (input.ClientId is Guid vehicleId)
+            {
+                var existing = await db.Vehicles.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == tenant && x.Id == vehicleId, ct);
+                if (existing != null)
+                    return existing.CustomerId == input.CustomerId && existing.Plate == plate && existing.Model == input.Model.Trim()
+                        ? Results.Ok(new { existing.Id }) : Results.Conflict("Identificador já utilizado.");
+            }
+            var vehicle = new Vehicle { Id = input.ClientId ?? Guid.NewGuid(), TenantId = tenant, CustomerId = input.CustomerId,
                 Plate = plate, Model = input.Model.Trim(), Brand = input.Brand?.Trim(), Color = input.Color?.Trim() };
             db.Vehicles.Add(vehicle);
             await db.SaveChangesAsync(ct);
@@ -202,6 +218,20 @@ public static class OperationalEndpoints
             if (!CanWrite(principal) || !TryTenant(principal, out var tenant)) return Results.Forbid();
             if (!await db.Vehicles.AnyAsync(x => x.TenantId == tenant && x.Id == input.VehicleId, ct))
                 return Results.BadRequest("Invalid vehicle");
+            if (input.ClientId == Guid.Empty) return Results.BadRequest("Identificador inválido.");
+            if (input.ClientId is Guid clientOrderId)
+            {
+                var existing = await db.Orders.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == tenant && x.Id == clientOrderId, ct);
+                if (existing != null)
+                {
+                    var existingServices = await db.OrderItems.AsNoTracking().Where(x => x.TenantId == tenant && x.OrderId == clientOrderId)
+                        .Select(x => x.ServiceId).ToArrayAsync(ct);
+                    if (existing.VehicleId != input.VehicleId || input.ServiceIds == null ||
+                        !existingServices.OrderBy(x => x).SequenceEqual(input.ServiceIds.Distinct().OrderBy(x => x)))
+                        return Results.Conflict("Identificador de comanda já utilizado.");
+                    return Results.Ok(new { existing.Id, existing.Number, existing.Total, AlreadyProcessed = true });
+                }
+            }
             var serviceIds = input.ServiceIds?.Distinct().ToArray() ?? [];
             if (serviceIds.Length is < 1 or > 30) return Results.BadRequest("Select 1 to 30 services");
             var services = await db.Services.AsNoTracking().Where(x => x.TenantId == tenant && serviceIds.Contains(x.Id)).ToListAsync(ct);
@@ -210,7 +240,7 @@ public static class OperationalEndpoints
             await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({tenant.ToString()}, 0))", ct);
             var numbers = await db.Orders.AsNoTracking().Where(x => x.TenantId == tenant).Select(x => x.Number).ToListAsync(ct);
             var next = numbers.Select(x => long.TryParse(x, out var n) && n > 0 ? n : 0).DefaultIfEmpty(0).Max() + 1;
-            var order = new WashOrder { TenantId = tenant, Number = next.ToString("D6"),
+            var order = new WashOrder { Id = input.ClientId ?? Guid.NewGuid(), TenantId = tenant, Number = next.ToString("D6"),
                 VehicleId = input.VehicleId, ServiceId = services[0].Id,
                 Total = services.Sum(x => x.Price), Status = OrderStatus.Waiting, PaymentStatus = PaymentStatus.Pending };
             db.Orders.Add(order);
@@ -257,10 +287,10 @@ public static class OperationalEndpoints
         principal.IsInRole(nameof(UserRole.Attendant));
 }
 
-public sealed record CustomerInput(string Name, string? Phone);
-public sealed record VehicleInput(Guid CustomerId, string Plate, string Model, string? Brand, string? Color);
+public sealed record CustomerInput(string Name, string? Phone, Guid? ClientId = null);
+public sealed record VehicleInput(Guid CustomerId, string Plate, string Model, string? Brand, string? Color, Guid? ClientId = null);
 public sealed record ProductInput(string Name, decimal Price, decimal Stock);
 public sealed record OrderStatusInput(OrderStatus Status);
 public sealed record ServiceInput(string Name, decimal Price);
-public sealed record OrderInput(Guid VehicleId, Guid[] ServiceIds);
+public sealed record OrderInput(Guid VehicleId, Guid[] ServiceIds, Guid? ClientId = null);
 public sealed record AddOrderServiceInput(Guid ServiceId);
