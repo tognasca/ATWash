@@ -19,7 +19,7 @@ builder.Services.AddRateLimiter(options =>
     options.AddFixedWindowLimiter("platform", rule => { rule.PermitLimit=20; rule.Window=TimeSpan.FromMinutes(1); rule.QueueLimit=0; });
     options.AddFixedWindowLimiter("login", rule =>
     {
-        rule.PermitLimit = 5;
+        rule.PermitLimit = builder.Configuration.GetValue<int>("ATWASH_LOGIN_RATE_LIMIT",5);
         rule.Window = TimeSpan.FromMinutes(1);
         rule.QueueLimit = 0;
     });
