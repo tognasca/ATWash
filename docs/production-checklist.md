@@ -63,3 +63,13 @@ O workflow `.github/workflows/android-release.yml` gera um APK release com URL H
 ## iPhone e web
 
 No iPhone, abrir o endereço HTTPS no Safari e escolher **Compartilhar → Adicionar à Tela de Início**. O PWA depende do armazenamento e das políticas do iOS; é necessário testar retenção de dados, modo avião, atualização e retomada após encerramento do Safari. No computador, o sistema roda em navegador moderno. Não existe publicação iOS nativa.
+
+
+## Incremento de offline e painel SaaS (12/11/2026)
+
+- O navegador mantém a sessão JWT somente em `sessionStorage` enquanto o token for válido, para retomar a operação após recarga, inclusive offline com snapshot previamente salvo. Isso **não** substitui autenticação offline depois de 20 minutos, e não funciona após fechar completamente a aba em todos os navegadores.
+- O sincronizador tenta impedir execução concorrente em abas com lock de `localStorage`; o lock não é uma primitiva transacional entre abas. Para garantia forte, implementar `navigator.locks` onde disponível e idempotência transacional completa no backend. Pagamentos, estoques e outros módulos continuam online.
+- Antes de atualizar o cache a partir do servidor, a aplicação tenta sincronizar as pendências para evitar perder mudanças locais.
+- Painel global SaaS em `/platform`: cadastro de planos e empresas, troca de plano/status, suspensão e reativação. A chave `ATWASH_PLATFORM_ADMIN_KEY` é digitada pelo operador e mantida somente na memória; não salvar no navegador. Exigir HTTPS e acesso restrito via VPN/proxy em produção. A administração global ainda não possui autenticação de operadores com MFA e auditoria dedicada.
+
+**Não classificar os módulos como offline integral ou SaaS homologado até testes reais de perda de energia, múltiplas abas, expiração/revogação de sessão, conflitos e recuperação.**
