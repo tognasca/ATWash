@@ -5,14 +5,17 @@ builder.Services.AddDbContext<AtWashDbContext>(o => o.UseNpgsql(builder.Configur
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
 var app = builder.Build();
-if (app.Configuration.GetValue<bool>("ATWASH_SEED_DEMO"))
+if (app.Configuration.GetValue<bool>("ATWASH_APPLY_MIGRATIONS") || app.Configuration.GetValue<bool>("ATWASH_SEED_DEMO"))
 {
     await using var scope = app.Services.CreateAsyncScope();
     var db = scope.ServiceProvider.GetRequiredService<AtWashDbContext>();
-    if (!(await db.Database.GetPendingMigrationsAsync()).Any() && (await db.Database.GetAppliedMigrationsAsync()).Any())
+    if (app.Configuration.GetValue<bool>("ATWASH_APPLY_MIGRATIONS")) await db.Database.MigrateAsync();
+    if (app.Configuration.GetValue<bool>("ATWASH_SEED_DEMO"))
+    {
+        if ((await db.Database.GetPendingMigrationsAsync()).Any())
+            throw new InvalidOperationException("Demo seed requires all EF Core migrations to be applied first.");
         await DemoSeeder.SeedAsync(db);
-    else
-        throw new InvalidOperationException("Demo seed requires all EF Core migrations to be applied first.");
+    }
 }
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
 app.MapHealthChecks("/health");
