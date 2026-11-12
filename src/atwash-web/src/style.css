@@ -30,3 +30,11 @@ input:focus,select:focus{border-color:var(--brand-purple)}
 .login-error-modal h2{margin:0 0 14px;font-size:1.35rem;color:#64107b}
 .login-error-modal p{margin:0 0 24px;line-height:1.5}
 .login-error-modal button{min-width:130px}
+
+/* Painel Kanban touch-first: etapas operacionais por coluna. */
+.kanban-board{display:grid;grid-template-columns:repeat(4,minmax(210px,1fr));gap:14px;overflow-x:auto;margin:16px 0 24px}
+.kanban-column{background:#f5f2f6;border:1px solid #e6deea;border-radius:14px;padding:12px;min-height:180px}
+.kanban-column h3{font-size:1rem;margin:0 0 12px;color:#252a32}
+.kanban-card{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:12px;margin-bottom:10px;border-radius:12px;background:#fff;border:1px solid #e7e1e9;box-shadow:0 2px 6px #00000008}
+.kanban-card small{color:#68606d}.kanban-card button{min-height:42px}
+@media(max-width:980px){.kanban-board{grid-template-columns:repeat(4,minmax(220px,1fr))}}
