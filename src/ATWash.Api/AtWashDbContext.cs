@@ -47,7 +47,7 @@ public sealed class AtWashDbContext(DbContextOptions<AtWashDbContext> options) :
         model.Entity<OrderPayment>().Property(x => x.Method).HasConversion<string>().HasMaxLength(16);
         model.Entity<OrderPayment>().Property(x => x.Amount).HasPrecision(18, 2);
         model.Entity<OrderPayment>().Property(x => x.Tendered).HasPrecision(18, 2);
-        model.Entity<CashSession>().HasIndex(x => x.TenantId).IsUnique().HasFilter("\\"ClosedAt\\" IS NULL");
+        model.Entity<CashSession>().HasIndex(x => x.TenantId).IsUnique().HasFilter("\u0022ClosedAt\u0022 IS NULL");
         model.Entity<CashSession>().Property(x => x.OpeningFloat).HasPrecision(18,2);
         model.Entity<CashSession>().Property(x => x.CountedCash).HasPrecision(18,2);
         model.Entity<CashSession>().Property(x => x.ExpectedCash).HasPrecision(18,2);
