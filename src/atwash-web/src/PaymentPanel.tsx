@@ -16,10 +16,10 @@ export default function PaymentPanel({order,token,onClose,onChanged,onError,canC
   catch(e){onError(String(e))}
  }
  async function receipt(){
+  const win=window.open('','_blank','width=480,height=720');
+  if(!win){onError('Autorize pop-ups para imprimir o comprovante.');return}
   try{
    const result=await api<{company:string;number:string;createdAt:string;customer?:{name:string;plate:string;model:string};items:{serviceName:string;quantity:number;total:number}[];payments:{method:Method;amount:number}[];total:number;paid:number;notice:string}>('/orders/'+order.id+'/receipt',token);
-   const win=window.open('','_blank','width=480,height=720');
-   if(!win){onError('Autorize pop-ups para imprimir o comprovante.');return}
    const safe=(v:unknown)=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]||ch));
    const html='<html><head><title>Comprovante '+safe(result.number)+'</title><style>body{font:14px Arial;max-width:360px;margin:25px auto}h2{text-align:center}li{padding:5px 0}hr{border:0;border-top:1px dashed #999}</style></head><body><h2>'+safe(result.company)+'</h2><p>Comanda #'+safe(result.number)+'<br>'+safe(new Date(result.createdAt).toLocaleString('pt-BR'))+'</p><p>'+safe(result.customer?.name)+'<br>'+safe(result.customer?.plate)+' · '+safe(result.customer?.model)+'</p><hr><ul>'+result.items.map(i=>'<li>'+safe(i.quantity)+'x '+safe(i.serviceName)+' — '+safe(currency(i.total))+'</li>').join('')+'</ul><hr><p><b>Total: '+safe(currency(result.total))+'</b></p><ul>'+result.payments.map(p=>'<li>'+safe(['Dinheiro','Cartão','Pix'][p.method])+' — '+safe(currency(p.amount))+'</li>').join('')+'</ul><p>Recebido: '+safe(currency(result.paid))+'</p><hr><small>'+safe(result.notice)+'</small></body></html>';
    win.document.write(html);win.document.close();win.focus();win.print();
