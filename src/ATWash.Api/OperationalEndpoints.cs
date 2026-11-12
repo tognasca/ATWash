@@ -244,6 +244,12 @@ public static class OperationalEndpoints
                 .OrderByDescending(x => x.CreatedAt).Take(200).ToListAsync(ct));
         });
 
+        api.MapGet("/orders/{id:guid}", async (Guid id, ClaimsPrincipal principal, AtWashDbContext db, CancellationToken ct) =>
+        {
+            if (!TryTenant(principal, out var tenant)) return Results.Unauthorized();
+            var order=await db.Orders.AsNoTracking().SingleOrDefaultAsync(x=>x.TenantId==tenant&&x.Id==id,ct);
+            return order is null?Results.NotFound():Results.Ok(order);
+        });
         api.MapGet("/orders/{id:guid}/items", async (Guid id, ClaimsPrincipal principal, AtWashDbContext db, CancellationToken ct) =>
         {
             if (!TryTenant(principal, out var tenant)) return Results.Unauthorized();
