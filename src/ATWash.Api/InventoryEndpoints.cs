@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ATWash.Api;
 
-public sealed record StockAdjustmentInput(decimal Quantity, string Reason);
+public sealed record StockAdjustmentInput(decimal Quantity, string Reason, decimal? UnitCost = null);
 public sealed record AddOrderProductInput(Guid ProductId, decimal Quantity, bool IsConsumption = false);
 
 public static class InventoryEndpoints
@@ -26,13 +26,16 @@ public static class InventoryEndpoints
   api.MapPost("/products/{id:guid}/stock",async(Guid id,StockAdjustmentInput input,ClaimsPrincipal p,AtWashDbContext db,CancellationToken ct)=>{
    if(!Manager(p)||!Tenant(p,out var tenant))return Results.Forbid();
    if(input.Quantity==0 || Math.Abs(input.Quantity)>1000000 || decimal.Round(input.Quantity,3)!=input.Quantity ||
-      string.IsNullOrWhiteSpace(input.Reason)||input.Reason.Trim().Length>300)
+      string.IsNullOrWhiteSpace(input.Reason)||input.Reason.Trim().Length>300 ||
+      (input.UnitCost.HasValue && (input.Quantity<0 || input.UnitCost.Value<0 || input.UnitCost.Value>1000000)))
     return Results.BadRequest("Informe quantidade com até 3 casas e justificativa (máximo 300 caracteres).");
    await using var tx=await db.Database.BeginTransactionAsync(ct);
    await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({tenant.ToString()}, 0))",ct);
    var product=await db.Products.SingleOrDefaultAsync(x=>x.TenantId==tenant&&x.Id==id,ct);
    if(product is null)return Results.NotFound();
    if(product.Stock+input.Quantity<0)return Results.Conflict("Estoque insuficiente.");
+   if(input.Quantity>0 && input.UnitCost.HasValue)
+     product.AverageCost=decimal.Round((product.Stock*product.AverageCost+input.Quantity*input.UnitCost.Value)/(product.Stock+input.Quantity),2);
    product.Stock+=input.Quantity;
    var movement=new StockMovement{TenantId=tenant,ProductId=id,
     Kind=input.Quantity>0?StockMovementKind.Purchase:StockMovementKind.Adjustment,
