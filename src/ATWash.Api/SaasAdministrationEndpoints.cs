@@ -8,6 +8,9 @@ namespace ATWash.Api;
 public sealed record SaasPlanInput(string Name, decimal MonthlyPrice, int MaxDevices, bool IsActive = true);
 public sealed record SaasTenantInput(string Name, string OwnerEmail, string OwnerPassword, Guid PlanId, DateTimeOffset? ExpiresAt);
 public sealed record SaasSubscriptionInput(Guid PlanId, string Status, DateTimeOffset? ExpiresAt);
+public sealed record SaasUserInput(string Email,string Password,string Role);
+public sealed record SaasUserUpdate(string Role,bool IsActive);
+public sealed record SaasPasswordReset(string Password);
 
 public static class SaasAdministrationEndpoints
 {
@@ -84,6 +87,54 @@ public static class SaasAdministrationEndpoints
             db.Tenants.Add(tenant);db.Users.Add(owner);db.TenantSubscriptions.Add(sub);
             await db.SaveChangesAsync(ct);await tx.CommitAsync(ct);
             return Results.Created($"/api/platform/tenants/{tenant.Id}",new{tenant.Id,tenant.Name,OwnerEmail=email});
+        });
+        admin.MapGet("/tenants/{id:guid}/users",async(Guid id,AtWashDbContext db,CancellationToken ct) =>
+        {
+            if(!await db.Tenants.AnyAsync(x=>x.Id==id,ct))return Results.NotFound();
+            return Results.Ok(await db.Users.AsNoTracking().Where(x=>x.TenantId==id)
+                .OrderBy(x=>x.Email).Select(x=>new{x.Id,x.Email,Role=x.Role.ToString(),x.IsActive}).ToListAsync(ct));
+        });
+        admin.MapPost("/tenants/{id:guid}/users",async(Guid id,SaasUserInput input,AtWashDbContext db,
+            IPasswordHasher<AppUser> hasher,CancellationToken ct) =>
+        {
+            var email=input.Email?.Trim().ToLowerInvariant();
+            if(!await db.Tenants.AnyAsync(x=>x.Id==id,ct))return Results.NotFound();
+            if(string.IsNullOrWhiteSpace(email)||email.Length>254||!email.Contains('@')||
+               string.IsNullOrWhiteSpace(input.Password)||input.Password.Length is <12 or >128||
+               !Enum.TryParse<UserRole>(input.Role,true,out var role))
+                return Results.BadRequest("Dados do usuário inválidos.");
+            await using var tx=await db.Database.BeginTransactionAsync(ct);
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock(hashtextextended({email}, 0))",ct);
+            if(await db.Users.AnyAsync(x=>x.Email==email,ct))return Results.Conflict("E-mail já cadastrado.");
+            var user=new AppUser{TenantId=id,Email=email,PasswordHash="",Role=role};
+            user.PasswordHash=hasher.HashPassword(user,input.Password);
+            db.Users.Add(user);await db.SaveChangesAsync(ct);await tx.CommitAsync(ct);
+            return Results.Created($"/api/platform/tenants/{id}/users/{user.Id}",new{user.Id,user.Email,Role=user.Role.ToString(),user.IsActive});
+        });
+        admin.MapPut("/tenants/{id:guid}/users/{userId:guid}",async(Guid id,Guid userId,SaasUserUpdate input,
+            AtWashDbContext db,CancellationToken ct) =>
+        {
+            if(!Enum.TryParse<UserRole>(input.Role,true,out var role))
+                return Results.BadRequest("Perfil inválido.");
+            var user=await db.Users.SingleOrDefaultAsync(x=>x.TenantId==id&&x.Id==userId,ct);
+            if(user==null)return Results.NotFound();
+            if(user.Role==UserRole.Owner&&(role!=UserRole.Owner||!input.IsActive)){
+                var other=await db.Users.AnyAsync(x=>x.TenantId==id&&x.Id!=userId&&x.IsActive&&x.Role==UserRole.Owner,ct);
+                if(!other)return Results.Conflict("A empresa precisa manter um proprietário ativo.");
+            }
+            user.Role=role;user.IsActive=input.IsActive;
+            await db.SaveChangesAsync(ct);return Results.Ok(new{user.Id,user.Email,Role=user.Role.ToString(),user.IsActive});
+        });
+        admin.MapPut("/tenants/{id:guid}/users/{userId:guid}/password",async(Guid id,Guid userId,
+            SaasPasswordReset input,AtWashDbContext db,IPasswordHasher<AppUser> hasher,CancellationToken ct) =>
+        {
+            if(string.IsNullOrWhiteSpace(input.Password)||input.Password.Length is <12 or >128)
+                return Results.BadRequest("A senha deve ter entre 12 e 128 caracteres.");
+            var user=await db.Users.SingleOrDefaultAsync(x=>x.TenantId==id&&x.Id==userId,ct);
+            if(user==null)return Results.NotFound();
+            user.PasswordHash=hasher.HashPassword(user,input.Password);
+            await db.SaveChangesAsync(ct);return Results.Ok(new{user.Id});
         });
         admin.MapPut("/tenants/{id:guid}/status",async(Guid id,bool active,AtWashDbContext db,CancellationToken ct) =>
         {
