@@ -1,0 +1,81 @@
+name: ATWash Android signed release
+on:
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: 'Public HTTPS API origin, without /api'
+        required: true
+        type: string
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Validate API and signing secrets
+        env:
+          API_URL: ${{ inputs.api_url }}
+          KEYSTORE: ${{ secrets.ATWASH_ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASS: ${{ secrets.ATWASH_ANDROID_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ATWASH_ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ATWASH_ANDROID_KEY_PASSWORD }}
+        run: |
+          [[ "$API_URL" =~ ^https://[^/]+ ]] || { echo "HTTPS API origin required"; exit 1; }
+          test -n "$KEYSTORE" && test -n "$STORE_PASS" && test -n "$KEY_ALIAS" && test -n "$KEY_PASS" || { echo "Android signing secrets not configured"; exit 1; }
+      - name: Install Android SDK
+        run: |
+          SDK_MANAGER="$(find "${ANDROID_HOME:-/usr/local/lib/android/sdk}" -type f -name sdkmanager | head -n 1)"
+          test -n "$SDK_MANAGER"
+          yes | "$SDK_MANAGER" --licenses >/dev/null || true
+          "$SDK_MANAGER" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+      - run: npm ci --no-audit --no-fund
+        working-directory: src/atwash-web
+      - name: Build with production API
+        env:
+          VITE_API_BASE_URL: ${{ inputs.api_url }}
+        run: npm run build
+        working-directory: src/atwash-web
+      - run: npx cap add android && npx cap sync android
+        working-directory: src/atwash-web
+      - name: Configure signing
+        env:
+          KEYSTORE: ${{ secrets.ATWASH_ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASS: ${{ secrets.ATWASH_ANDROID_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ATWASH_ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ATWASH_ANDROID_KEY_PASSWORD }}
+        working-directory: src/atwash-web/android
+        run: |
+          printf '%s' "$KEYSTORE" | base64 -d > app/atwash-release.jks
+          cat > release-signing.gradle <<'GRADLE'
+          android {
+            signingConfigs {
+              release {
+                storeFile file("atwash-release.jks")
+                storePassword System.getenv("STORE_PASS")
+                keyAlias System.getenv("KEY_ALIAS")
+                keyPassword System.getenv("KEY_PASS")
+              }
+            }
+            buildTypes {
+              release {
+                signingConfig signingConfigs.release
+              }
+            }
+          }
+          GRADLE
+          echo "apply from: '../release-signing.gradle'" >> app/build.gradle
+      - name: Build signed APK
+        working-directory: src/atwash-web/android
+        run: chmod +x gradlew && ./gradlew assembleRelease --no-daemon
+      - name: Upload signed APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: atwash-android-signed-release
+          path: src/atwash-web/android/app/build/outputs/apk/release/*.apk
+          retention-days: 14
