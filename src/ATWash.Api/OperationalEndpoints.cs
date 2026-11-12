@@ -157,6 +157,13 @@ public static class OperationalEndpoints
         {
             if (!CanWrite(principal) || !TryTenant(principal, out var tenant)) return Results.Forbid();
             if (!Enum.IsDefined(input.Status)) return Results.BadRequest("Invalid status");
+            if (input.Status == OrderStatus.Delivered)
+                return Results.Conflict("Use o fechamento da comanda para entregar o veículo após validar o saldo.");
+            await using var statusTx = await db.Database.BeginTransactionAsync(ct);
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock(hashtextextended({tenant.ToString()}, 0))", ct);
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock(hashtextextended({tenant.ToString() + id.ToString()}, 0))", ct);
             var order = await db.Orders.SingleOrDefaultAsync(x => x.TenantId == tenant && x.Id == id, ct);
             if (order is null) return Results.NotFound();
             if (order.Status is OrderStatus.Delivered or OrderStatus.Cancelled)
@@ -171,6 +178,7 @@ public static class OperationalEndpoints
                 return Results.Conflict("Confirme o pagamento antes de entregar o veículo.");
             order.Status = input.Status;
             await db.SaveChangesAsync(ct);
+            await statusTx.CommitAsync(ct);
             return Results.Ok(order);
         });
 
