@@ -45,7 +45,16 @@ export async function saveSnapshot(tenant:string,snapshot:Snapshot){
  await store('snapshots','readwrite',s=>s.put(snapshot,tenant));
 }
 export async function loadSnapshot(tenant:string):Promise<Snapshot|undefined>{
- return store('snapshots','readonly',s=>s.get(tenant));
+ const snapshot=await store<Snapshot|undefined>('snapshots','readonly',s=>s.get(tenant));
+ if(!snapshot)return undefined;
+ // Replay unacknowledged status transitions over the persisted server snapshot.
+ // This prevents an interrupted refresh from visually rolling back local work.
+ const all=await store<Pending[]>('pending','readonly',s=>s.getAll());
+ for(const item of all.filter((x):x is Extract<Pending,{kind:'status'}>=>x.tenant===tenant&&x.kind==='status').sort((a,b)=>a.createdAt-b.createdAt)){
+  const order=snapshot.orders.find(o=>o.id===item.orderId);
+  if(order&&order.status===item.from)order.status=item.to;
+ }
+ return snapshot;
 }
 export async function queueStatus(tenant:string,orderId:string,from:number,to:number){
  if(to!==from+1 || to>3)throw new Error('Apenas avanço de etapas de lavagem pode ser enfileirado offline.');
