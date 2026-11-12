@@ -54,3 +54,12 @@ Assinaturas suspensas ou expiradas bloqueiam login e tokens já emitidos. O limi
 - Offline: cliente, veículo, comanda e avanço de etapa são enfileirados; pagamentos e ajustes de estoque exigem internet. A sessão JWT expira em 20 minutos e não há autenticação offline segura após reinício. Não declare funcionamento integral offline até resolver isso.
 - Segurança: revogação de dispositivo não apaga automaticamente dados armazenados localmente. Teste o cenário de dispositivo perdido e políticas de retenção.
 - Produção: scripts de backup/restauração precisam de teste de recuperação em instalação real e agendamento externo; não equivalem a backups automáticos já ativos.
+
+
+## Android release assinado (opt-in)
+
+O workflow `.github/workflows/android-release.yml` gera um APK release com URL HTTPS de produção e assinatura, mas **não executa sem as credenciais privadas fornecidas pelo proprietário**. Cadastre os segredos no GitHub Actions: `ATWASH_ANDROID_KEYSTORE_BASE64`, `ATWASH_ANDROID_STORE_PASSWORD`, `ATWASH_ANDROID_KEY_ALIAS` e `ATWASH_ANDROID_KEY_PASSWORD`. Guarde o keystore original fora do GitHub e faça backup seguro: perdê-lo pode impedir atualizações futuras do aplicativo com a mesma identidade. Execute manualmente o workflow com a origem HTTPS da API. Verifique a assinatura e teste instalação/atualização em tablet e smartphone antes de distribuir.
+
+## iPhone e web
+
+No iPhone, abrir o endereço HTTPS no Safari e escolher **Compartilhar → Adicionar à Tela de Início**. O PWA depende do armazenamento e das políticas do iOS; é necessário testar retenção de dados, modo avião, atualização e retomada após encerramento do Safari. No computador, o sistema roda em navegador moderno. Não existe publicação iOS nativa.
