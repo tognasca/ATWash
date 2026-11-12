@@ -195,6 +195,33 @@ public static class OperationalEndpoints
                 return Results.Conflict("A comanda mudou de etapa. Atualize a lista antes de continuar.");
             if (input.Status == OrderStatus.Delivered && order.PaymentStatus != PaymentStatus.Paid)
                 return Results.Conflict("Confirme o pagamento antes de entregar o veículo.");
+            if (input.Status == OrderStatus.Ready)
+            {
+                // Consume each service recipe exactly once when the wash is marked ready.
+                var serviceIds = await db.OrderItems.AsNoTracking()
+                    .Where(x => x.TenantId == tenant && x.OrderId == id).Select(x => x.ServiceId).ToListAsync(ct);
+                // Legacy demo orders may not have order item rows.
+                if (serviceIds.Count == 0) serviceIds.Add(order.ServiceId);
+                foreach (var serviceId in serviceIds.Distinct())
+                {
+                    if (await db.ServiceExecutions.AnyAsync(x => x.TenantId == tenant && x.OrderId == id && x.ServiceId == serviceId, ct))
+                        continue;
+                    var ingredients = await db.ServiceIngredients.AsNoTracking()
+                        .Where(x => x.TenantId == tenant && x.ServiceId == serviceId).ToListAsync(ct);
+                    foreach (var ingredient in ingredients)
+                    {
+                        var product = await db.Products.SingleAsync(x => x.TenantId == tenant && x.Id == ingredient.ProductId, ct);
+                        if (product.Stock < ingredient.Quantity)
+                            return Results.Conflict($"Estoque insuficiente do insumo {product.Name}. Reponha antes de concluir a lavagem.");
+                        product.Stock -= ingredient.Quantity;
+                        db.StockMovements.Add(new StockMovement { TenantId = tenant, ProductId = product.Id,
+                            OrderId = id, Kind = StockMovementKind.Consumption, Quantity = -ingredient.Quantity,
+                            BalanceAfter = product.Stock, Reason = "Consumo automático da ficha técnica do serviço" });
+                    }
+                    db.ServiceExecutions.Add(new ServiceExecution { TenantId = tenant, OrderId = id,
+                        ServiceId = serviceId, EmployeeId = order.EmployeeId });
+                }
+            }
             order.Status = input.Status;
             await db.SaveChangesAsync(ct);
             await statusTx.CommitAsync(ct);
