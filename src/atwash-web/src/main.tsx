@@ -11,6 +11,7 @@ function App(){
  const dialog=useDialog();
  const notifyError=(message:string)=>{if(message.trim())dialog.show(message,'error')};
  const [token,setToken]=useState('');
+ const [deviceId]=useState(()=>{const key='atwash-device-id';let id=localStorage.getItem(key);if(!id){id=crypto.randomUUID();localStorage.setItem(key,id)}return id});
  const [role,setRole]=useState('');
  const [screen,setScreen]=useState<'operation'|'admin'>('operation');
  const [email,setEmail]=useState('');
@@ -19,6 +20,7 @@ function App(){
  const [busy,setBusy]=useState(false);
  const [online,setOnline]=useState(navigator.onLine);
  const [queued,setQueued]=useState(0);
+ const [syncing,setSyncing]=useState(false);
  useEffect(()=>{
   const onOnline=()=>{setOnline(true);if(token)void syncPending(token).then(()=>reload(token)).catch(e=>notifyError('Sincronização pendente: '+String(e)))};
   const onOffline=()=>setOnline(false);
@@ -51,7 +53,7 @@ function App(){
  async function login(e:FormEvent){
   e.preventDefault();setBusy(true);setError('');
   try{
-   const result=await api<{accessToken:string}>('/auth/login','','POST',{email,password});
+   const result=await api<{accessToken:string}>('/auth/login','','POST',{email,password,deviceId,deviceName:navigator.userAgent.slice(0,100)});
    const me=await api<{role:string}>('/auth/me',result.accessToken);
    await reload(result.accessToken);
    setRole(me.role);setScreen('operation');setToken(result.accessToken);setPassword('');
@@ -62,6 +64,6 @@ function App(){
  return <main><header><h1>AT<span>Wash</span></h1><div><button className={screen==='operation'?'':'secondary'} onClick={()=>setScreen('operation')}>Atendimento</button>{isAdmin&&<button className={screen==='admin'?'':'secondary'} onClick={()=>setScreen('admin')}>Administração</button>}<button className="secondary" onClick={()=>{setToken('');setRole('');setError('');setScreen('operation')}}>Sair</button></div></header>
  {error&&<p role="alert" className="error">{error}</p>}
  {screen==='operation'?<Atendimento token={token} customers={customers} vehicles={vehicles} services={services} products={products} orders={orders} reload={reload} onError={notifyError} canConfirmPix={isAdmin} canWrite={role!=='Washer'} online={online} onQueued={()=>setQueued(x=>x+1)}/>:isAdmin?<Admin token={token} services={services} products={products} reload={reload} onError={setError}/>:null}
- <footer>ATWash · {online?'Online':'Offline — consulta local e etapas de lavagem'} · {queued} etapa(s) pendente(s) · Em homologação</footer></main>;
+ <footer><button className="secondary" disabled={!online||syncing||queued===0} onClick={()=>{setSyncing(true);void syncPending(token).then(()=>reload(token)).catch(e=>notifyError('Conflito de sincronização: '+String(e))).finally(()=>setSyncing(false))}}>Sincronizar pendências ({queued})</button> ATWash · {online?'Online':'Offline — consulta local e etapas de lavagem'} · {queued} etapa(s) pendente(s) · Em homologação</footer></main>;
 }
 createRoot(document.getElementById('root')!).render(<DialogProvider><App/></DialogProvider>);
