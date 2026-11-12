@@ -51,6 +51,7 @@ export async function queueStatus(tenant:string,orderId:string,from:number,to:nu
  const same=pending.filter((x):x is Extract<Pending,{kind:'status'}>=>x.tenant===tenant&&x.kind==='status'&&x.orderId===orderId).sort((a,b)=>a.createdAt-b.createdAt);
  const last=same.at(-1);
  if(last && last.to!==from)throw new Error('Etapa offline inconsistente. Sincronize antes de continuar.');
+ if(same.some(x=>x.from===from&&x.to===to))return;
  
  const item:Pending={id:newId(),tenant,kind:'status',orderId,from,to,createdAt:Date.now()};
  await store('pending','readwrite',s=>s.add(item));
