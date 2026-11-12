@@ -18,6 +18,14 @@ export default function Dashboard({token,onError}:{token:string;onError:(x:strin
   }catch(e){onError(String(e))}
  }
  useEffect(()=>{void load()},[token]);
+ function exportCsv(){
+  if(!data)return;
+  const rows=[['Data','Comandas','Valor das comandas'],...data.byDay.map(x=>[x.date.slice(0,10),String(x.orders),x.billed.toFixed(2).replace('.',',')])];
+  const csv='\\uFEFF'+rows.map(row=>row.map(value=>'"'+String(value).replace(/"/g,'""')+'"').join(';')).join('\\r\\n');
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  const a=document.createElement('a');a.href=url;a.download='atwash-relatorio-'+from+'-'+to+'.csv';a.click();
+  URL.revokeObjectURL(url);
+ }
  async function revoke(id:string){if(!window.confirm('Revogar este dispositivo? O acesso será bloqueado imediatamente.'))return;try{await api('/devices/'+id+'/revoke',token,'POST',{});await load()}catch(e){onError(String(e))}}
  return <section className="panel"><h2>Indicadores e gestão SaaS</h2>
  <div className="actions"><label>De<input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label><label>Até<input type="date" value={to} onChange={e=>setTo(e.target.value)}/></label><button onClick={()=>void load()}>Atualizar</button></div>
@@ -29,7 +37,7 @@ export default function Dashboard({token,onError}:{token:string;onError:(x:strin
  ['Recebido líquido',currency(data.netReceived)],['Ticket médio',currency(data.averageTicket)]
  ].map(([label,value])=><article className="kanban-card" key={label}><strong>{label}</strong><span>{value}</span></article>)}</div>
  <p>Custo estimado de insumos: {currency(data.estimatedSupplyCost)} (custo médio atual, não contabilidade).</p>
- <h3>Movimento diário</h3><div className="tablewrap"><table><thead><tr><th>Dia</th><th>Comandas</th><th>Valor das comandas</th></tr></thead><tbody>{data.byDay.map(x=><tr key={x.date}><td>{x.date.slice(0,10)}</td><td>{x.orders}</td><td>{currency(x.billed)}</td></tr>)}</tbody></table></div></>}
+ <h3>Movimento diário</h3><button className="secondary" onClick={exportCsv}>Exportar CSV (Excel)</button><div className="tablewrap"><table><thead><tr><th>Dia</th><th>Comandas</th><th>Valor das comandas</th></tr></thead><tbody>{data.byDay.map(x=><tr key={x.date}><td>{x.date.slice(0,10)}</td><td>{x.orders}</td><td>{currency(x.billed)}</td></tr>)}</tbody></table></div></>}
  <h3>Dispositivos cadastrados</h3><p>Revogar um dispositivo bloqueia seus tokens imediatamente. Para autorizar novamente, é necessário cadastrar outro identificador.</p>
  <div className="tablewrap"><table><thead><tr><th>Dispositivo</th><th>Cadastro</th><th>Status</th><th>Ação</th></tr></thead><tbody>{devices.map(d=><tr key={d.id}><td>{d.name}</td><td>{new Date(d.createdAt).toLocaleDateString('pt-BR')}</td><td>{d.revokedAt?'Revogado':'Ativo'}</td><td>{!d.revokedAt&&<button className="secondary" onClick={()=>void revoke(d.id)}>Revogar</button>}</td></tr>)}</tbody></table></div>
  <h3>Assinatura da empresa</h3><p>{subscription?.subscription?'Status: '+subscription.subscription.status:'Sem assinatura configurada.'} Cobrança e provisionamento ainda manuais; nenhum pagamento recorrente automático está ativo.</p>
