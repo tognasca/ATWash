@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useState,type FormEvent} from 'react';
 import {createRoot} from 'react-dom/client';
 import {api,type Customer,type Vehicle,type Service,type Product,type Order} from './api';
 import Atendimento from './Atendimento';
@@ -25,7 +25,7 @@ function App(){
   ]);
   setCustomers(c);setVehicles(v);setServices(s);setProducts(p);setOrders(o);
  }
- async function login(e:React.FormEvent){
+ async function login(e:FormEvent){
   e.preventDefault();setBusy(true);setError('');
   try{
    const result=await api<{accessToken:string}>('/auth/login','','POST',{email,password});
