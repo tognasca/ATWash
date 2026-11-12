@@ -45,6 +45,11 @@ public sealed class Product : ITenantEntity
     public required string Name { get; set; }
     public decimal Price { get; set; }
     public decimal Stock { get; set; }
+    public decimal MinimumStock { get; set; }
+    public decimal AverageCost { get; set; }
+    public string Unit { get; set; } = "un";
+    public bool IsSupply { get; set; }
+    public Guid? SupplierId { get; set; }
 }
 public sealed class Employee : ITenantEntity
 {
@@ -52,6 +57,10 @@ public sealed class Employee : ITenantEntity
     public Guid TenantId { get; set; }
     public required string Name { get; set; }
     public required string Role { get; set; }
+    public string? Phone { get; set; }
+    public bool IsActive { get; set; } = true;
+    public decimal CommissionPercent { get; set; }
+    public Guid? UserId { get; set; }
 }
 public enum OrderStatus { Waiting, Washing, Finishing, Ready, Delivered, Cancelled }
 public enum PaymentStatus { Pending, PartiallyPaid, Paid, Refunded }
@@ -65,6 +74,7 @@ public sealed class WashOrder : ITenantEntity
     public OrderStatus Status { get; set; }
     public PaymentStatus PaymentStatus { get; set; }
     public decimal Total { get; set; }
+    public Guid? EmployeeId { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 
