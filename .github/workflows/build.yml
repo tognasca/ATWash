@@ -27,6 +27,7 @@ jobs:
       ATWASH_ADMIN_EMAIL: integration@atwash.test
       ATWASH_ADMIN_PASSWORD: IntegrationOnlyPassword2026!
       ATWASH_COMPANY_NAME: ATWash Integration
+      ATWASH_PLATFORM_ADMIN_KEY: ci-platform-key-only-please-never-use-in-production-2026
       ASPNETCORE_URLS: http://127.0.0.1:5098
     steps:
       - uses: actions/checkout@v4
