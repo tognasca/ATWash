@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-atwash}
+      POSTGRES_USER: ${POSTGRES_USER:-atwash}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD in .env}
+    ports:
+      - "5436:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-atwash} -d ${POSTGRES_DB:-atwash}"]
+      interval: 5s
+      retries: 10
+  api:
+    build: ./src/ATWash.Api
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Default: Host=db;Port=5432;Database=${POSTGRES_DB:-atwash};Username=${POSTGRES_USER:-atwash};Password=${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD in .env}
+    ports:
+      - "5098:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  pgdata:
