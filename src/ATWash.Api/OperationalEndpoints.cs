@@ -150,6 +150,8 @@ public static class OperationalEndpoints
                 return Results.Conflict("Product already exists");
             var product = new Product { TenantId = tenant, Name = name, Price = input.Price, Stock = input.Stock };
             db.Products.Add(product);
+            if(product.Stock>0) db.StockMovements.Add(new StockMovement { TenantId=tenant,ProductId=product.Id,
+                Kind=StockMovementKind.Opening,Quantity=product.Stock,BalanceAfter=product.Stock,Reason="Saldo inicial do cadastro" });
             await db.SaveChangesAsync(ct);
             return Results.Created($"/api/products/{product.Id}", product);
         });
@@ -164,7 +166,8 @@ public static class OperationalEndpoints
             if (product is null) return Results.NotFound();
             if (await db.Products.AnyAsync(x => x.TenantId == tenant && x.Id != id && x.Name.ToLower() == name.ToLower(), ct))
                 return Results.Conflict("Product already exists");
-            product.Name = name; product.Price = input.Price; product.Stock = input.Stock;
+            if (input.Stock != product.Stock) return Results.Conflict("Use a movimentação de estoque para alterar o saldo.");
+            product.Name = name; product.Price = input.Price;
             await db.SaveChangesAsync(ct);
             return Results.Ok(product);
         });
