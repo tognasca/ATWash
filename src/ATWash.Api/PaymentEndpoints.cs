@@ -71,6 +71,12 @@ public static class PaymentEndpoints
             var remaining = order.Total - paid;
             if (remaining <= 0 || input.Amount > remaining)
                 return Results.Conflict($"Valor superior ao saldo pendente de R$ {Math.Max(0, remaining):N2}.");
+            if (input.Method == PaymentMethod.Cash)
+            {
+                await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({tenant.ToString()}, 0))", ct);
+                if (!await db.CashSessions.AnyAsync(x => x.TenantId == tenant && x.ClosedAt == null, ct))
+                    return Results.Conflict("Abra o caixa antes de receber em dinheiro.");
+            }
             var payment = new OrderPayment { TenantId = tenant, OrderId = id, OperationId = input.OperationId,
                 Method = input.Method, Amount = input.Amount, Tendered = input.Tendered,
                 Reference = input.Reference?.Trim(), ConfirmedByUserId = userId };
