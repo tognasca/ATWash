@@ -102,9 +102,11 @@ export async function syncPending(token:string):Promise<number>{
  const tenant=tenantFromToken(token);
  let count=0;
  // Process in creation order; remap temporary IDs durably before deleting each item.
- const all=(await store<Pending[]>('pending','readonly',s=>s.getAll()))
-  .filter(x=>x.tenant===tenant).sort((a,b)=>a.createdAt-b.createdAt);
- for(const item of all){
+ while(true){
+  const all=(await store<Pending[]>('pending','readonly',s=>s.getAll()))
+   .filter(x=>x.tenant===tenant).sort((a,b)=>a.createdAt-b.createdAt);
+  if(all.length===0)break;
+  const item=all[0];
   if(item.kind==='status'){
    await api('/orders/'+item.orderId+'/status',token,'PATCH',{status:item.to});
   }else{
