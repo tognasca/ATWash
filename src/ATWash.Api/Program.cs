@@ -15,6 +15,7 @@ builder.Services.AddSingleton<TokenIssuer>();
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("platform", rule => { rule.PermitLimit=20; rule.Window=TimeSpan.FromMinutes(1); rule.QueueLimit=0; });
     options.AddFixedWindowLimiter("login", rule =>
     {
         rule.PermitLimit = 5;
@@ -83,6 +84,7 @@ app.MapOperations();
 app.MapInventory();
 app.MapOperationsManagement();
 app.MapSaas();
+app.MapSaasAdministration();
 app.MapPayments();
 app.MapFinance();
 await AdminBootstrap.RunAsync(app.Services, app.Configuration);
