@@ -1,4 +1,7 @@
 name: Build and integration tests
+concurrency:
+  group: atwash-build-${{ github.ref }}
+  cancel-in-progress: true
 on:
   push:
   pull_request:
