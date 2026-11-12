@@ -17,7 +17,7 @@ if (app.Configuration.GetValue<bool>("ATWASH_SEED_DEMO"))
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
 app.MapHealthChecks("/health");
 // Public API is intentionally read-only and limited to the demo tenant until authentication is implemented.
-app.MapGet("/api/demo", async (AtWashDbContext db, CancellationToken ct) =>
+if (app.Environment.IsDevelopment()) app.MapGet("/api/demo", async (AtWashDbContext db, CancellationToken ct) =>
 {
     var tenant = await db.Tenants.AsNoTracking().SingleOrDefaultAsync(x => x.IsDemo, ct);
     if (tenant is null) return Results.NotFound();
