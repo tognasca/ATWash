@@ -9,12 +9,20 @@ import {saveSnapshot,loadSnapshot,syncPending,tenantFromToken,pendingCount,listP
 import {DialogProvider,useDialog} from './Dialog';
 import './style.css';
 
+function cachedSession():{token:string;role:string}|null{
+ try{const raw=sessionStorage.getItem('atwash-session');if(!raw)return null;
+  const session=JSON.parse(raw) as {token:string;role:string};
+  const payload=JSON.parse(atob(session.token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+  if(typeof payload.exp!=='number'||payload.exp*1000<=Date.now()+30000)return null;
+  return session;
+ }catch{return null}
+}
 function App(){
  const dialog=useDialog();
  const notifyError=(message:string)=>{if(message.trim())dialog.show(message,'error')};
- const [token,setToken]=useState('');
+ const [token,setToken]=useState(()=>cachedSession()?.token??'');
  const [deviceId,setDeviceId]=useState(()=>{const key='atwash-device-id';let id=localStorage.getItem(key);if(!id){id=crypto.randomUUID();localStorage.setItem(key,id)}return id});
- const [role,setRole]=useState('');
+ const [role,setRole]=useState(()=>cachedSession()?.role??'');
  const [screen,setScreen]=useState<'operation'|'admin'|'dashboard'>('operation');
  const [email,setEmail]=useState('');
  const [password,setPassword]=useState('');
@@ -27,6 +35,7 @@ function App(){
  async function reviewPending(){try{setPendingItems(await listPending(tenantFromToken(token)));setShowPending(true)}catch(e){notifyError(String(e))}}
  async function discardStatus(id:string){if(!window.confirm('Descartar esta atualização local? O estado do servidor será mantido.'))return;try{const t=tenantFromToken(token);await discardPending(t,id);setPendingItems(await listPending(t));setQueued(await pendingCount(t));await reload(token)}catch(e){notifyError(String(e))}}
 
+ useEffect(()=>{if(token)void reload(token).catch(e=>notifyError(String(e)))},[]);
  useEffect(()=>{
   const onOnline=()=>{setOnline(true);if(token)void syncPending(token).then(()=>reload(token)).catch(e=>notifyError('Sincronização pendente: '+String(e)))};
   const onOffline=()=>setOnline(false);
@@ -63,12 +72,13 @@ function App(){
    const me=await api<{role:string}>('/auth/me',result.accessToken);
    if(navigator.onLine)try{await syncPending(result.accessToken)}catch(syncError){notifyError('Pendências offline precisam de revisão: '+String(syncError))}
    await reload(result.accessToken);
+   sessionStorage.setItem('atwash-session',JSON.stringify({token:result.accessToken,role:me.role}));
    setRole(me.role);setScreen('operation');setToken(result.accessToken);setPassword('');
   }catch(e){if(e instanceof ApiError && e.status===401)dialog.show('E-mail ou senha incorretos. Verifique os dados e tente novamente.','error');else dialog.show(e instanceof ApiError&&e.status===429?'Muitas tentativas de acesso. Aguarde um minuto e tente novamente.':'Não foi possível entrar. Verifique a conexão e tente novamente.','error')}finally{setBusy(false)}
  }
  if(!token)return <main className="login"><section className="panel"><div className="brand"><img className="brand-logo" src="/atwashcontrol-logo.png" alt="ATWashControl — Gestão de Lava-Rápido" onError={e=>{e.currentTarget.style.display="none";e.currentTarget.nextElementSibling?.removeAttribute("hidden")}}/><span className="brand-fallback" hidden>ATWash<span>Control</span></span></div><p>Seu lava-rápido na palma da mão.</p><form onSubmit={login}><label>E-mail<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Senha<input type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label><button disabled={busy}>Entrar</button></form><button className="secondary" type="button" onClick={()=>{if(!window.confirm('Redefinir este dispositivo? As pendências offline antigas não serão sincronizadas automaticamente.'))return;const next=crypto.randomUUID();localStorage.setItem('atwash-device-id',next);setDeviceId(next)}}>Registrar como novo dispositivo</button></section></main>;
  const isAdmin=role==='Owner'||role==='Manager';
- return <main><header><h1>AT<span>Wash</span></h1><div><button className={screen==='operation'?'':'secondary'} onClick={()=>setScreen('operation')}>Atendimento</button>{isAdmin&&<button className={screen==='dashboard'?'':'secondary'} onClick={()=>setScreen('dashboard')}>Dashboard</button>}{isAdmin&&<button className={screen==='admin'?'':'secondary'} onClick={()=>setScreen('admin')}>Administração</button>}<button className="secondary" onClick={()=>{setToken('');setRole('');setScreen('operation')}}>Sair</button></div></header>
+ return <main><header><h1>AT<span>Wash</span></h1><div><button className={screen==='operation'?'':'secondary'} onClick={()=>setScreen('operation')}>Atendimento</button>{isAdmin&&<button className={screen==='dashboard'?'':'secondary'} onClick={()=>setScreen('dashboard')}>Dashboard</button>}{isAdmin&&<button className={screen==='admin'?'':'secondary'} onClick={()=>setScreen('admin')}>Administração</button>}<button className="secondary" onClick={()=>{sessionStorage.removeItem('atwash-session');setToken('');setRole('');setScreen('operation')}}>Sair</button></div></header>
 
  {screen==='operation'?<Atendimento token={token} customers={customers} vehicles={vehicles} services={services} products={products} orders={orders} reload={reload} onError={notifyError} canConfirmPix={isAdmin} canWrite={role!=='Washer'} online={online} onQueued={()=>setQueued(x=>x+1)}/>:isAdmin&&screen==='dashboard'?<Dashboard token={token} onError={notifyError}/>:isAdmin?<Admin token={token} services={services} products={products} reload={reload} onError={notifyError}/>:null}
  {showPending&&<section className="panel"><h2>Pendências offline</h2><p>Revise operações antes de descartá-las. Apenas mudanças de etapa podem ser descartadas aqui; cadastros dependentes são preservados.</p>{pendingItems.map(x=><div className="actions" key={x.id}><span>{x.description}</span>{x.kind==='status'&&<button className="secondary" onClick={()=>void discardStatus(x.id)}>Descartar etapa</button>}</div>)}<button className="secondary" onClick={()=>setShowPending(false)}>Fechar</button></section>}
