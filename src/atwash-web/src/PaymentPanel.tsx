@@ -1,5 +1,6 @@
 import {useEffect,useState} from 'react';
 import {api,currency,type Order} from './api';
+import {createOperationId} from './operationId';
 type Method=0|1|2;
 type Ledger={total:number;paid:number;remaining:number;payments:{id:string;method:Method;amount:number;confirmedAt:string;reference?:string}[]};
 type Props={order:Order;token:string;onClose:()=>void;onChanged:()=>Promise<void>;onError:(error:string)=>void;canConfirmPix:boolean};
@@ -25,7 +26,7 @@ export default function PaymentPanel({order,token,onClose,onChanged,onError,canC
    win.document.write(html);win.document.close();win.focus();win.print();
   }catch(e){onError(String(e))}
  }
- const [operationId,setOperationId]=useState(()=>crypto.randomUUID());
+ const [operationId,setOperationId]=useState(()=>createOperationId());
  async function load(){const result=await api<Ledger>('/orders/'+order.id+'/payments',token);setLedger(result);setAmount(result.remaining.toFixed(2));setTendered(result.remaining.toFixed(2))}
  useEffect(()=>{void load().catch(e=>onError(String(e)))},[order.id,token]);
  const numeric=(s:string)=>Number(s.replace(',','.'));
@@ -40,7 +41,7 @@ export default function PaymentPanel({order,token,onClose,onChanged,onError,canC
   setBusy(true);onError('');
   try{
    await api('/orders/'+order.id+'/payments',token,'POST',{operationId,method,amount:paymentAmount,tendered:method===0?given:paymentAmount,reference:reference.trim()||null});
-   setOperationId(crypto.randomUUID());setReference('');await load();await onChanged();
+   setOperationId(createOperationId());setReference('');await load();await onChanged();
   }catch(e){onError(String(e))}finally{setBusy(false)}
  }
  async function deliver(){
