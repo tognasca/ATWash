@@ -133,9 +133,7 @@ async function performSync(token:string):Promise<number>{
   if(all.length===0)break;
   const item=all[0];
   if(item.kind==='status'){
-   const serverOrders=await api<Order[]>('/orders',token);
-   const server=serverOrders.find(x=>x.id===item.orderId);
-   if(!server)throw new Error('Comanda '+item.orderId+' não encontrada. Resolva a pendência manualmente.');
+   const server=await api<Order>('/orders/'+item.orderId,token);
    if(server.status===item.to){
     // Already applied by a previous attempt; safe to remove this pending step.
    }else if(server.status!==item.from){
