@@ -14,7 +14,6 @@ async function api<T>(path:string,token:string,method='GET',body?:unknown):Promi
 }
 function App(){
  const [token,setToken]=useState('');
- const [tenant,setTenant]=useState('');
  const [email,setEmail]=useState('');
  const [password,setPassword]=useState('');
  const [error,setError]=useState('');
@@ -38,14 +37,14 @@ function App(){
  async function login(e:React.FormEvent){
   e.preventDefault();setBusy(true);setError('');
   try{
-   const result=await api<{accessToken:string}>('/auth/login','', 'POST',{tenantId:tenant,email,password});
+   const result=await api<{accessToken:string}>('/auth/login','', 'POST',{email,password});
    setToken(result.accessToken);setPassword('');await refresh(result.accessToken);
   }catch(e){setError(String(e));}finally{setBusy(false);}
  }
  async function submit(action:()=>Promise<unknown>){
   setBusy(true);setError('');try{await action();await refresh();}catch(e){setError(String(e));}finally{setBusy(false);}
  }
- if(!token)return <main className="login"><section className="panel"><h1>AT<span>Wash</span></h1><p>Seu lava-rápido na palma da mão.</p><form onSubmit={login}><label>ID da empresa<input required value={tenant} onChange={e=>setTenant(e.target.value)} placeholder="UUID da empresa"/></label><label>E-mail<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Senha<input type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label><button disabled={busy}>Entrar</button></form>{error&&<p role="alert" className="error">{error}</p>}<small>É necessário provisionar uma conta no backend antes do primeiro login.</small></section></main>;
+ if(!token)return <main className="login"><section className="panel"><h1>AT<span>Wash</span></h1><p>Seu lava-rápido na palma da mão.</p><form onSubmit={login}><label>E-mail<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Senha<input type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label><button disabled={busy}>Entrar</button></form>{error&&<p role="alert" className="error">{error}</p>}<small>É necessário provisionar uma conta no backend antes do primeiro login.</small></section></main>;
  return <main><header><h1>AT<span>Wash</span></h1><div><span>Operação</span><button className="secondary" onClick={()=>{setToken('');setCustomers([]);setOrders([]);}}>Sair</button></div></header><section className="stats"><article><small>Comandas</small><strong>{orders.length}</strong></article><article><small>Em andamento</small><strong>{orders.filter(o=>o.status===1||o.status===2).length}</strong></article><article><small>Total das comandas exibidas</small><strong>{currency(orders.reduce((sum,o)=>sum+o.total,0))}</strong></article></section>{error&&<p role="alert" className="error">{error}</p>}
  <div className="columns"><section className="panel"><h2>Novo cliente</h2><form onSubmit={e=>{e.preventDefault();void submit(async()=>{await api('/customers',token,'POST',{name,phone});setName('');setPhone('');});}}><input placeholder="Nome" required value={name} onChange={e=>setName(e.target.value)}/><input placeholder="Telefone" value={phone} onChange={e=>setPhone(e.target.value)}/><button disabled={busy}>Cadastrar cliente</button></form></section>
  <section className="panel"><h2>Novo veículo</h2><form onSubmit={e=>{e.preventDefault();void submit(async()=>{await api('/vehicles',token,'POST',{customerId,plate,model});setPlate('');setModel('');});}}><select required value={customerId} onChange={e=>setCustomerId(e.target.value)}><option value="">Selecione o cliente</option>{customers.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select><input required placeholder="Placa" value={plate} onChange={e=>setPlate(e.target.value)}/><input required placeholder="Modelo" value={model} onChange={e=>setModel(e.target.value)}/><button disabled={busy}>Cadastrar veículo</button></form></section>
