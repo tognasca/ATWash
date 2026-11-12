@@ -73,6 +73,8 @@ public static class SaasAdministrationEndpoints
             if(!await db.SubscriptionPlans.AnyAsync(x=>x.Id==input.PlanId&&x.IsActive,ct))
                 return Results.BadRequest("Plano inexistente ou inativo.");
             await using var tx=await db.Database.BeginTransactionAsync(ct);
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock(hashtextextended({email}, 0))",ct);
             if(await db.Users.AnyAsync(x=>x.Email==email,ct))return Results.Conflict("E-mail já cadastrado.");
             var tenant=new Tenant{Name=input.Name.Trim(),IsActive=true,IsDemo=false};
             var owner=new AppUser{TenantId=tenant.Id,Email=email,PasswordHash="",Role=UserRole.Owner};
