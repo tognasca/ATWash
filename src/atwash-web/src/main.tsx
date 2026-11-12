@@ -50,6 +50,7 @@ function App(){
  async function reload(t=token){
   const tenant=tenantFromToken(t);
   try{
+   if(await pendingCount(tenant)>0)await syncPending(t);
    const [c,v,s,p,o]=await Promise.all([
     api<Customer[]>('/customers',t),api<Vehicle[]>('/vehicles',t),
     api<Service[]>('/services',t),api<Product[]>('/products',t),api<Order[]>('/orders',t)
