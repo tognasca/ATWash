@@ -57,6 +57,49 @@ public static class OperationalEndpoints
                 .OrderBy(x => x.Name).ToListAsync(ct));
         });
 
+
+        api.MapPost("/services", async (ServiceInput input, ClaimsPrincipal principal, AtWashDbContext db, CancellationToken ct) =>
+        {
+            if (!CanManageServices(principal) || !TryTenant(principal, out var tenant)) return Results.Forbid();
+            var name = input.Name?.Trim();
+            if (string.IsNullOrWhiteSpace(name) || name.Length > 160 || input.Price < 0 || input.Price > 1000000)
+                return Results.BadRequest("Invalid service name or price");
+            if (await db.Services.AnyAsync(x => x.TenantId == tenant && x.Name.ToLower() == name.ToLower(), ct))
+                return Results.Conflict("Service already exists");
+            var service = new WashService { TenantId = tenant, Name = name, Price = input.Price };
+            db.Services.Add(service);
+            await db.SaveChangesAsync(ct);
+            return Results.Created($"/api/services/{service.Id}", service);
+        });
+
+        api.MapPut("/services/{id:guid}", async (Guid id, ServiceInput input, ClaimsPrincipal principal, AtWashDbContext db, CancellationToken ct) =>
+        {
+            if (!CanManageServices(principal) || !TryTenant(principal, out var tenant)) return Results.Forbid();
+            var name = input.Name?.Trim();
+            if (string.IsNullOrWhiteSpace(name) || name.Length > 160 || input.Price < 0 || input.Price > 1000000)
+                return Results.BadRequest("Invalid service name or price");
+            var service = await db.Services.SingleOrDefaultAsync(x => x.Id == id && x.TenantId == tenant, ct);
+            if (service is null) return Results.NotFound();
+            if (await db.Services.AnyAsync(x => x.TenantId == tenant && x.Id != id && x.Name.ToLower() == name.ToLower(), ct))
+                return Results.Conflict("Service already exists");
+            service.Name = name;
+            service.Price = input.Price;
+            await db.SaveChangesAsync(ct);
+            return Results.Ok(service);
+        });
+
+        api.MapDelete("/services/{id:guid}", async (Guid id, ClaimsPrincipal principal, AtWashDbContext db, CancellationToken ct) =>
+        {
+            if (!CanManageServices(principal) || !TryTenant(principal, out var tenant)) return Results.Forbid();
+            var service = await db.Services.SingleOrDefaultAsync(x => x.Id == id && x.TenantId == tenant, ct);
+            if (service is null) return Results.NotFound();
+            if (await db.Orders.AnyAsync(x => x.TenantId == tenant && x.ServiceId == id, ct))
+                return Results.Conflict("Service has existing orders and cannot be deleted");
+            db.Services.Remove(service);
+            await db.SaveChangesAsync(ct);
+            return Results.NoContent();
+        });
+
         api.MapGet("/orders", async (ClaimsPrincipal principal, AtWashDbContext db, CancellationToken ct) =>
         {
             if (!TryTenant(principal, out var tenant)) return Results.Unauthorized();
@@ -85,6 +128,9 @@ public static class OperationalEndpoints
     private static bool TryTenant(ClaimsPrincipal principal, out Guid tenant) =>
         Guid.TryParse(principal.FindFirstValue("tenant_id"), out tenant) && tenant != Guid.Empty;
 
+    private static bool CanManageServices(ClaimsPrincipal principal) =>
+        principal.IsInRole(nameof(UserRole.Owner)) || principal.IsInRole(nameof(UserRole.Manager));
+
     private static bool CanWrite(ClaimsPrincipal principal) =>
         principal.IsInRole(nameof(UserRole.Owner)) ||
         principal.IsInRole(nameof(UserRole.Manager)) ||
@@ -93,4 +139,5 @@ public static class OperationalEndpoints
 
 public sealed record CustomerInput(string Name, string? Phone);
 public sealed record VehicleInput(Guid CustomerId, string Plate, string Model, string? Brand, string? Color);
+public sealed record ServiceInput(string Name, decimal Price);
 public sealed record OrderInput(string Number, Guid VehicleId, Guid ServiceId);
