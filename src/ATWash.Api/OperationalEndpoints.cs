@@ -219,6 +219,12 @@ public static class OperationalEndpoints
             if (!await db.Vehicles.AnyAsync(x => x.TenantId == tenant && x.Id == input.VehicleId, ct))
                 return Results.BadRequest("Invalid vehicle");
             if (input.ClientId == Guid.Empty) return Results.BadRequest("Identificador inválido.");
+            var serviceIds = input.ServiceIds?.Distinct().ToArray() ?? [];
+            if (serviceIds.Length is < 1 or > 30) return Results.BadRequest("Select 1 to 30 services");
+            var services = await db.Services.AsNoTracking().Where(x => x.TenantId == tenant && serviceIds.Contains(x.Id)).ToListAsync(ct);
+            if (services.Count != serviceIds.Length) return Results.BadRequest("Invalid service selection");
+            await using var numberTx = await db.Database.BeginTransactionAsync(ct);
+            await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({tenant.ToString()}, 0))", ct);
             if (input.ClientId is Guid clientOrderId)
             {
                 var existing = await db.Orders.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == tenant && x.Id == clientOrderId, ct);
@@ -232,12 +238,7 @@ public static class OperationalEndpoints
                     return Results.Ok(new { existing.Id, existing.Number, existing.Total, AlreadyProcessed = true });
                 }
             }
-            var serviceIds = input.ServiceIds?.Distinct().ToArray() ?? [];
-            if (serviceIds.Length is < 1 or > 30) return Results.BadRequest("Select 1 to 30 services");
-            var services = await db.Services.AsNoTracking().Where(x => x.TenantId == tenant && serviceIds.Contains(x.Id)).ToListAsync(ct);
-            if (services.Count != serviceIds.Length) return Results.BadRequest("Invalid service selection");
-            await using var numberTx = await db.Database.BeginTransactionAsync(ct);
-            await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({tenant.ToString()}, 0))", ct);
+
             var numbers = await db.Orders.AsNoTracking().Where(x => x.TenantId == tenant).Select(x => x.Number).ToListAsync(ct);
             var next = numbers.Select(x => long.TryParse(x, out var n) && n > 0 ? n : 0).DefaultIfEmpty(0).Max() + 1;
             var order = new WashOrder { Id = input.ClientId ?? Guid.NewGuid(), TenantId = tenant, Number = next.ToString("D6"),
