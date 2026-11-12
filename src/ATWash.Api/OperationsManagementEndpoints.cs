@@ -1,11 +1,13 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 namespace ATWash.Api;
 public sealed record EmployeeInput(string Name,string Role,string? Phone,bool IsActive=true,decimal CommissionPercent=0,Guid? UserId=null);
 public sealed record SupplierInput(string Name,string? Phone,string? TaxId,bool IsActive=true);
 public sealed record ProductDetailsInput(string Name,decimal Price,decimal MinimumStock,decimal AverageCost,string Unit,bool IsSupply,Guid? SupplierId);
 public sealed record RecipeInput(Guid ProductId,decimal Quantity);
 public sealed record AssignEmployeeInput(Guid? EmployeeId);
+public sealed record EmployeeAccessInput(string Email,string Password,UserRole Role);
 public static class OperationsManagementEndpoints {
  static bool Tenant(ClaimsPrincipal p,out Guid t)=>Guid.TryParse(p.FindFirstValue("tenant_id"),out t)&&t!=Guid.Empty;
  static bool Manage(ClaimsPrincipal p)=>p.IsInRole("Owner")||p.IsInRole("Manager");
@@ -29,7 +31,22 @@ public static class OperationsManagementEndpoints {
   var error=await ValidateEmployee(i,t,db,ct);if(error!=null)return Results.BadRequest(error);
   if(i.UserId.HasValue&&await db.Employees.AnyAsync(x=>x.TenantId==t&&x.Id!=id&&x.UserId==i.UserId,ct))return Results.Conflict("Usuário já vinculado a outro funcionário.");
   e.Name=i.Name.Trim();e.Role=i.Role.Trim();e.Phone=i.Phone?.Trim();e.IsActive=i.IsActive;e.CommissionPercent=i.CommissionPercent;e.UserId=i.UserId;
+  if(e.UserId.HasValue){var account=await db.Users.SingleOrDefaultAsync(x=>x.TenantId==t&&x.Id==e.UserId,ct);if(account!=null)account.IsActive=e.IsActive;}
   await db.SaveChangesAsync(ct);return Results.Ok(e);
+ });
+ api.MapPost("/employees/{id:guid}/access",async(Guid id,EmployeeAccessInput i,ClaimsPrincipal p,AtWashDbContext db,IPasswordHasher<AppUser> hasher,CancellationToken ct)=>{
+  if(!Manage(p)||!Tenant(p,out var t))return Results.Forbid();
+  if(i.Role==UserRole.Owner||(!p.IsInRole("Owner")&&i.Role==UserRole.Manager))return Results.Forbid();
+  var email=i.Email?.Trim().ToLowerInvariant();
+  if(string.IsNullOrWhiteSpace(email)||!email.Contains('@')||i.Password?.Length<12||i.Password.Length>128)return Results.BadRequest("E-mail ou senha inválidos. A senha deve ter pelo menos 12 caracteres.");
+  var e=await db.Employees.SingleOrDefaultAsync(x=>x.TenantId==t&&x.Id==id,ct);
+  if(e==null)return Results.NotFound();
+  if(await db.Users.AnyAsync(x=>x.Email==email&&x.Id!=e.UserId,ct))return Results.Conflict("E-mail já utilizado.");
+  var user=e.UserId.HasValue?await db.Users.SingleOrDefaultAsync(x=>x.TenantId==t&&x.Id==e.UserId,ct):null;
+  if(user==null){user=new AppUser{TenantId=t,Email=email,PasswordHash="",Role=i.Role};db.Users.Add(user);e.UserId=user.Id;}
+  user.Email=email;user.Role=i.Role;user.IsActive=e.IsActive;
+  user.PasswordHash=hasher.HashPassword(user,i.Password);
+  await db.SaveChangesAsync(ct);return Results.Ok(new{user.Id,user.Email,user.Role,user.IsActive});
  });
  api.MapGet("/employees/performance",async(ClaimsPrincipal p,AtWashDbContext db,CancellationToken ct)=>{
   if(!Manage(p)||!Tenant(p,out var t))return Results.Forbid();
