@@ -96,7 +96,8 @@ def main():
     assert request("GET", f"/orders/{oid}/payments")["remaining"] == 0
     assert request("POST", f"/orders/{oid}/deliver", expected=(409,)), "must reject premature delivery"
     for status in (1,2,3):
-        request("PATCH", f"/orders/{oid}/status", {"status":status})
+        request("PATCH", f"/orders/{oid}/status", {"status":status,"expectedStatus":status-1})
+    request("PATCH", f"/orders/{oid}/status", {"status":3,"expectedStatus":2}, (409,))
     assert next(p for p in request("GET", "/products") if p["id"] == supply["id"])["stock"] == 8
     assert any(m["kind"] in ("Consumption",3) and m["quantity"] == -2
                for m in request("GET", f"/inventory/movements?productId={supply['id']}"))
