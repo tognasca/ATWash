@@ -25,9 +25,11 @@ async function store<T>(name:string,mode:IDBTransactionMode,fn:(s:IDBObjectStore
  return new Promise((resolve,reject)=>{
   const tx=db.transaction(name,mode);
   const request=fn(tx.objectStore(name));
-  request.onsuccess=()=>resolve(request.result);
-  request.onerror=()=>reject(request.error);
-  tx.oncomplete=()=>db.close();
+  let result:T;
+  request.onsuccess=()=>{result=request.result};
+  request.onerror=()=>{db.close();reject(request.error)};
+  tx.oncomplete=()=>{db.close();resolve(result)};
+  tx.onabort=()=>{db.close();reject(tx.error??new Error('Transação offline cancelada.'))};
   tx.onerror=()=>{db.close();reject(tx.error)};
  });
 }
