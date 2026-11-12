@@ -9,8 +9,8 @@ export default defineConfig({
    registerType: 'autoUpdate',
    includeAssets: ['favicon.svg'],
    manifest: {
-    name: 'ATWash - Gestão de Lava-Rápido',
-    short_name: 'ATWash',
+    name: 'ATWashControl - Gestão de Lava-Rápido',
+    short_name: 'ATWashControl',
     description: 'Seu lava-rápido na palma da mão',
     start_url: '/',
     display: 'standalone',
