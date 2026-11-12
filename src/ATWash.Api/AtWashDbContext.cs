@@ -12,6 +12,7 @@ public sealed class AtWashDbContext(DbContextOptions<AtWashDbContext> options) :
     public DbSet<WashOrder> Orders => Set<WashOrder>();
     protected override void OnModelCreating(ModelBuilder model)
     {
+        model.Entity<Tenant>().HasIndex(x => x.IsDemo).IsUnique().HasFilter("\\\"IsDemo\\\" = TRUE");
         model.Entity<Customer>().HasAlternateKey(x => new { x.TenantId, x.Id });
         model.Entity<Vehicle>().HasAlternateKey(x => new { x.TenantId, x.Id });
         model.Entity<WashService>().HasAlternateKey(x => new { x.TenantId, x.Id });
