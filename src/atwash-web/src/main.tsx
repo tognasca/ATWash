@@ -17,7 +17,7 @@ function App(){
  const [online,setOnline]=useState(navigator.onLine);
  const [queued,setQueued]=useState(0);
  useEffect(()=>{
-  const onOnline=()=>{setOnline(true);if(token)void syncStatuses(token).then(()=>reload(token)).catch(e=>setError('Sincronização pendente: '+String(e)))};
+  const onOnline=()=>{setOnline(true);if(token)void syncPending(token).then(()=>reload(token)).catch(e=>setError('Sincronização pendente: '+String(e)))};
   const onOffline=()=>setOnline(false);
   window.addEventListener('online',onOnline);window.addEventListener('offline',onOffline);
   return ()=>{window.removeEventListener('online',onOnline);window.removeEventListener('offline',onOffline)};
