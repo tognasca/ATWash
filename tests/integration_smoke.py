@@ -42,6 +42,9 @@ def main():
     assigned = request("PUT", f"/orders/{oid}/employee", {"employeeId":employee["id"]})
     assert assigned["employeeId"] == employee["id"]
     assert any(e["id"] == employee["id"] for e in request("GET", "/employees"))
+    access = request("POST", f"/employees/{employee['id']}/access",
+        {"email":"washer-integration@atwash.test","password":"WasherIntegration2026!","role":3})
+    assert access["email"] == "washer-integration@atwash.test"
     supplier = request("POST", "/suppliers", {"name":"Fornecedor integração","phone":"11999990000","taxId":"123"}, (201,))
     assert any(s["id"] == supplier["id"] for s in request("GET", "/suppliers"))
     supply = request("POST", "/products", {"name":"Shampoo insumo integração","price":0,"stock":10}, (201,))
