@@ -39,8 +39,22 @@ function App(){
  useEffect(()=>{
   const onOnline=()=>{setOnline(true);if(token)void syncPending(token).then(()=>reload(token)).catch(e=>notifyError('Sincronização pendente: '+String(e)))};
   const onOffline=()=>setOnline(false);
+  // Retry pending operations after connectivity is restored and when the app
+  // returns to the foreground. A periodic retry covers missed browser events.
+  const retry=async()=>{
+   if(!token||!navigator.onLine||document.visibilityState!=='visible')return;
+   try{
+    if(await pendingCount(tenantFromToken(token))>0){
+     await syncPending(token);
+     await reload(token);
+    }
+   }catch{/* Keep pending operations intact for manual conflict review. */}
+  };
+  const onVisible=()=>{if(document.visibilityState==='visible')void retry()};
+  const interval=window.setInterval(()=>{void retry()},60000);
   window.addEventListener('online',onOnline);window.addEventListener('offline',onOffline);
-  return ()=>{window.removeEventListener('online',onOnline);window.removeEventListener('offline',onOffline)};
+  document.addEventListener('visibilitychange',onVisible);
+  return ()=>{window.clearInterval(interval);document.removeEventListener('visibilitychange',onVisible);window.removeEventListener('online',onOnline);window.removeEventListener('offline',onOffline)};
  },[token]);
  const [customers,setCustomers]=useState<Customer[]>([]);
  const [vehicles,setVehicles]=useState<Vehicle[]>([]);
