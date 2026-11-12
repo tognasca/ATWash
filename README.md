@@ -819,7 +819,7 @@ Este quadro diferencia **requisito planejado** de **funcionalidade entregue**. B
 |---|---|---|
 | API .NET 10, PostgreSQL, Docker | Implementado | Workflow `.github/workflows/build.yml` compila a API e aplica migrations em PostgreSQL de teste. |
 | Autenticação e isolamento básico por TenantId | Implementado parcialmente | Há filtros e validações por tenant nas rotas existentes; testes negativos completos entre duas empresas ainda necessários. |
-| Serviços, produtos, clientes, veículos, comandas | Implementado parcialmente | CRUD operacional e seed demonstrativo; ainda faltam ficha técnica, movimentações detalhadas de estoque, fornecedores e diversos campos do README. |
+| Serviços, produtos, clientes, veículos, comandas | Implementado parcialmente | CRUD operacional, Kanban, responsáveis por comanda, equipe, fichas técnicas e fornecedores disponíveis; faltam campos adicionais, operação offline completa e homologação em tablets. |
 | Pagamentos, caixa, Pix, estornos, conciliação | Implementado parcialmente | QR Code Pix estático e confirmação manual; não há confirmação bancária automática nem estorno bancário automático. |
 | Offline | Implementado parcialmente | Cache IndexedDB por tenant, fila de cadastros/comandas/etapas e replay com UUIDs; não há login offline após reinício, pagamentos offline ou extras offline. |
 | Android | APK debug compilado | Capacitor e workflow Android; requer URL HTTPS real da API, teste em dispositivo físico e build release assinado. |
@@ -830,8 +830,20 @@ Este quadro diferencia **requisito planejado** de **funcionalidade entregue**. B
 ### Próximas entregas obrigatórias
 
 1. Gestão de dispositivos e revogação, autenticação offline segura e resolução explícita de conflitos.
-2. Movimentação de estoque, venda de produtos e consumo de insumos com integridade transacional.
+2. Validar em tablet físico as movimentações de estoque, venda de produtos, custo médio, fornecedores e consumo automático da ficha técnica na passagem da comanda para Pronto.
 3. Relatórios reais e painel comercial multiempresa (planos, assinaturas, licenças).
 4. Testes negativos multi-tenant, simultaneidade entre dois tablets, backup/restauração e homologação Android físico.
 
 Consulte `docs/tablet-offline-android.md` para os limites operacionais e instruções Android. Nunca tratar esta especificação como prova de entrega funcional.
+
+
+### Entregas de operação e estoque (12/11/2026)
+
+- Cadastro e edição de funcionários com nome, cargo, telefone, comissão, status ativo/inativo, vínculo opcional a usuário e provisionamento de login com perfil Washer/Attendant/Manager (com restrições de permissão).
+- Atribuição de responsável às comandas, painel Kanban por status e consulta de produtividade/estimativa de comissão em comandas entregues.
+- Cadastro e edição de fornecedores, vínculo ao produto, classificação revenda/insumo, unidade, estoque mínimo e custo médio.
+- Fichas técnicas por serviço com quantidade de cada insumo; na transição para **Pronto** a API baixa os insumos em transação PostgreSQL, com bloqueio contra saldo negativo e registro de execução único por serviço/comanda.
+- Reposição com custo unitário opcional recalcula custo médio ponderado. Histórico de movimentações permanece separado das vendas.
+- Migração `20261112190000_OperationsAndRecipes` e testes de integração adicionados.
+
+**Limites desta entrega:** a baixa automática ocorre ao marcar a lavagem como Pronta, não no início; não foi homologada a execução simultânea em dois tablets físicos. Os cargos administrativos não substituem testes negativos completos de autorização. A atribuição de funcionário e a baixa automática de insumos exigem conexão. O custo médio anterior ao cadastro de custos deve ser informado manualmente, quando aplicável. Os percentuais de comissão são estimativas, não folha de pagamento.
