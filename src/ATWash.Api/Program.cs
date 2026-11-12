@@ -49,7 +49,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
             }
             var db=context.HttpContext.RequestServices.GetRequiredService<AtWashDbContext>();
             var valid=await db.RegisteredDevices.AsNoTracking().AnyAsync(x=>x.Id==deviceId&&x.TenantId==tenantId&&x.UserId==userId&&x.RevokedAt==null);
-            var userValid=await db.Users.AsNoTracking().AnyAsync(x=>x.Id==userId&&x.TenantId==tenantId&&x.IsActive);
+            var currentUser=await db.Users.AsNoTracking().Where(x=>x.Id==userId&&x.TenantId==tenantId&&x.IsActive)
+                .Select(x=>new{x.Role}).SingleOrDefaultAsync();
+            var tokenRole=principal?.FindFirstValue(ClaimTypes.Role);
+            // Reject existing JWTs immediately after a role change. The user must log in
+            // again to receive a token with their current permissions.
+            var userValid=currentUser!=null&&string.Equals(currentUser.Role.ToString(),tokenRole,StringComparison.Ordinal);
             var tenantValid=await db.Tenants.AsNoTracking().AnyAsync(x=>x.Id==tenantId&&x.IsActive);
             var sub=await db.TenantSubscriptions.AsNoTracking().SingleOrDefaultAsync(x=>x.TenantId==tenantId);
             var subscriptionValid=sub==null || (sub.Status is "active" or "trial" &&
