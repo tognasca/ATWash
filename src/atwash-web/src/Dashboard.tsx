@@ -28,6 +28,16 @@ export default function Dashboard({token,onError}:{token:string;onError:(x:strin
   const a=document.createElement('a');a.href=url;a.download='atwash-relatorio-'+from+'-'+to+'.csv';a.click();
   URL.revokeObjectURL(url);
  }
+ async function startSubscription(){
+  try{
+   const result=await api<{checkoutUrl:string}>('/saas/mercadopago/checkout',token,'POST',{});
+   const url=new URL(result.checkoutUrl);
+   if(url.protocol!=='https:'||!(url.hostname==='mercadopago.com.br'||url.hostname.endsWith('.mercadopago.com.br')))
+    throw new Error('Endereço de pagamento não autorizado.');
+   window.open(url.toString(),'_blank','noopener,noreferrer');
+   dialog.show('Conclua a autorização no Mercado Pago. O retorno ao site não confirma pagamento; a assinatura precisa ser validada.','info');
+  }catch(e){onError(String(e))}
+ }
  async function revoke(id:string){if(!await dialog.confirm('Revogar este dispositivo? O acesso será bloqueado imediatamente.'))return;try{await api('/devices/'+id+'/revoke',token,'POST',{});await load();dialog.show('Dispositivo revogado com sucesso.','success')}catch(e){onError(String(e))}}
  return <section className="panel"><h2>Indicadores e gestão SaaS</h2>
  <div className="actions"><label>De<input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label><label>Até<input type="date" value={to} onChange={e=>setTo(e.target.value)}/></label><button onClick={()=>void load()}>Atualizar</button></div>
@@ -42,6 +52,7 @@ export default function Dashboard({token,onError}:{token:string;onError:(x:strin
  <h3>Movimento diário</h3><button className="secondary" onClick={exportCsv}>Exportar CSV (Excel)</button><div className="tablewrap"><table><thead><tr><th>Dia</th><th>Comandas</th><th>Valor das comandas</th></tr></thead><tbody>{data.byDay.map(x=><tr key={x.date}><td>{x.date.slice(0,10)}</td><td>{x.orders}</td><td>{currency(x.billed)}</td></tr>)}</tbody></table></div></>}
  <h3>Dispositivos cadastrados</h3><p>Revogar um dispositivo bloqueia seus tokens imediatamente. Para autorizar novamente, é necessário cadastrar outro identificador.</p>
  <div className="tablewrap"><table><thead><tr><th>Dispositivo</th><th>Cadastro</th><th>Status</th><th>Ação</th></tr></thead><tbody>{devices.map(d=><tr key={d.id}><td>{d.name}</td><td>{new Date(d.createdAt).toLocaleDateString('pt-BR')}</td><td>{d.revokedAt?'Revogado':'Ativo'}</td><td>{!d.revokedAt&&<button className="secondary" onClick={()=>void revoke(d.id)}>Revogar</button>}</td></tr>)}</tbody></table></div>
- <h3>Assinatura da empresa</h3><p>{subscription?.subscription?'Status: '+subscription.subscription.status:'Sem assinatura configurada.'} Cobrança e provisionamento ainda manuais; nenhum pagamento recorrente automático está ativo.</p>
+ <h3>Assinatura da empresa</h3><p>{subscription?.subscription?'Status: '+subscription.subscription.status:'Sem assinatura configurada.'} A cobrança recorrente depende da autorização e confirmação pelo Mercado Pago.</p>
+ {subscription?.subscription&&<button onClick={()=>void startSubscription()}>Autorizar mensalidade no Mercado Pago</button>}
  </section>
 }
