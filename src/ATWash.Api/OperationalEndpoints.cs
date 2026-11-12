@@ -165,22 +165,59 @@ public static class OperationalEndpoints
                 .OrderByDescending(x => x.CreatedAt).Take(200).ToListAsync(ct));
         });
 
+        api.MapGet("/orders/{id:guid}/items", async (Guid id, ClaimsPrincipal principal, AtWashDbContext db, CancellationToken ct) =>
+        {
+            if (!TryTenant(principal, out var tenant)) return Results.Unauthorized();
+            if (!await db.Orders.AnyAsync(x => x.Id == id && x.TenantId == tenant, ct)) return Results.NotFound();
+            return Results.Ok(await db.OrderItems.AsNoTracking().Where(x => x.TenantId == tenant && x.OrderId == id)
+                .OrderBy(x => x.ServiceName).ToListAsync(ct));
+        });
+
         api.MapPost("/orders", async (OrderInput input, ClaimsPrincipal principal, AtWashDbContext db, CancellationToken ct) =>
         {
             if (!CanWrite(principal) || !TryTenant(principal, out var tenant)) return Results.Forbid();
-            var vehicle = await db.Vehicles.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == tenant && x.Id == input.VehicleId, ct);
-            var service = await db.Services.AsNoTracking().SingleOrDefaultAsync(x => x.TenantId == tenant && x.Id == input.ServiceId, ct);
-            if (vehicle is null || service is null) return Results.BadRequest("Invalid vehicle or service");
-            if (string.IsNullOrWhiteSpace(input.Number) || input.Number.Length > 30) return Results.BadRequest("Invalid order number");
-            if (await db.Orders.AnyAsync(x => x.TenantId == tenant && x.Number == input.Number, ct))
+            if (string.IsNullOrWhiteSpace(input.Number) || input.Number.Trim().Length > 30)
+                return Results.BadRequest("Invalid order number");
+            if (!await db.Vehicles.AnyAsync(x => x.TenantId == tenant && x.Id == input.VehicleId, ct))
+                return Results.BadRequest("Invalid vehicle");
+            var serviceIds = input.ServiceIds?.Distinct().ToArray() ?? [];
+            if (serviceIds.Length is < 1 or > 30) return Results.BadRequest("Select 1 to 30 services");
+            var services = await db.Services.AsNoTracking().Where(x => x.TenantId == tenant && serviceIds.Contains(x.Id)).ToListAsync(ct);
+            if (services.Count != serviceIds.Length) return Results.BadRequest("Invalid service selection");
+            if (await db.Orders.AnyAsync(x => x.TenantId == tenant && x.Number == input.Number.Trim(), ct))
                 return Results.Conflict("Order number already exists");
             var order = new WashOrder { TenantId = tenant, Number = input.Number.Trim(),
-                VehicleId = vehicle.Id, ServiceId = service.Id, Total = service.Price,
-                Status = OrderStatus.Waiting, PaymentStatus = PaymentStatus.Pending };
+                VehicleId = input.VehicleId, ServiceId = services[0].Id,
+                Total = services.Sum(x => x.Price), Status = OrderStatus.Waiting, PaymentStatus = PaymentStatus.Pending };
             db.Orders.Add(order);
+            foreach (var service in services)
+                db.OrderItems.Add(new WashOrderItem { TenantId = tenant, OrderId = order.Id,
+                    ServiceId = service.Id, ServiceName = service.Name, UnitPrice = service.Price,
+                    Quantity = 1, Total = service.Price });
             await db.SaveChangesAsync(ct);
             return Results.Created($"/api/orders/{order.Id}", new { order.Id, order.Total });
         });
+
+        api.MapPost("/orders/{id:guid}/services", async (Guid id, AddOrderServiceInput input, ClaimsPrincipal principal, AtWashDbContext db, CancellationToken ct) =>
+        {
+            if (!CanWrite(principal) || !TryTenant(principal, out var tenant)) return Results.Forbid();
+            await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+            var order = await db.Orders.SingleOrDefaultAsync(x => x.Id == id && x.TenantId == tenant, ct);
+            if (order is null) return Results.NotFound();
+            if (order.Status is OrderStatus.Delivered or OrderStatus.Cancelled || order.PaymentStatus != PaymentStatus.Pending)
+                return Results.Conflict("Cannot change a closed or paid order");
+            var service = await db.Services.AsNoTracking().SingleOrDefaultAsync(x => x.Id == input.ServiceId && x.TenantId == tenant, ct);
+            if (service is null) return Results.BadRequest("Invalid service");
+            if (await db.OrderItems.AnyAsync(x => x.TenantId == tenant && x.OrderId == id && x.ServiceId == input.ServiceId, ct))
+                return Results.Conflict("Service already added");
+            db.OrderItems.Add(new WashOrderItem { TenantId = tenant, OrderId = id, ServiceId = service.Id,
+                ServiceName = service.Name, UnitPrice = service.Price, Quantity = 1, Total = service.Price });
+            order.Total += service.Price;
+            await db.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+            return Results.Ok(new { order.Id, order.Total });
+        });
+
     }
 
     private static bool TryTenant(ClaimsPrincipal principal, out Guid tenant) =>
@@ -200,4 +237,5 @@ public sealed record VehicleInput(Guid CustomerId, string Plate, string Model, s
 public sealed record ProductInput(string Name, decimal Price, decimal Stock);
 public sealed record OrderStatusInput(OrderStatus Status);
 public sealed record ServiceInput(string Name, decimal Price);
-public sealed record OrderInput(string Number, Guid VehicleId, Guid ServiceId);
+public sealed record OrderInput(string Number, Guid VehicleId, Guid[] ServiceIds);
+public sealed record AddOrderServiceInput(Guid ServiceId);
