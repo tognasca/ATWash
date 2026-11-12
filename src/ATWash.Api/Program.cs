@@ -1,9 +1,42 @@
 using ATWash.Api;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AtWashDbContext>(o => o.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
+builder.Services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
+builder.Services.AddSingleton<TokenIssuer>();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("login", rule =>
+    {
+        rule.PermitLimit = 5;
+        rule.Window = TimeSpan.FromMinutes(1);
+        rule.QueueLimit = 0;
+    });
+});
+var jwtSecret = builder.Configuration["JWT_SECRET_KEY"];
+if (string.IsNullOrWhiteSpace(jwtSecret) || Encoding.UTF8.GetByteCount(jwtSecret) < 32)
+    throw new InvalidOperationException("JWT_SECRET_KEY must contain at least 32 bytes.");
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+{
+    options.MapInboundClaims = false;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true, ValidIssuer = builder.Configuration["JWT_ISSUER"] ?? "ATWash",
+        ValidateAudience = true, ValidAudience = builder.Configuration["JWT_AUDIENCE"] ?? "ATWashClients",
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+        ValidateLifetime = true, ClockSkew = TimeSpan.FromSeconds(30),
+        RoleClaimType = System.Security.Claims.ClaimTypes.Role
+    };
+});
+builder.Services.AddAuthorization();
 var app = builder.Build();
 if (app.Configuration.GetValue<bool>("ATWASH_APPLY_MIGRATIONS") || app.Configuration.GetValue<bool>("ATWASH_SEED_DEMO"))
 {
@@ -17,6 +50,10 @@ if (app.Configuration.GetValue<bool>("ATWASH_APPLY_MIGRATIONS") || app.Configura
         await DemoSeeder.SeedAsync(db);
     }
 }
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapAuth();
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
 app.MapHealthChecks("/health");
 // Public API is intentionally read-only and limited to the demo tenant until authentication is implemented.
