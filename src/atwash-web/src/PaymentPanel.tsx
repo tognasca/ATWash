@@ -1,4 +1,5 @@
 import {useEffect,useState} from 'react';
+import QRCode from 'qrcode';
 import {api,currency,type Order} from './api';
 import {createOperationId} from './operationId';
 type Method=0|1|2;
@@ -12,8 +13,9 @@ export default function PaymentPanel({order,token,onClose,onChanged,onError,canC
  const [reference,setReference]=useState('');
  const [busy,setBusy]=useState(false);
  const [pixPayload,setPixPayload]=useState('');
+ const [pixQr,setPixQr]=useState('');
  async function generatePix(){
-  try{const result=await api<{payload:string}>('/orders/'+order.id+'/pix',token);setPixPayload(result.payload)}
+  try{const result=await api<{payload:string}>('/orders/'+order.id+'/pix',token);const qr=await QRCode.toDataURL(result.payload,{errorCorrectionLevel:'M',margin:3,width:320});setPixPayload(result.payload);setPixQr(qr)}
   catch(e){onError(String(e))}
  }
  async function receipt(){
@@ -53,7 +55,7 @@ export default function PaymentPanel({order,token,onClose,onChanged,onError,canC
  return <section className="panel payment-panel"><div className="actions"><h2>Pagamento · Comanda #{order.number}</h2><button className="secondary" onClick={onClose}>Fechar</button></div>
  <div className="payment-summary"><span>Total: <strong>{currency(ledger?.total??order.total)}</strong></span><span>Recebido: <strong>{currency(ledger?.paid??0)}</strong></span><span>Falta: <strong>{currency(ledger?.remaining??order.total)}</strong></span></div>
  <div className="actions"><button type="button" className="secondary" onClick={()=>void receipt()}>Imprimir comprovante</button>{ledger&&ledger.remaining>0&&<button type="button" className="secondary" onClick={()=>void generatePix()}>Gerar Pix copia e cola</button>}</div>
- {pixPayload&&<div className="pix-code"><p>Pix copia e cola — confira o crédito antes de confirmar:</p><textarea readOnly value={pixPayload} rows={4}/><button type="button" onClick={()=>void navigator.clipboard.writeText(pixPayload).catch(e=>onError(String(e)))}>Copiar código Pix</button></div>}
+ {pixPayload&&<div className="pix-code"><p>Pix QR Code e copia e cola — confira o crédito antes de confirmar:</p>{pixQr&&<img src={pixQr} alt="QR Code Pix da comanda" width={260} height={260} style={{maxWidth:"100%",height:"auto",background:"white",padding:8,borderRadius:12}}/>}<textarea readOnly value={pixPayload} rows={4}/><button type="button" onClick={()=>void navigator.clipboard.writeText(pixPayload).catch(e=>onError(String(e)))}>Copiar código Pix</button></div>}
  {ledger&&ledger.remaining>0&&<form onSubmit={e=>{e.preventDefault();void confirm()}}>
  <label>Forma de pagamento<select value={method} onChange={e=>{setMethod(Number(e.target.value) as Method);setReference('')}}><option value={0}>Dinheiro</option><option value={1}>Cartão (maquininha externa)</option>{canConfirmPix&&<option value={2}>Pix já recebido (confirmação manual)</option>}</select></label>
  <label>Valor a registrar (R$)<input inputMode="decimal" required value={amount} onChange={e=>setAmount(e.target.value)}/></label>
