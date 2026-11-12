@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-atwash}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD in .env}
     ports:
-      - "5436:5432"
+      - "127.0.0.1:5436:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -27,7 +27,7 @@ services:
       ATWASH_SEED_DEMO: ${ATWASH_SEED_DEMO:-false}
       ConnectionStrings__Default: Host=db;Port=5432;Database=${POSTGRES_DB:-atwash};Username=${POSTGRES_USER:-atwash};Password=${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD in .env}
     ports:
-      - "5098:8080"
+      - "127.0.0.1:5098:8080"
     depends_on:
       db:
         condition: service_healthy
