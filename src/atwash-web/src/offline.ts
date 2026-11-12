@@ -118,9 +118,25 @@ export async function pendingCount(tenant:string):Promise<number>{
  return all.filter(x=>x.tenant===tenant).length;
 }
 let activeSync:Promise<number>|null=null;
+const SYNC_LOCK='atwash-sync-owner';
+const SYNC_TTL=120000;
+function lockSync():()=>void{
+ const owner=crypto.randomUUID();
+ const current=localStorage.getItem(SYNC_LOCK);
+ if(current){
+  try{const lock=JSON.parse(current) as {owner:string;expires:number};
+   if(lock.expires>Date.now())throw new Error('Outra aba está sincronizando. Aguarde e tente novamente.');
+  }catch(e){if(e instanceof Error&&e.message.startsWith('Outra aba'))throw e}
+ }
+ localStorage.setItem(SYNC_LOCK,JSON.stringify({owner,expires:Date.now()+SYNC_TTL}));
+ if(JSON.parse(localStorage.getItem(SYNC_LOCK)??'{}').owner!==owner)
+  throw new Error('Sincronização já iniciada em outra aba.');
+ return ()=>{try{if(JSON.parse(localStorage.getItem(SYNC_LOCK)??'{}').owner===owner)localStorage.removeItem(SYNC_LOCK)}catch{/* ignore */}};
+}
+
 export async function syncPending(token:string):Promise<number>{
  if(activeSync)return activeSync;
- activeSync=performSync(token).finally(()=>{activeSync=null});
+ activeSync=(async()=>{const release=lockSync();try{return await performSync(token)}finally{release()}})().finally(()=>{activeSync=null});
  return activeSync;
 }
 async function performSync(token:string):Promise<number>{
