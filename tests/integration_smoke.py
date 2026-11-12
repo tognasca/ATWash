@@ -21,6 +21,18 @@ def request(method, path, data=None, expected=(200,)):
     assert status in expected, f"{method} {path}: expected {expected}, got {status}: {content[:1000]}"
     return json.loads(content) if content and content[0] in '[{' else content
 
+def platform(method, path, data=None, expected=(200,), key="ci-platform-key-only-please-never-use-in-production-2026"):
+    headers={"Content-Type":"application/json","X-ATWash-Platform-Key":key}
+    body=None if data is None else json.dumps(data).encode()
+    req=urllib.request.Request(BASE+"/platform"+path,data=body,headers=headers,method=method)
+    try:
+        with urllib.request.urlopen(req,timeout=15) as resp:
+            status,content=resp.status,resp.read().decode()
+    except urllib.error.HTTPError as err:
+        status,content=err.code,err.read().decode()
+    assert status in expected,f"Platform {method} {path}: expected {expected}, got {status}: {content[:500]}"
+    return json.loads(content) if content and content[0] in '[{' else content
+
 def main():
     global TOKEN
     login = request("POST", "/auth/login", {"email":"integration@atwash.test","password":"IntegrationOnlyPassword2026!"})
@@ -124,6 +136,24 @@ def main():
     request("POST", f"/payments/{payment_id}/refund",
         {"amount":1,"reason":"Excesso","externalReference":"REF-CI-123"}, (409,))
     request("POST", "/cash/close", {"countedCash":0,"note":"Segundo fechamento"})
+    platform("GET","/tenants",expected=(401,),key="wrong")
+    plan=platform("POST","/plans",{"name":"Teste","monthlyPrice":99.9,"maxDevices":2},(201,))
+    tenant=platform("POST","/tenants",{"name":"Lava rápido integração",
+        "ownerEmail":"new-tenant@atwash.test","ownerPassword":"IntegrationTenantPassword2026!",
+        "planId":plan["id"],"expiresAt":None},(201,))
+    assert tenant["name"]=="Lava rápido integração"
+    assert any(t["id"]==tenant["id"] for t in platform("GET","/tenants"))
+    platform("PUT",f"/tenants/{tenant['id']}/subscription",
+        {"planId":plan["id"],"status":"suspended","expiresAt":None})
+    request("POST","/auth/login",{"email":"new-tenant@atwash.test",
+        "password":"IntegrationTenantPassword2026!"},(401,))
+    platform("PUT",f"/tenants/{tenant['id']}/subscription",
+        {"planId":plan["id"],"status":"active","expiresAt":None})
+    assert request("POST","/auth/login",{"email":"new-tenant@atwash.test",
+        "password":"IntegrationTenantPassword2026!"})["accessToken"]
+    platform("PUT",f"/tenants/{tenant['id']}/status?active=false",expected=(200,))
+    request("POST","/auth/login",{"email":"new-tenant@atwash.test",
+        "password":"IntegrationTenantPassword2026!"},(401,))
     devices=request("GET","/devices")
     current=next(d for d in devices if d["id"]==login["deviceId"])
     assert current["revokedAt"] is None
