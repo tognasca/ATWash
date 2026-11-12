@@ -16,7 +16,7 @@ public sealed class AppUser : ITenantEntity
     public UserRole Role { get; set; }
     public bool IsActive { get; set; } = true;
 }
-public sealed record LoginRequest(Guid TenantId, string Email, string Password);
+public sealed record LoginRequest(string Email, string Password);
 public sealed class TokenIssuer(IConfiguration configuration)
 {
     public string Issue(AppUser user)
@@ -47,10 +47,12 @@ public static class AuthEndpoints
             var email = request.Email?.Trim().ToLowerInvariant();
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(request.Password))
                 return Results.Unauthorized();
-            var user = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
-                .SingleOrDefaultAsync(db.Users.Where(x => x.TenantId == request.TenantId && x.Email == email && x.IsActive), ct);
+            var matches = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
+                .ToListAsync(db.Users.Where(x => x.Email == email && x.IsActive).Take(2), ct);
+            // An email must resolve to exactly one account; never choose a tenant arbitrarily.
+            var user = matches.Count == 1 ? matches[0] : null;
             // Verify a dummy hash on missing accounts to reduce timing differences.
-            var candidate = user ?? new AppUser { TenantId = request.TenantId, Email = email,
+            var candidate = user ?? new AppUser { TenantId = Guid.Empty, Email = email,
                 PasswordHash = DummyHash };
             var valid = hasher.VerifyHashedPassword(candidate, candidate.PasswordHash, request.Password);
             if (user is null || valid == PasswordVerificationResult.Failed) return Results.Unauthorized();
