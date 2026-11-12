@@ -38,6 +38,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
     };
 });
 builder.Services.AddAuthorization();
+var allowedOrigins = (builder.Configuration["ATWASH_CORS_ORIGINS"] ?? "")
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+builder.Services.AddCors(options => options.AddPolicy("AtWashClients", policy =>
+{
+    if (allowedOrigins.Length > 0)
+        policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod();
+}));
 var app = builder.Build();
 if (app.Configuration.GetValue<bool>("ATWASH_APPLY_MIGRATIONS") || app.Configuration.GetValue<bool>("ATWASH_SEED_DEMO"))
 {
@@ -51,6 +58,7 @@ if (app.Configuration.GetValue<bool>("ATWASH_APPLY_MIGRATIONS") || app.Configura
         await DemoSeeder.SeedAsync(db);
     }
 }
+app.UseCors("AtWashClients");
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
