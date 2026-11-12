@@ -8,11 +8,15 @@ public static class PixPayload
     {
         if (amount <= 0 || amount > 99999999.99m) throw new ArgumentOutOfRangeException(nameof(amount));
         if (string.IsNullOrWhiteSpace(key) || Encoding.UTF8.GetByteCount(key) > 77) throw new ArgumentException("Chave Pix inválida");
-        static string Clean(string s, int max) => Regex.Replace(s.ToUpperInvariant().Normalize(NormalizationForm.FormD)
-            .Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
-            .Aggregate(new StringBuilder(), (b,c) => b.Append(c)).ToString(), "[^A-Z0-9 .-]", "").Trim()[..Math.Min(max, Regex.Replace(s.ToUpperInvariant().Normalize(NormalizationForm.FormD)
-            .Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
-            .Aggregate(new StringBuilder(), (b,c) => b.Append(c)).ToString(), "[^A-Z0-9 .-]", "").Trim().Length)];
+        static string Clean(string value, int max)
+        {
+            var normalized = value.ToUpperInvariant().Normalize(NormalizationForm.FormD);
+            var withoutAccents = new string(normalized.Where(ch =>
+                System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch) !=
+                System.Globalization.UnicodeCategory.NonSpacingMark).ToArray());
+            var cleaned = Regex.Replace(withoutAccents, "[^A-Z0-9 .-]", "").Trim();
+            return cleaned.Length > max ? cleaned[..max] : cleaned;
+        }
         var name = Clean(merchantName,25); var town = Clean(city,15);
         if (name.Length == 0 || town.Length == 0) throw new ArgumentException("Nome ou cidade Pix inválidos");
         var account = Field("00","br.gov.bcb.pix") + Field("01",key);
