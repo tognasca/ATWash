@@ -3,6 +3,7 @@ import {API_BASE,currency} from './api';
 import {useDialog} from './Dialog';
 
 type Plan={id:string;name:string;monthlyPrice:number;maxDevices:number;isActive:boolean};
+type TenantUser={id:string;email:string;role:string;isActive:boolean};
 type Tenant={id:string;name:string;isActive:boolean;isDemo:boolean;subscription?:{planId:string;status:string;expiresAt?:string}};
 export default function PlatformAdmin(){
  const dialog=useDialog();
@@ -10,6 +11,11 @@ export default function PlatformAdmin(){
  const [plans,setPlans]=useState<Plan[]>([]);
  const [tenants,setTenants]=useState<Tenant[]>([]);
  const [loading,setLoading]=useState(false);
+ const [selectedTenant,setSelectedTenant]=useState('');
+ const [users,setUsers]=useState<TenantUser[]>([]);
+ const [userEmail,setUserEmail]=useState('');
+ const [userPassword,setUserPassword]=useState('');
+ const [userRole,setUserRole]=useState('Attendant');
  const [name,setName]=useState('');const [price,setPrice]=useState('99.90');const [devices,setDevices]=useState('3');
  const [company,setCompany]=useState('');const [email,setEmail]=useState('');const [password,setPassword]=useState('');const [planId,setPlanId]=useState('');
  async function call<T>(path:string,method='GET',body?:unknown):Promise<T>{
@@ -23,6 +29,36 @@ export default function PlatformAdmin(){
   setLoading(true);
   try{const [p,t]=await Promise.all([call<Plan[]>('/plans'),call<Tenant[]>('/tenants')]);setPlans(p);setTenants(t);if(!p.some(x=>x.id===planId&&x.isActive))setPlanId(p.find(x=>x.isActive)?.id??'')}
   catch(e){dialog.show(String(e),'error')}finally{setLoading(false)}
+ }
+ async function loadUsers(id:string){
+  setSelectedTenant(id);setUsers([]);
+  if(!id)return;
+  try{setUsers(await call<TenantUser[]>('/tenants/'+id+'/users'))}
+  catch(e){dialog.show(String(e),'error')}
+ }
+ async function createUser(e:FormEvent){
+  e.preventDefault();if(!selectedTenant)return;
+  try{
+   await call('/tenants/'+selectedTenant+'/users','POST',{email:userEmail,password:userPassword,role:userRole});
+   setUserEmail('');setUserPassword('');await loadUsers(selectedTenant);
+   dialog.show('Usuário cadastrado.','success');
+  }catch(e){dialog.show(String(e),'error')}
+ }
+ async function updateUser(user:TenantUser,role:string,isActive:boolean){
+  if(!await dialog.confirm('Alterar acesso de '+user.email+'?'))return;
+  try{
+   await call('/tenants/'+selectedTenant+'/users/'+user.id,'PUT',{role,isActive});
+   await loadUsers(selectedTenant);
+  }catch(e){dialog.show(String(e),'error')}
+ }
+ async function resetUserPassword(user:TenantUser){
+  const password=window.prompt('Nova senha para '+user.email+' (mínimo 12 caracteres)');
+  if(password===null)return;
+  if(password.length<12){dialog.show('Senha muito curta.','error');return}
+  try{
+   await call('/tenants/'+selectedTenant+'/users/'+user.id+'/password','PUT',{password});
+   dialog.show('Senha redefinida.','success');
+  }catch(e){dialog.show(String(e),'error')}
  }
  async function addPlan(e:FormEvent){e.preventDefault();try{
   await call('/plans','POST',{name,monthlyPrice:Number(price),maxDevices:Number(devices),isActive:true});
@@ -65,6 +101,17 @@ export default function PlatformAdmin(){
  <div className="tablewrap"><table><thead><tr><th>Plano</th><th>Mensalidade</th><th>Dispositivos</th><th>Ativo</th><th>Ações</th></tr></thead><tbody>{plans.map(p=><tr key={p.id}><td>{p.name}</td><td>{currency(p.monthlyPrice)}</td><td>{p.maxDevices}</td><td>{p.isActive?'Sim':'Não'}</td><td><button className="secondary" onClick={()=>void editPlan(p)}>Editar</button><button className="secondary" onClick={()=>void togglePlan(p)}>{p.isActive?'Desativar':'Ativar'}</button></td></tr>)}</tbody></table></div>
  <h2>Nova empresa</h2><form className="actions" onSubmit={addTenant}><label>Empresa<input required value={company} onChange={e=>setCompany(e.target.value)}/></label><label>E-mail proprietário<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Senha inicial (12+)<input type="password" minLength={12} required value={password} onChange={e=>setPassword(e.target.value)}/></label><label>Plano<select required value={planId} onChange={e=>setPlanId(e.target.value)}>{plans.filter(p=>p.isActive).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><button disabled={!key||!planId}>Cadastrar empresa</button></form>
  <h2>Empresas e assinaturas</h2><div className="tablewrap"><table><thead><tr><th>Empresa</th><th>Status</th><th>Plano</th><th>Assinatura</th><th>Ações</th></tr></thead><tbody>{tenants.map(t=><tr key={t.id}><td>{t.name}</td><td>{t.isActive?'Ativa':'Suspensa'}</td><td><select aria-label={'Plano de '+t.name} value={t.subscription?.planId??''} onChange={e=>void changeSubscription(t,t.subscription?.status??'active',e.target.value)}>{!t.subscription&&<option value="">Sem plano</option>}{plans.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></td><td><select aria-label={'Assinatura de '+t.name} value={t.subscription?.status??''} onChange={e=>void changeSubscription(t,e.target.value,t.subscription?.planId??planId)}><option value="">Sem assinatura</option>{['trial','active','past_due','suspended','cancelled'].map(s=><option key={s} value={s}>{s}</option>)}</select></td><td><button className="secondary" onClick={()=>void changeTenant(t,!t.isActive)}>{t.isActive?'Suspender':'Reativar'}</button></td></tr>)}</tbody></table></div>
+ <h2>Usuários e permissões por empresa</h2>
+ <label>Selecionar empresa<select value={selectedTenant} onChange={e=>void loadUsers(e.target.value)}><option value="">Selecione</option>{tenants.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
+ {selectedTenant&&<><form className="actions" onSubmit={createUser}>
+ <label>E-mail<input type="email" required value={userEmail} onChange={e=>setUserEmail(e.target.value)}/></label>
+ <label>Senha inicial<input type="password" required minLength={12} value={userPassword} onChange={e=>setUserPassword(e.target.value)}/></label>
+ <label>Perfil<select value={userRole} onChange={e=>setUserRole(e.target.value)}>{['Owner','Manager','Attendant','Washer'].map(x=><option key={x} value={x}>{x}</option>)}</select></label>
+ <button>Cadastrar usuário</button></form>
+ <div className="tablewrap"><table><thead><tr><th>E-mail</th><th>Perfil</th><th>Status</th><th>Ações</th></tr></thead><tbody>{users.map(u=><tr key={u.id}>
+ <td>{u.email}</td><td><select value={u.role} onChange={e=>void updateUser(u,e.target.value,u.isActive)}>{['Owner','Manager','Attendant','Washer'].map(x=><option key={x} value={x}>{x}</option>)}</select></td>
+ <td>{u.isActive?'Ativo':'Bloqueado'}</td><td><button className="secondary" onClick={()=>void updateUser(u,u.role,!u.isActive)}>{u.isActive?'Bloquear':'Desbloquear'}</button><button className="secondary" onClick={()=>void resetUserPassword(u)}>Redefinir senha</button></td>
+ </tr>)}</tbody></table></div></>}
  <p>Alterações manuais de assinatura não comprovam pagamentos. Cobrança recorrente exige reconciliação independente com o Mercado Pago.</p>
  </main>;
 }
