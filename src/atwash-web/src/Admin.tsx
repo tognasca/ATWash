@@ -1,4 +1,6 @@
 import {useState} from 'react';
+import FinanceAdmin from './FinanceAdmin';
+import PixAdmin from './PixAdmin';
 import {api,currency,type Product,type Service} from './api';
 type Props={token:string;services:Service[];products:Product[];reload:()=>Promise<void>;onError:(message:string)=>void};
 type Tab='services'|'products'|'employees'|'finance'|'settings';
