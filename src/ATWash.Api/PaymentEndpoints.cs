@@ -24,9 +24,14 @@ public static class PaymentEndpoints
             if (order is null) return Results.NotFound();
             var payments = await db.Payments.AsNoTracking().Where(p => p.TenantId == tenant && p.OrderId == id)
                 .OrderBy(p => p.ConfirmedAt).ToListAsync(ct);
-            var paid = payments.Sum(p => p.Amount);
+            var refunded = await (from refund in db.PaymentRefunds
+                join payment in db.Payments on new { refund.TenantId, Id = refund.PaymentId }
+                    equals new { payment.TenantId, payment.Id }
+                where refund.TenantId == tenant && payment.OrderId == id
+                select (decimal?)refund.Amount).SumAsync(ct) ?? 0m;
+            var paid = payments.Sum(p => p.Amount) - refunded;
             return Results.Ok(new { order.Id, order.Number, order.Total, Paid = paid,
-                Remaining = Math.Max(0, order.Total - paid), order.PaymentStatus, Payments = payments });
+                Remaining = Math.Max(0, order.Total - paid), Refunded = refunded, order.PaymentStatus, Payments = payments });
         });
 
         group.MapPost("/{id:guid}/payments", async (Guid id, ConfirmPaymentInput input, ClaimsPrincipal principal,
@@ -68,7 +73,12 @@ public static class PaymentEndpoints
             if (order.Status is OrderStatus.Cancelled or OrderStatus.Delivered)
                 return Results.Conflict("A comanda está cancelada ou já foi entregue.");
             var paid = await db.Payments.Where(p => p.TenantId == tenant && p.OrderId == id).SumAsync(p => (decimal?)p.Amount, ct) ?? 0m;
-            var remaining = order.Total - paid;
+            var refunded = await (from refund in db.PaymentRefunds
+                join payment in db.Payments on new { refund.TenantId, Id = refund.PaymentId }
+                    equals new { payment.TenantId, payment.Id }
+                where refund.TenantId == tenant && payment.OrderId == id
+                select (decimal?)refund.Amount).SumAsync(ct) ?? 0m;
+            var remaining = order.Total - (paid - refunded);
             if (remaining <= 0 || input.Amount > remaining)
                 return Results.Conflict($"Valor superior ao saldo pendente de R$ {Math.Max(0, remaining):N2}.");
             if (input.Method == PaymentMethod.Cash)
@@ -100,7 +110,12 @@ public static class PaymentEndpoints
             if (order.Status != OrderStatus.Ready) return Results.Conflict("A lavagem precisa estar marcada como pronta.");
             var paid = await db.Payments.Where(p => p.TenantId == tenant && p.OrderId == id)
                 .SumAsync(p => (decimal?)p.Amount, ct) ?? 0m;
-            if (order.PaymentStatus != PaymentStatus.Paid || paid != order.Total)
+            var refunded = await (from refund in db.PaymentRefunds
+                join payment in db.Payments on new { refund.TenantId, Id = refund.PaymentId }
+                    equals new { payment.TenantId, payment.Id }
+                where refund.TenantId == tenant && payment.OrderId == id
+                select (decimal?)refund.Amount).SumAsync(ct) ?? 0m;
+            if (order.PaymentStatus != PaymentStatus.Paid || paid - refunded != order.Total)
                 return Results.Conflict("Confirme o pagamento integral antes de entregar o veículo.");
             order.Status = OrderStatus.Delivered;
             await db.SaveChangesAsync(ct);
