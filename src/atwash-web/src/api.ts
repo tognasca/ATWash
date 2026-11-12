@@ -1,8 +1,8 @@
 export type Customer={id:string;name:string;phone?:string;vehicles?:Vehicle[]};
 export type Vehicle={id:string;customerId:string;plate:string;model:string;brand?:string};
 export type Service={id:string;name:string;price:number};
-export type Product={id:string;name:string;price:number;stock:number};
-export type Order={id:string;number:string;status:number;paymentStatus:number;total:number;vehicleId:string};
+export type Product={id:string;name:string;price:number;stock:number;minimumStock:number;averageCost:number;unit:string;isSupply:boolean;supplierId?:string};
+export type Order={id:string;number:string;status:number;paymentStatus:number;total:number;vehicleId:string;employeeId?:string};
 export class ApiError extends Error { constructor(public readonly status:number,message:string){super(message);this.name='ApiError'} }
 export const currency=(n:number)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(n);
 // Set VITE_API_BASE_URL to the HTTPS API origin for a packaged Android build.
