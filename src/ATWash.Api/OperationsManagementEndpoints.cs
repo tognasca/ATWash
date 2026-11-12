@@ -38,7 +38,7 @@ public static class OperationsManagementEndpoints {
   if(!Manage(p)||!Tenant(p,out var t))return Results.Forbid();
   if(i.Role==UserRole.Owner||(!p.IsInRole("Owner")&&i.Role==UserRole.Manager))return Results.Forbid();
   var email=i.Email?.Trim().ToLowerInvariant();
-  if(string.IsNullOrWhiteSpace(email)||!email.Contains('@')||i.Password?.Length<12||i.Password.Length>128)return Results.BadRequest("E-mail ou senha inválidos. A senha deve ter pelo menos 12 caracteres.");
+  if(string.IsNullOrWhiteSpace(email)||!email.Contains('@')||string.IsNullOrWhiteSpace(i.Password)||i.Password.Length<12||i.Password.Length>128)return Results.BadRequest("E-mail ou senha inválidos. A senha deve ter pelo menos 12 caracteres.");
   var e=await db.Employees.SingleOrDefaultAsync(x=>x.TenantId==t&&x.Id==id,ct);
   if(e==null)return Results.NotFound();
   if(await db.Users.AnyAsync(x=>x.Email==email&&x.Id!=e.UserId,ct))return Results.Conflict("E-mail já utilizado.");
