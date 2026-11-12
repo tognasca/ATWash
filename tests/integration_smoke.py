@@ -155,6 +155,28 @@ def main():
     platform("PUT",f"/tenants/{tenant['id']}/status?active=false",expected=(200,))
     request("POST","/auth/login",{"email":"new-tenant@atwash.test",
         "password":"IntegrationTenantPassword2026!"},(401,))
+    # Verify platform roles and immediate invalidation of existing JWTs.
+    platform("PUT",f"/tenants/{tenant['id']}/status?active=true")
+    account=platform("POST",f"/tenants/{tenant['id']}/users",{"email":"security-test@atwash.test","password":"TestOnlySecurityPassword2026!","role":"Manager"},(201,))
+    worker=request("POST","/auth/login",{"email":"security-test@atwash.test","password":"TestOnlySecurityPassword2026!"})
+    previous=TOKEN
+    TOKEN=worker["accessToken"]
+    assert request("GET","/auth/me")["role"]=="Manager"
+    TOKEN=previous
+    platform("PUT",f"/tenants/{tenant['id']}/users/{account['id']}",{"role":"Washer","isActive":True})
+    TOKEN=worker["accessToken"]
+    request("GET","/auth/me",expected=(401,))
+    TOKEN=previous
+    worker=request("POST","/auth/login",{"email":"security-test@atwash.test","password":"TestOnlySecurityPassword2026!"})
+    TOKEN=worker["accessToken"]
+    assert request("GET","/auth/me")["role"]=="Washer"
+    request("GET","/devices",expected=(403,))
+    TOKEN=previous
+    platform("PUT",f"/tenants/{tenant['id']}/users/{account['id']}",{"role":"Washer","isActive":False})
+    TOKEN=worker["accessToken"]
+    request("GET","/auth/me",expected=(401,))
+    TOKEN=previous
+    request("POST","/auth/login",{"email":"security-test@atwash.test","password":"TestOnlySecurityPassword2026!"},(401,))
     devices=request("GET","/devices")
     current=next(d for d in devices if d["id"]==login["deviceId"])
     assert current["revokedAt"] is None
