@@ -1,7 +1,7 @@
 import {useEffect,useState} from 'react';
 import FinanceAdmin from './FinanceAdmin';
 import PixAdmin from './PixAdmin';
-import {api,currency,type Product,type Service} from './api';
+import {api,ApiError,currency,type Product,type Service} from './api';
 type Props={token:string;services:Service[];products:Product[];reload:()=>Promise<void>;onError:(message:string)=>void};
 type Tab='services'|'products'|'employees'|'finance'|'settings';
 export default function Admin({token,services,products,reload,onError}:Props){
@@ -20,7 +20,7 @@ export default function Admin({token,services,products,reload,onError}:Props){
  })}
  const tabs:[Tab,string][]=[['services','Serviços'],['products','Produtos e estoque'],['employees','Funcionários'],['finance','Financeiro'],['settings','Configurações']];
  function clear(){setEditing(null);setName('');setPrice('');setStock('0')}
- async function run(action:()=>Promise<unknown>){setBusy(true);onError('');try{await action();await reload()}catch(e){onError(String(e))}finally{setBusy(false)}}
+ async function run(action:()=>Promise<unknown>){setBusy(true);onError('');try{await action();await reload()}catch(e){onError(e instanceof ApiError?e.message:String(e))}finally{setBusy(false)}}
  const rows=tab==='services'?services:products;
  return <div className="admin-layout"><nav className="admin-menu" aria-label="Submenu administrativo">{tabs.map(([id,label])=><button key={id} className={tab===id?'active':'secondary'} onClick={()=>{setTab(id);clear()}}>{label}</button>)}</nav>
  <section className="panel admin-content"><h2>{tabs.find(([id])=>id===tab)?.[1]}</h2>
