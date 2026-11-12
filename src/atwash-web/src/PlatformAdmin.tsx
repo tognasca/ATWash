@@ -13,6 +13,7 @@ export default function PlatformAdmin(){
  const [name,setName]=useState('');const [price,setPrice]=useState('99.90');const [devices,setDevices]=useState('3');
  const [company,setCompany]=useState('');const [email,setEmail]=useState('');const [password,setPassword]=useState('');const [planId,setPlanId]=useState('');
  async function call<T>(path:string,method='GET',body?:unknown):Promise<T>{
+  if(location.protocol!=='https:'&&!['localhost','127.0.0.1'].includes(location.hostname))throw new Error('Painel administrativo exige HTTPS.');
   if(!key||key.length<32)throw new Error('Informe a chave administrativa da plataforma.');
   const response=await fetch(API_BASE+'/platform'+path,{method,headers:{'X-ATWash-Platform-Key':key,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),cache:'no-store'});
   if(!response.ok)throw new Error('Falha administrativa ('+response.status+'): '+(await response.text()).slice(0,200));
