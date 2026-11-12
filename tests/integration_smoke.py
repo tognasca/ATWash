@@ -38,6 +38,17 @@ def main():
     order = request("POST", "/orders", order_input, (201,))
     assert request("POST", "/orders", order_input, (200,))["id"] == order["id"]
     oid = order["id"]
+    employee = request("POST", "/employees", {"name":"Lavador integração","role":"Lavador","phone":"11911111111","commissionPercent":10}, (201,))
+    assigned = request("PUT", f"/orders/{oid}/employee", {"employeeId":employee["id"]})
+    assert assigned["employeeId"] == employee["id"]
+    assert any(e["id"] == employee["id"] for e in request("GET", "/employees"))
+    supplier = request("POST", "/suppliers", {"name":"Fornecedor integração","phone":"11999990000","taxId":"123"}, (201,))
+    assert any(s["id"] == supplier["id"] for s in request("GET", "/suppliers"))
+    supply = request("POST", "/products", {"name":"Shampoo insumo integração","price":0,"stock":10}, (201,))
+    request("PUT", f"/products/{supply['id']}/details",
+        {"name":"Shampoo insumo integração","price":0,"minimumStock":2,"averageCost":3.5,"unit":"ml","isSupply":True,"supplierId":supplier["id"]})
+    request("PUT", f"/services/{services[0]['id']}/recipe", [{"productId":supply["id"],"quantity":2}])
+    assert len(request("GET", f"/services/{services[0]['id']}/recipe")) == 1
     product = request("POST", "/products", {"name":"Shampoo teste integração","price":12.5,"stock":0}, (201,))
     initial_stock = product["stock"]
     request("POST", f"/products/{product['id']}/stock", {"quantity":3,"reason":"Reposição teste"}, (201,))
@@ -68,6 +79,10 @@ def main():
     assert request("POST", f"/orders/{oid}/deliver", expected=(409,)), "must reject premature delivery"
     for status in (1,2,3):
         request("PATCH", f"/orders/{oid}/status", {"status":status})
+    assert next(p for p in request("GET", "/products") if p["id"] == supply["id"])["stock"] == 8
+    assert any(m["kind"] in ("Consumption",3) and m["quantity"] == -2
+               for m in request("GET", f"/inventory/movements?productId={supply['id']}"))
+    assert request("GET", "/employees/performance") is not None
     request("PATCH", f"/orders/{oid}/status", {"status":4}, (409,))
     request("POST", f"/orders/{oid}/deliver", expected=(200,))
     cash = request("GET", "/cash/current")
