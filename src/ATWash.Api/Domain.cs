@@ -67,3 +67,15 @@ public sealed class WashOrder : ITenantEntity
     public decimal Total { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
+
+public sealed class WashOrderItem : ITenantEntity
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid TenantId { get; set; }
+    public Guid OrderId { get; set; }
+    public Guid ServiceId { get; set; }
+    public required string ServiceName { get; set; }
+    public decimal UnitPrice { get; set; }
+    public int Quantity { get; set; } = 1;
+    public decimal Total { get; set; }
+}
