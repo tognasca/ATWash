@@ -86,6 +86,8 @@ def main():
     assert any(m["kind"] in ("Consumption",3) and m["quantity"] == -2
                for m in request("GET", f"/inventory/movements?productId={supply['id']}"))
     assert request("GET", "/employees/performance") is not None
+    request("PATCH", f"/orders/{oid}/status", {"status":3}, (409,))
+    assert next(p for p in request("GET", "/products") if p["id"] == supply["id"])["stock"] == 8
     request("PATCH", f"/orders/{oid}/status", {"status":4}, (409,))
     request("POST", f"/orders/{oid}/deliver", expected=(200,))
     cash = request("GET", "/cash/current")
