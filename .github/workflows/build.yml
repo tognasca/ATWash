@@ -1,10 +1,33 @@
-name: Build API
+name: Build and integration tests
 on:
   push:
   pull_request:
 jobs:
   api:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: atwash_test
+          POSTGRES_USER: atwash
+          POSTGRES_PASSWORD: integration-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U atwash -d atwash_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ConnectionStrings__Default: Host=localhost;Port=5432;Database=atwash_test;Username=atwash;Password=integration-only-password
+      JWT_SECRET_KEY: ci-integration-only-secret-at-least-32-characters-long
+      ATWASH_APPLY_MIGRATIONS: 'true'
+      ATWASH_BOOTSTRAP_ADMIN: 'true'
+      ATWASH_ADMIN_EMAIL: integration@atwash.test
+      ATWASH_ADMIN_PASSWORD: IntegrationOnlyPassword2026!
+      ATWASH_COMPANY_NAME: ATWash Integration
+      ASPNETCORE_URLS: http://127.0.0.1:5098
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -12,3 +35,36 @@ jobs:
           dotnet-version: '10.0.x'
       - run: dotnet restore src/ATWash.Api/ATWash.Api.csproj
       - run: dotnet build src/ATWash.Api/ATWash.Api.csproj -c Release --no-restore
+      - name: Apply all migrations and start API
+        run: |
+          dotnet run --project src/ATWash.Api/ATWash.Api.csproj -c Release --no-build > /tmp/atwash-api.log 2>&1 &
+          echo $! > /tmp/atwash-api.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5098/health; then exit 0; fi
+            if ! kill -0 "$(cat /tmp/atwash-api.pid)" 2>/dev/null; then cat /tmp/atwash-api.log; exit 1; fi
+            sleep 2
+          done
+          cat /tmp/atwash-api.log
+          exit 1
+      - name: Verify migration history
+        run: |
+          PGPASSWORD=integration-only-password psql -h localhost -U atwash -d atwash_test -Atc 'SELECT "MigrationId" FROM "__EFMigrationsHistory" ORDER BY "MigrationId"' > /tmp/migrations.txt
+          cat /tmp/migrations.txt
+          test "$(wc -l < /tmp/migrations.txt)" -eq 5
+          grep -q '20261112170000_AddCashAndReconciliation' /tmp/migrations.txt
+      - name: Integration tests (API and PostgreSQL)
+        run: python3 tests/integration_smoke.py
+      - name: API logs on failure
+        if: failure()
+        run: cat /tmp/atwash-api.log || true
+  frontend:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-audit --no-fund
+        working-directory: src/atwash-web
+      - run: npm run build
+        working-directory: src/atwash-web
