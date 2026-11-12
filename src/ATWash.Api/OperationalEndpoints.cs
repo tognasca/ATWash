@@ -192,6 +192,8 @@ public static class OperationalEndpoints
                     return Results.Forbid();
                 if (input.Status == OrderStatus.Cancelled) return Results.Forbid();
             }
+            if (input.ExpectedStatus.HasValue && order.Status != input.ExpectedStatus.Value)
+                return Results.Conflict("Conflito de sincronização: etapa atual diferente da etapa de origem.");
             if (order.Status is OrderStatus.Delivered or OrderStatus.Cancelled)
                 return Results.Conflict("Esta comanda já foi finalizada ou cancelada.");
             if (input.Status == OrderStatus.Cancelled)
@@ -328,7 +330,7 @@ public static class OperationalEndpoints
 public sealed record CustomerInput(string Name, string? Phone, Guid? ClientId = null);
 public sealed record VehicleInput(Guid CustomerId, string Plate, string Model, string? Brand, string? Color, Guid? ClientId = null);
 public sealed record ProductInput(string Name, decimal Price, decimal Stock);
-public sealed record OrderStatusInput(OrderStatus Status);
+public sealed record OrderStatusInput(OrderStatus Status, OrderStatus? ExpectedStatus = null);
 public sealed record ServiceInput(string Name, decimal Price);
 public sealed record OrderInput(Guid VehicleId, Guid[] ServiceIds, Guid? ClientId = null);
 public sealed record AddOrderServiceInput(Guid ServiceId);
