@@ -13,6 +13,11 @@ public sealed class AtWashDbContext(DbContextOptions<AtWashDbContext> options) :
     public DbSet<WashOrder> Orders => Set<WashOrder>();
     public DbSet<WashOrderItem> OrderItems => Set<WashOrderItem>();
     public DbSet<OrderPayment> Payments => Set<OrderPayment>();
+    public DbSet<CashSession> CashSessions => Set<CashSession>();
+    public DbSet<CashMovement> CashMovements => Set<CashMovement>();
+    public DbSet<TenantPixSettings> PixSettings => Set<TenantPixSettings>();
+    public DbSet<PaymentRefund> PaymentRefunds => Set<PaymentRefund>();
+    public DbSet<BankReconciliation> BankReconciliations => Set<BankReconciliation>();
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.Entity<AppUser>().HasIndex(x => new { x.TenantId, x.Email }).IsUnique();
@@ -42,6 +47,24 @@ public sealed class AtWashDbContext(DbContextOptions<AtWashDbContext> options) :
         model.Entity<OrderPayment>().Property(x => x.Method).HasConversion<string>().HasMaxLength(16);
         model.Entity<OrderPayment>().Property(x => x.Amount).HasPrecision(18, 2);
         model.Entity<OrderPayment>().Property(x => x.Tendered).HasPrecision(18, 2);
+        model.Entity<CashSession>().HasIndex(x => x.TenantId).IsUnique().HasFilter("\\"ClosedAt\\" IS NULL");
+        model.Entity<CashSession>().Property(x => x.OpeningFloat).HasPrecision(18,2);
+        model.Entity<CashSession>().Property(x => x.CountedCash).HasPrecision(18,2);
+        model.Entity<CashSession>().Property(x => x.ExpectedCash).HasPrecision(18,2);
+        model.Entity<CashMovement>().HasOne<CashSession>().WithMany().HasForeignKey(x => new { x.TenantId, x.SessionId })
+            .HasPrincipalKey(x => new { x.TenantId, x.Id }).OnDelete(DeleteBehavior.Restrict);
+        model.Entity<CashSession>().HasAlternateKey(x => new { x.TenantId, x.Id });
+        model.Entity<CashMovement>().Property(x => x.Kind).HasConversion<string>().HasMaxLength(16);
+        model.Entity<CashMovement>().Property(x => x.Amount).HasPrecision(18,2);
+        model.Entity<TenantPixSettings>().HasIndex(x => x.TenantId).IsUnique();
+        model.Entity<PaymentRefund>().HasOne<OrderPayment>().WithMany().HasForeignKey(x => new { x.TenantId, x.PaymentId })
+            .HasPrincipalKey(x => new { x.TenantId, x.Id }).OnDelete(DeleteBehavior.Restrict);
+        model.Entity<OrderPayment>().HasAlternateKey(x => new { x.TenantId, x.Id });
+        model.Entity<PaymentRefund>().Property(x => x.Amount).HasPrecision(18,2);
+        model.Entity<BankReconciliation>().HasOne<OrderPayment>().WithMany().HasForeignKey(x => new { x.TenantId, x.PaymentId })
+            .HasPrincipalKey(x => new { x.TenantId, x.Id }).OnDelete(DeleteBehavior.Restrict);
+        model.Entity<BankReconciliation>().HasIndex(x => new { x.TenantId, x.PaymentId }).IsUnique();
+        model.Entity<BankReconciliation>().HasIndex(x => new { x.TenantId, x.BankReference }).IsUnique();
         model.Entity<WashOrder>().HasIndex(x => new { x.TenantId, x.Number }).IsUnique();
         foreach (var entity in model.Model.GetEntityTypes().Where(x => typeof(ITenantEntity).IsAssignableFrom(x.ClrType)))
             model.Entity(entity.ClrType).HasOne(typeof(Tenant)).WithMany().HasForeignKey(nameof(ITenantEntity.TenantId)).OnDelete(DeleteBehavior.Restrict);
