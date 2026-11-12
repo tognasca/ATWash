@@ -1,3 +1,4 @@
+import {createOperationId} from './operationId';
 import {api,type Customer,type Vehicle,type Service,type Product,type Order} from './api';
 
 export type Snapshot = {customers:Customer[];vehicles:Vehicle[];services:Service[];products:Product[];orders:Order[]};
@@ -60,7 +61,7 @@ export async function queueStatus(tenant:string,orderId:string,from:number,to:nu
  }
 }
 function newId():string{
- return crypto.randomUUID?.() ?? 'local-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+ return createOperationId();
 }
 export async function createOfflineCustomer(tenant:string,name:string,phone:string):Promise<Customer>{
  const snapshot=await loadSnapshot(tenant);
@@ -114,13 +115,13 @@ export async function syncPending(token:string):Promise<number>{
    let realId:string;
    let number:string|undefined;
    if(item.kind==='customer'){
-    const result=await api<{id:string}>('/customers',token,'POST',{name:item.name,phone:item.phone});
+    const result=await api<{id:string}>('/customers',token,'POST',{name:item.name,phone:item.phone,clientId:item.tempId});
     realId=result.id;
    }else if(item.kind==='vehicle'){
-    const result=await api<{id:string}>('/vehicles',token,'POST',{customerId:item.customerId,plate:item.plate,model:item.model});
+    const result=await api<{id:string}>('/vehicles',token,'POST',{customerId:item.customerId,plate:item.plate,model:item.model,clientId:item.tempId});
     realId=result.id;
    }else{
-    const result=await api<{id:string;number:string}>('/orders',token,'POST',{vehicleId:item.vehicleId,serviceIds:item.serviceIds});
+    const result=await api<{id:string;number:string}>('/orders',token,'POST',{vehicleId:item.vehicleId,serviceIds:item.serviceIds,clientId:item.tempId});
     realId=result.id;number=result.number;
    }
    const snapshot=await loadSnapshot(tenant);
