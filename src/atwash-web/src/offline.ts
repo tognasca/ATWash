@@ -86,36 +86,55 @@ export async function queueStatus(tenant:string,orderId:string,from:number,to:nu
 function newId():string{
  return createOperationId();
 }
+// A local operation and its visible snapshot are committed together. A crash
+// cannot leave a customer, vehicle or order visible without its sync record.
+async function appendOffline<T>(tenant:string,kind:Pending,apply:(snapshot:Snapshot)=>T):Promise<T>{
+ const db=await open();
+ return new Promise<T>((resolve,reject)=>{
+  const tx=db.transaction(['snapshots','pending'],'readwrite');
+  const snapshots=tx.objectStore('snapshots');
+  const req=snapshots.get(tenant);
+  let result:T;
+  req.onsuccess=()=>{
+   const snapshot=req.result as Snapshot|undefined;
+   if(!snapshot){tx.abort();return}
+   try{
+    result=apply(snapshot);
+    tx.objectStore('pending').add(kind);
+    snapshots.put(snapshot,tenant);
+   }catch{tx.abort()}
+  };
+  tx.oncomplete=()=>{db.close();resolve(result)};
+  tx.onabort=()=>{db.close();reject(new Error('Operação offline inválida ou dados locais indisponíveis.'))};
+  tx.onerror=()=>{db.close();reject(tx.error)};
+ });
+}
 export async function createOfflineCustomer(tenant:string,name:string,phone:string):Promise<Customer>{
- const snapshot=await loadSnapshot(tenant);
- if(!snapshot)throw new Error('Dados locais indisponíveis.');
  const customer:Customer={id:newId(),name:name.trim(),phone:phone.trim()};
- await store('pending','readwrite',s=>s.add({id:newId(),tenant,kind:'customer',tempId:customer.id,name:customer.name,phone:customer.phone??'',createdAt:Date.now()} as Pending));
- snapshot.customers.push(customer);
- await saveSnapshot(tenant,snapshot);
- return customer;
+ if(!customer.name||customer.name.length>160)throw new Error('Nome inválido.');
+ return appendOffline(tenant,{id:newId(),tenant,kind:'customer',tempId:customer.id,name:customer.name,phone:customer.phone??'',createdAt:Date.now()},snapshot=>{
+  snapshot.customers.push(customer);return customer;
+ });
 }
 export async function createOfflineVehicle(tenant:string,customerId:string,plate:string,model:string):Promise<Vehicle>{
- const snapshot=await loadSnapshot(tenant);
- if(!snapshot)throw new Error('Dados locais indisponíveis.');
- const normalized=plate.trim().toUpperCase();
- if(snapshot.vehicles.some(x=>x.plate===normalized))throw new Error('Placa já cadastrada localmente.');
- const vehicle:Vehicle={id:newId(),customerId,plate:normalized,model:model.trim()};
- await store('pending','readwrite',s=>s.add({id:newId(),tenant,kind:'vehicle',tempId:vehicle.id,customerId,plate:normalized,model:vehicle.model,createdAt:Date.now()} as Pending));
- snapshot.vehicles.push(vehicle);
- await saveSnapshot(tenant,snapshot);
- return vehicle;
+ const vehicle:Vehicle={id:newId(),customerId,plate:plate.trim().toUpperCase(),model:model.trim()};
+ if(!vehicle.plate||vehicle.plate.length>10||!vehicle.model)throw new Error('Dados do veículo inválidos.');
+ return appendOffline(tenant,{id:newId(),tenant,kind:'vehicle',tempId:vehicle.id,customerId,plate:vehicle.plate,model:vehicle.model,createdAt:Date.now()},snapshot=>{
+  if(!snapshot.customers.some(x=>x.id===customerId))throw new Error('Cliente não encontrado.');
+  if(snapshot.vehicles.some(x=>x.plate===vehicle.plate))throw new Error('Placa já cadastrada localmente.');
+  snapshot.vehicles.push(vehicle);return vehicle;
+ });
 }
 export async function createOfflineOrder(tenant:string,vehicleId:string,serviceIds:string[]):Promise<Order>{
- const snapshot=await loadSnapshot(tenant);
- if(!snapshot)throw new Error('Dados locais indisponíveis.');
- const selected=snapshot.services.filter(x=>serviceIds.includes(x.id));
- if(selected.length!==serviceIds.length || selected.length===0)throw new Error('Serviços inválidos.');
- const order:Order={id:newId(),number:'OFF-'+Date.now(),vehicleId,total:selected.reduce((s,x)=>s+x.price,0),status:0,paymentStatus:0};
- await store('pending','readwrite',s=>s.add({id:newId(),tenant,kind:'order',tempId:order.id,vehicleId,serviceIds,createdAt:Date.now()} as Pending));
- snapshot.orders.unshift(order);
- await saveSnapshot(tenant,snapshot);
- return order;
+ const tempId=newId();
+ return appendOffline(tenant,{id:newId(),tenant,kind:'order',tempId,vehicleId,serviceIds:[...serviceIds],createdAt:Date.now()},snapshot=>{
+  if(!snapshot.vehicles.some(x=>x.id===vehicleId))throw new Error('Veículo não encontrado.');
+  const unique=[...new Set(serviceIds)];
+  const selected=snapshot.services.filter(x=>unique.includes(x.id));
+  if(selected.length!==unique.length||selected.length===0||selected.length>30)throw new Error('Serviços inválidos.');
+  const order:Order={id:tempId,number:'OFF-'+tempId.slice(0,8),vehicleId,total:selected.reduce((s,x)=>s+x.price,0),status:0,paymentStatus:0};
+  snapshot.orders.unshift(order);return order;
+ });
 }
 export async function listPending(tenant:string):Promise<{id:string;kind:string;description:string;createdAt:number}[]>{
  const all=await store<Pending[]>('pending','readonly',s=>s.getAll());
