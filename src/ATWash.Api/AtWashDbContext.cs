@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 namespace ATWash.Api;
 public sealed class AtWashDbContext(DbContextOptions<AtWashDbContext> options) : DbContext(options)
 {
+    public DbSet<AppUser> Users => Set<AppUser>();
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<Branch> Branches => Set<Branch>();
     public DbSet<Customer> Customers => Set<Customer>();
@@ -12,7 +13,8 @@ public sealed class AtWashDbContext(DbContextOptions<AtWashDbContext> options) :
     public DbSet<WashOrder> Orders => Set<WashOrder>();
     protected override void OnModelCreating(ModelBuilder model)
     {
-        model.Entity<Tenant>().HasIndex(x => x.IsDemo).IsUnique().HasFilter("\\\"IsDemo\\\" = TRUE");
+        model.Entity<AppUser>().HasIndex(x => new { x.TenantId, x.Email }).IsUnique();
+        model.Entity<AppUser>().Property(x => x.Role).HasConversion<string>().HasMaxLength(32);
         model.Entity<Customer>().HasAlternateKey(x => new { x.TenantId, x.Id });
         model.Entity<Vehicle>().HasAlternateKey(x => new { x.TenantId, x.Id });
         model.Entity<WashService>().HasAlternateKey(x => new { x.TenantId, x.Id });
