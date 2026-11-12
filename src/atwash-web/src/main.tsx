@@ -17,7 +17,6 @@ function App(){
  const [screen,setScreen]=useState<'operation'|'admin'|'dashboard'>('operation');
  const [email,setEmail]=useState('');
  const [password,setPassword]=useState('');
- const [error,setError]=useState('');
  const [busy,setBusy]=useState(false);
  const [online,setOnline]=useState(navigator.onLine);
  const [queued,setQueued]=useState(0);
@@ -57,7 +56,7 @@ function App(){
   setQueued(await pendingCount(tenant));
  }
  async function login(e:FormEvent){
-  e.preventDefault();setBusy(true);setError('');
+  e.preventDefault();setBusy(true);
   try{
    const result=await api<{accessToken:string}>('/auth/login','','POST',{email,password,deviceId,deviceName:navigator.userAgent.slice(0,100)});
    const me=await api<{role:string}>('/auth/me',result.accessToken);
@@ -67,7 +66,7 @@ function App(){
  }
  if(!token)return <main className="login"><section className="panel"><div className="brand"><img className="brand-logo" src="/atwashcontrol-logo.png" alt="ATWashControl — Gestão de Lava-Rápido" onError={e=>{e.currentTarget.style.display="none";e.currentTarget.nextElementSibling?.removeAttribute("hidden")}}/><span className="brand-fallback" hidden>ATWash<span>Control</span></span></div><p>Seu lava-rápido na palma da mão.</p><form onSubmit={login}><label>E-mail<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Senha<input type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label><button disabled={busy}>Entrar</button></form><button className="secondary" type="button" onClick={()=>{if(!window.confirm('Redefinir este dispositivo? As pendências offline antigas não serão sincronizadas automaticamente.'))return;const next=crypto.randomUUID();localStorage.setItem('atwash-device-id',next);setDeviceId(next)}}>Registrar como novo dispositivo</button></section></main>;
  const isAdmin=role==='Owner'||role==='Manager';
- return <main><header><h1>AT<span>Wash</span></h1><div><button className={screen==='operation'?'':'secondary'} onClick={()=>setScreen('operation')}>Atendimento</button>{isAdmin&&<button className={screen==='dashboard'?'':'secondary'} onClick={()=>setScreen('dashboard')}>Dashboard</button>}{isAdmin&&<button className={screen==='admin'?'':'secondary'} onClick={()=>setScreen('admin')}>Administração</button>}<button className="secondary" onClick={()=>{setToken('');setRole('');setError('');setScreen('operation')}}>Sair</button></div></header>
+ return <main><header><h1>AT<span>Wash</span></h1><div><button className={screen==='operation'?'':'secondary'} onClick={()=>setScreen('operation')}>Atendimento</button>{isAdmin&&<button className={screen==='dashboard'?'':'secondary'} onClick={()=>setScreen('dashboard')}>Dashboard</button>}{isAdmin&&<button className={screen==='admin'?'':'secondary'} onClick={()=>setScreen('admin')}>Administração</button>}<button className="secondary" onClick={()=>{setToken('');setRole('');setScreen('operation')}}>Sair</button></div></header>
 
  {screen==='operation'?<Atendimento token={token} customers={customers} vehicles={vehicles} services={services} products={products} orders={orders} reload={reload} onError={notifyError} canConfirmPix={isAdmin} canWrite={role!=='Washer'} online={online} onQueued={()=>setQueued(x=>x+1)}/>:isAdmin&&screen==='dashboard'?<Dashboard token={token} onError={notifyError}/>:isAdmin?<Admin token={token} services={services} products={products} reload={reload} onError={notifyError}/>:null}
  {showPending&&<section className="panel"><h2>Pendências offline</h2><p>Revise operações antes de descartá-las. Apenas mudanças de etapa podem ser descartadas aqui; cadastros dependentes são preservados.</p>{pendingItems.map(x=><div className="actions" key={x.id}><span>{x.description}</span>{x.kind==='status'&&<button className="secondary" onClick={()=>void discardStatus(x.id)}>Descartar etapa</button>}</div>)}<button className="secondary" onClick={()=>setShowPending(false)}>Fechar</button></section>}
