@@ -38,9 +38,7 @@ def main():
     order = request("POST", "/orders", order_input, (201,))
     assert request("POST", "/orders", order_input, (200,))["id"] == order["id"]
     oid = order["id"]
-    products = request("GET", "/products")
-    assert products, "Default product catalog missing"
-    product = products[0]
+    product = request("POST", "/products", {"name":"Shampoo teste integração","price":12.5,"stock":0}, (201,))
     initial_stock = product["stock"]
     request("POST", f"/products/{product['id']}/stock", {"quantity":3,"reason":"Reposição teste"}, (201,))
     sold = request("POST", f"/orders/{oid}/products", {"productId":product["id"],"quantity":2,"isConsumption":False}, (201,))
