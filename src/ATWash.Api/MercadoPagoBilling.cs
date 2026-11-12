@@ -32,7 +32,7 @@ public static class MercadoPagoBilling
             if(string.IsNullOrWhiteSpace(email))return Results.BadRequest("E-mail do proprietário não encontrado.");
             using var request=new HttpRequestMessage(HttpMethod.Post,"https://api.mercadopago.com/preapproval");
             request.Headers.Authorization=new AuthenticationHeaderValue("Bearer",token);
-            request.Headers.TryAddWithoutValidation("X-Idempotency-Key",tenantId.ToString("N")+"-"+plan.Id.ToString("N"));
+            request.Headers.TryAddWithoutValidation("X-Idempotency-Key",Guid.NewGuid().ToString());
             request.Content=JsonContent.Create(new {
                 reason="ATWashControl - "+plan.Name,
                 external_reference=tenantId.ToString("D"),
@@ -51,6 +51,32 @@ public static class MercadoPagoBilling
                 checkoutUri.Scheme!="https"||!checkoutUri.Host.EndsWith("mercadopago.com.br",StringComparison.OrdinalIgnoreCase))
                 return Results.Problem("Resposta de assinatura inválida.",statusCode:502);
             return Results.Ok(new{subscriptionId=id,checkoutUrl=link,status="pending"});
+        });
+        api.MapPost("/sync/{subscriptionId}",async (string subscriptionId,ClaimsPrincipal principal,
+            AtWashDbContext db,IHttpClientFactory clients,IConfiguration config,CancellationToken ct) =>
+        {
+            if(!principal.IsInRole("Owner")||!Guid.TryParse(principal.FindFirst("tenant_id")?.Value,out var tenantId))
+                return Results.Forbid();
+            if(subscriptionId.Length>100||subscriptionId.Any(ch=>!char.IsAsciiLetterOrDigit(ch)&&ch!='-'))
+                return Results.BadRequest("Identificador inválido.");
+            var token=config["MERCADOPAGO_ACCESS_TOKEN"];
+            if(string.IsNullOrWhiteSpace(token))return Results.Problem("Mercado Pago não configurado.",statusCode:503);
+            using var req=new HttpRequestMessage(HttpMethod.Get,"https://api.mercadopago.com/preapproval/"+subscriptionId);
+            req.Headers.Authorization=new AuthenticationHeaderValue("Bearer",token);
+            using var response=await clients.CreateClient("mercadopago").SendAsync(req,ct);
+            if(!response.IsSuccessStatusCode)return Results.Problem("Não foi possível confirmar assinatura.",statusCode:502);
+            using var doc=JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+            var root=doc.RootElement;
+            if(!root.TryGetProperty("external_reference",out var reference)||
+               reference.GetString()!=tenantId.ToString("D"))return Results.Forbid();
+            var mpStatus=root.TryGetProperty("status",out var status)?status.GetString():null;
+            var state=mpStatus switch {"authorized"=>"active","paused"=>"suspended",
+                "cancelled" or "canceled"=>"cancelled",_=>"past_due"};
+            var sub=await db.TenantSubscriptions.SingleOrDefaultAsync(x=>x.TenantId==tenantId,ct);
+            if(sub==null)return Results.NotFound();
+            sub.Status=state;
+            await db.SaveChangesAsync(ct);
+            return Results.Ok(new{providerStatus=mpStatus,subscriptionStatus=sub.Status});
         });
     }
 }
