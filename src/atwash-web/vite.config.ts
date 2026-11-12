@@ -1,3 +1,33 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-export default defineConfig({plugins:[react()],server:{proxy:{'/api':{target:'http://localhost:5098',changeOrigin:true}}}});
+import { VitePWA } from 'vite-plugin-pwa';
+
+export default defineConfig({
+ plugins: [
+  react(),
+  VitePWA({
+   registerType: 'autoUpdate',
+   includeAssets: ['favicon.svg'],
+   manifest: {
+    name: 'ATWash - Gestão de Lava-Rápido',
+    short_name: 'ATWash',
+    description: 'Seu lava-rápido na palma da mão',
+    start_url: '/',
+    display: 'standalone',
+    background_color: '#ffffff',
+    theme_color: '#2563eb',
+    icons: [
+     {src:'/icon-192.svg',sizes:'any',type:'image/svg+xml',purpose:'any'},
+     {src:'/icon-512.svg',sizes:'any',type:'image/svg+xml',purpose:'any'}
+    ]
+   },
+   workbox: {
+    navigateFallback: '/index.html',
+    globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+    runtimeCaching: [],
+    navigateFallbackDenylist: [/^\/api\//]
+   }
+  })
+ ],
+ server: { proxy: { '/api': { target: 'http://localhost:5098', changeOrigin: true } } }
+});
