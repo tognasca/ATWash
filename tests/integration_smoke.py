@@ -124,6 +124,11 @@ def main():
     request("POST", f"/payments/{payment_id}/refund",
         {"amount":1,"reason":"Excesso","externalReference":"REF-CI-123"}, (409,))
     request("POST", "/cash/close", {"countedCash":0,"note":"Segundo fechamento"})
+    devices=request("GET","/devices")
+    current=next(d for d in devices if d["id"]==login["deviceId"])
+    assert current["revokedAt"] is None
+    request("POST",f"/devices/{login['deviceId']}/revoke",{})
+    request("GET","/auth/me",expected=(401,))
     print("PASS: migrations, auth, orders, mixed payments, idempotency, delivery, cash, Pix, reconciliation and refunds")
 
 if __name__ == "__main__":
