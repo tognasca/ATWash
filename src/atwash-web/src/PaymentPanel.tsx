@@ -1,4 +1,5 @@
 import {useEffect,useState} from 'react';
+import {useDialog} from './Dialog';
 import QRCode from 'qrcode';
 import {api,currency,type Order} from './api';
 import {createOperationId} from './operationId';
@@ -6,6 +7,7 @@ type Method=0|1|2;
 type Ledger={total:number;paid:number;remaining:number;payments:{id:string;method:Method;amount:number;confirmedAt:string;reference?:string}[]};
 type Props={order:Order;token:string;onClose:()=>void;onChanged:()=>Promise<void>;onError:(error:string)=>void;canConfirmPix:boolean};
 export default function PaymentPanel({order,token,onClose,onChanged,onError,canConfirmPix}:Props){
+ const dialog=useDialog();
  const [ledger,setLedger]=useState<Ledger|null>(null);
  const [method,setMethod]=useState<Method>(0);
  const [amount,setAmount]=useState('');
@@ -39,17 +41,17 @@ export default function PaymentPanel({order,token,onClose,onChanged,onError,canC
   if(method===0&&(!Number.isFinite(given)||given<paymentAmount)){onError('Valor recebido insuficiente.');return}
   if(method===1&&!reference.trim()){onError('Informe o NSU/autorização da maquininha.');return}
   if(method===2&&!reference.trim()){onError('Informe a referência do Pix recebido.');return}
-  if(!window.confirm('Confirma que o valor foi realmente recebido? Esta operação será registrada.'))return;
+  if(!await dialog.confirm('Confirma que o valor foi realmente recebido? Esta operação será registrada.'))return;
   setBusy(true);onError('');
   try{
    await api('/orders/'+order.id+'/payments',token,'POST',{operationId,method,amount:paymentAmount,tendered:method===0?given:paymentAmount,reference:reference.trim()||null});
-   setOperationId(createOperationId());setReference('');await load();await onChanged();
+   setOperationId(createOperationId());setReference('');await load();await onChanged();dialog.show('Pagamento registrado com sucesso.','success');
   }catch(e){onError(String(e))}finally{setBusy(false)}
  }
  async function deliver(){
-  if(!window.confirm('Confirmar a entrega do veículo e fechar a comanda?'))return;
+  if(!await dialog.confirm('Confirmar a entrega do veículo e fechar a comanda?'))return;
   setBusy(true);onError('');
-  try{await api('/orders/'+order.id+'/deliver',token,'POST');await onChanged();onClose()}
+  try{await api('/orders/'+order.id+'/deliver',token,'POST');await onChanged();onClose();dialog.show('Veículo entregue e comanda encerrada.','success')}
   catch(e){onError(String(e))}finally{setBusy(false)}
  }
  return <section className="panel payment-panel"><div className="actions"><h2>Pagamento · Comanda #{order.number}</h2><button className="secondary" onClick={onClose}>Fechar</button></div>
