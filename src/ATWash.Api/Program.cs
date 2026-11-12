@@ -57,6 +57,12 @@ app.UseAuthorization();
 app.MapAuth();
 app.MapOperations();
 await AdminBootstrap.RunAsync(app.Services, app.Configuration);
+// Initialize the default catalog for real companies that have no services yet.
+await using (var catalogScope = app.Services.CreateAsyncScope())
+{
+    var catalogDb = catalogScope.ServiceProvider.GetRequiredService<AtWashDbContext>();
+    await DefaultServiceCatalog.SeedMissingCatalogsAsync(catalogDb);
+}
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
 app.MapHealthChecks("/health");
 // Public API is intentionally read-only and limited to the demo tenant until authentication is implemented.
