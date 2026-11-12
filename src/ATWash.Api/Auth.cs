@@ -66,6 +66,9 @@ public static class AuthEndpoints
                 return Results.Unauthorized();
             if (request.DeviceId == Guid.Empty) return Results.BadRequest("Identificador de dispositivo inválido.");
             var deviceId=request.DeviceId ?? Guid.NewGuid();
+            await using var deviceTx=await db.Database.BeginTransactionAsync(ct);
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock(hashtextextended({user.TenantId.ToString()}, 0))",ct);
             var device=await db.RegisteredDevices.SingleOrDefaultAsync(x=>x.Id==deviceId,ct);
             if(device!=null && (device.RevokedAt!=null || device.UserId!=user.Id || device.TenantId!=user.TenantId))
                 return Results.Unauthorized();
@@ -80,6 +83,7 @@ public static class AuthEndpoints
                 db.RegisteredDevices.Add(device);
                 await db.SaveChangesAsync(ct);
             }
+            await deviceTx.CommitAsync(ct);
             return Results.Ok(new { accessToken = issuer.Issue(user,deviceId), deviceId, tokenType = "Bearer", expiresIn = 1200 });
         }).RequireRateLimiting("login");
 
