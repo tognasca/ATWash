@@ -104,7 +104,8 @@ export async function syncPending(token:string):Promise<number>{
  // Process in creation order; remap temporary IDs durably before deleting each item.
  while(true){
   const all=(await store<Pending[]>('pending','readonly',s=>s.getAll()))
-   .filter(x=>x.tenant===tenant).sort((a,b)=>a.createdAt-b.createdAt);
+   .filter(x=>x.tenant===tenant).sort((a,b)=>a.createdAt-b.createdAt ||
+    ({customer:0,vehicle:1,order:2,status:3}[a.kind]-{customer:0,vehicle:1,order:2,status:3}[b.kind]));
   if(all.length===0)break;
   const item=all[0];
   if(item.kind==='status'){
