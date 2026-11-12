@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 namespace ATWash.Api;
@@ -16,10 +17,10 @@ public sealed class AppUser : ITenantEntity
     public UserRole Role { get; set; }
     public bool IsActive { get; set; } = true;
 }
-public sealed record LoginRequest(string Email, string Password);
+public sealed record LoginRequest(string Email, string Password, Guid? DeviceId = null, string? DeviceName = null);
 public sealed class TokenIssuer(IConfiguration configuration)
 {
-    public string Issue(AppUser user)
+    public string Issue(AppUser user, Guid deviceId)
     {
         var secret = configuration["JWT_SECRET_KEY"] ?? throw new InvalidOperationException("JWT_SECRET_KEY missing");
         if (Encoding.UTF8.GetByteCount(secret) < 32) throw new InvalidOperationException("JWT_SECRET_KEY must have at least 32 bytes");
@@ -29,6 +30,7 @@ public sealed class TokenIssuer(IConfiguration configuration)
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim("tenant_id", user.TenantId.ToString()),
+            new Claim("device_id",deviceId.ToString()),
             new Claim(ClaimTypes.Role, user.Role.ToString()),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
@@ -58,7 +60,18 @@ public static class AuthEndpoints
             if (user is null || valid == PasswordVerificationResult.Failed) return Results.Unauthorized();
             var tenant = await db.Tenants.FindAsync([user.TenantId], ct);
             if (tenant is null || !tenant.IsActive) return Results.Unauthorized();
-            return Results.Ok(new { accessToken = issuer.Issue(user), tokenType = "Bearer", expiresIn = 1200 });
+            if (request.DeviceId == Guid.Empty) return Results.BadRequest("Identificador de dispositivo inválido.");
+            var deviceId=request.DeviceId ?? Guid.NewGuid();
+            var device=await db.RegisteredDevices.SingleOrDefaultAsync(x=>x.Id==deviceId,ct);
+            if(device!=null && (device.RevokedAt!=null || device.UserId!=user.Id || device.TenantId!=user.TenantId))
+                return Results.Unauthorized();
+            if(device==null){
+                device=new RegisteredDevice{Id=deviceId,TenantId=user.TenantId,UserId=user.Id,
+                    Name=string.IsNullOrWhiteSpace(request.DeviceName)?"Navegador":request.DeviceName.Trim()[..Math.Min(request.DeviceName.Trim().Length,100)]};
+                db.RegisteredDevices.Add(device);
+                await db.SaveChangesAsync(ct);
+            }
+            return Results.Ok(new { accessToken = issuer.Issue(user,deviceId), deviceId, tokenType = "Bearer", expiresIn = 1200 });
         }).RequireRateLimiting("login");
 
         app.MapGet("/api/auth/me", (ClaimsPrincipal principal) => Results.Ok(new
