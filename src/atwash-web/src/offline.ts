@@ -49,14 +49,25 @@ export async function loadSnapshot(tenant:string):Promise<Snapshot|undefined>{
 }
 export async function queueStatus(tenant:string,orderId:string,from:number,to:number){
  if(to!==from+1 || to>3)throw new Error('Apenas avanço de etapas de lavagem pode ser enfileirado offline.');
- const pending=await store<Pending[]>('pending','readonly',s=>s.getAll());
- const same=pending.filter((x):x is Extract<Pending,{kind:'status'}>=>x.tenant===tenant&&x.kind==='status'&&x.orderId===orderId).sort((a,b)=>a.createdAt-b.createdAt);
- const last=same.at(-1);
- if(last && last.to!==from)throw new Error('Etapa offline inconsistente. Sincronize antes de continuar.');
- if(same.some(x=>x.from===from&&x.to===to))return;
- 
  const item:Pending={id:newId(),tenant,kind:'status',orderId,from,to,createdAt:Date.now()};
- await store('pending','readwrite',s=>s.add(item));
+ const db=await open();
+ const inserted=await new Promise<boolean>((resolve,reject)=>{
+  const tx=db.transaction('pending','readwrite');
+  const s=tx.objectStore('pending');
+  let added=false;
+  const req=s.getAll();
+  req.onsuccess=()=>{
+   const same=(req.result as Pending[]).filter((x):x is Extract<Pending,{kind:'status'}>=>x.tenant===tenant&&x.kind==='status'&&x.orderId===orderId).sort((a,b)=>a.createdAt-b.createdAt);
+   const last=same.at(-1);
+   if(last&&last.to!==from){tx.abort();return}
+   if(same.some(x=>x.from===from&&x.to===to))return;
+   s.add(item);added=true;
+  };
+  tx.oncomplete=()=>{db.close();resolve(added)};
+  tx.onabort=()=>{db.close();reject(new Error('Etapa offline inconsistente. Sincronize antes de continuar.'))};
+  tx.onerror=()=>{db.close();reject(tx.error)};
+ });
+ if(!inserted)return;
  const snapshot=await loadSnapshot(tenant);
  if(snapshot){
   const order=snapshot.orders.find(x=>x.id===orderId);
@@ -136,7 +147,13 @@ function lockSync():()=>void{
 
 export async function syncPending(token:string):Promise<number>{
  if(activeSync)return activeSync;
- activeSync=(async()=>{const release=lockSync();try{return await performSync(token)}finally{release()}})().finally(()=>{activeSync=null});
+ activeSync=(async()=>{
+  if(navigator.locks?.request){
+   return navigator.locks.request('atwash-offline-sync',{mode:'exclusive'},()=>performSync(token));
+  }
+  const release=lockSync();
+  try{return await performSync(token)}finally{release()}
+ })().finally(()=>{activeSync=null});
  return activeSync;
 }
 async function performSync(token:string):Promise<number>{
