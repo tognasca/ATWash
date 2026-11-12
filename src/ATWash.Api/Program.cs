@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Security.Claims;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AtWashDbContext>(o => o.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 builder.Services.AddOpenApi();
@@ -36,6 +37,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
         ValidateLifetime = true, ClockSkew = TimeSpan.FromSeconds(30),
         RoleClaimType = System.Security.Claims.ClaimTypes.Role
     };
+    options.Events = new JwtBearerEvents {
+        OnTokenValidated = async context => {
+            var principal=context.Principal;
+            if(!Guid.TryParse(principal?.FindFirstValue("device_id"),out var deviceId) ||
+               !Guid.TryParse(principal?.FindFirstValue("tenant_id"),out var tenantId) ||
+               !Guid.TryParse(principal?.FindFirstValue("sub"),out var userId)){
+                context.Fail("Dispositivo não identificado.");return;
+            }
+            var db=context.HttpContext.RequestServices.GetRequiredService<AtWashDbContext>();
+            var valid=await db.RegisteredDevices.AsNoTracking().AnyAsync(x=>x.Id==deviceId&&x.TenantId==tenantId&&x.UserId==userId&&x.RevokedAt==null);
+            var userValid=await db.Users.AsNoTracking().AnyAsync(x=>x.Id==userId&&x.TenantId==tenantId&&x.IsActive);
+            var tenantValid=await db.Tenants.AsNoTracking().AnyAsync(x=>x.Id==tenantId&&x.IsActive);
+            if(!valid||!userValid||!tenantValid)context.Fail("Dispositivo ou conta revogados.");
+        }
+    };
 });
 builder.Services.AddAuthorization();
 var allowedOrigins = (builder.Configuration["ATWASH_CORS_ORIGINS"] ?? "")
@@ -66,6 +82,7 @@ app.MapAuth();
 app.MapOperations();
 app.MapInventory();
 app.MapOperationsManagement();
+app.MapSaas();
 app.MapPayments();
 app.MapFinance();
 await AdminBootstrap.RunAsync(app.Services, app.Configuration);
