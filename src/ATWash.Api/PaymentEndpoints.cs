@@ -56,6 +56,9 @@ public static class PaymentEndpoints
                 return Results.Unauthorized();
 
             await using var tx = await db.Database.BeginTransactionAsync(ct);
+            // Always acquire the tenant cash lock before the order lock to avoid deadlocks.
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock(hashtextextended({tenant.ToString()}, 0))", ct);
             await db.Database.ExecuteSqlInterpolatedAsync(
                 $"SELECT pg_advisory_xact_lock(hashtextextended({tenant.ToString() + id.ToString()}, 0))", ct);
             var existing = await db.Payments.AsNoTracking().SingleOrDefaultAsync(
@@ -83,7 +86,6 @@ public static class PaymentEndpoints
                 return Results.Conflict($"Valor superior ao saldo pendente de R$ {Math.Max(0, remaining):N2}.");
             if (input.Method == PaymentMethod.Cash)
             {
-                await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({tenant.ToString()}, 0))", ct);
                 if (!await db.CashSessions.AnyAsync(x => x.TenantId == tenant && x.ClosedAt == null, ct))
                     return Results.Conflict("Abra o caixa antes de receber em dinheiro.");
             }
@@ -102,6 +104,9 @@ public static class PaymentEndpoints
         {
             if (!CanReceive(principal) || !Tenant(principal, out var tenant)) return Results.Forbid();
             await using var tx = await db.Database.BeginTransactionAsync(ct);
+            // Always acquire the tenant cash lock before the order lock to avoid deadlocks.
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock(hashtextextended({tenant.ToString()}, 0))", ct);
             await db.Database.ExecuteSqlInterpolatedAsync(
                 $"SELECT pg_advisory_xact_lock(hashtextextended({tenant.ToString() + id.ToString()}, 0))", ct);
             var order = await db.Orders.SingleOrDefaultAsync(o => o.TenantId == tenant && o.Id == id, ct);
