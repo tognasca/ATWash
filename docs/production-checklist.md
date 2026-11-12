@@ -32,3 +32,25 @@ Os módulos de dispositivos, sincronização com conflito explícito, dashboard 
 ## SaaS
 
 Dashboard operacional e consulta de planos/assinaturas estão disponíveis. Cadastro global de empresas, cobrança recorrente, webhook do provedor, faturas, suspensão por inadimplência e provisionamento self-service **não foram implementados**.
+
+
+## Administração de plataforma (API, sem interface web global)
+
+Defina `ATWASH_PLATFORM_ADMIN_KEY` com valor aleatório de no mínimo 32 bytes e armazene em gerenciador de segredos, separado do JWT e das credenciais de empresas. A chave é exigida no cabeçalho `X-ATWash-Platform-Key` e nunca deve ser incluída no JavaScript público, no aplicativo Android ou em repositórios. Restrinja `/api/platform` no proxy por IP/VPN e HTTPS. O backend exige HTTPS para hosts externos, mas o proxy também deve rejeitar HTTP público.
+
+- `GET /api/platform/tenants` lista empresas e assinaturas.
+- `GET/POST /api/platform/plans` e `PUT /api/platform/plans/{id}` gerenciam planos.
+- `POST /api/platform/tenants` provisiona empresa, conta Owner e assinatura em uma transação.
+- `PUT /api/platform/tenants/{id}/status?active=false` suspende a empresa.
+- `PUT /api/platform/tenants/{id}/subscription` altera plano e status manualmente.
+
+Assinaturas suspensas ou expiradas bloqueiam login e tokens já emitidos. O limite de dispositivos é verificado na criação de dispositivo; para garantia rígida sob cadastros concorrentes, ainda é necessário serializar essa operação. Não existe gateway de pagamento, emissão de fatura ou renovação automática. A administração global é por API protegida, não por painel web público.
+
+## Plataformas e limites de homologação
+
+- Web: navegador desktop e mobile com layout responsivo.
+- Android: Capacitor compila APK debug; release assinada, distribuição e atualização precisam de keystore e domínio HTTPS definitivo.
+- iOS: PWA no Safari; não existe build nativa para App Store.
+- Offline: cliente, veículo, comanda e avanço de etapa são enfileirados; pagamentos e ajustes de estoque exigem internet. A sessão JWT expira em 20 minutos e não há autenticação offline segura após reinício. Não declare funcionamento integral offline até resolver isso.
+- Segurança: revogação de dispositivo não apaga automaticamente dados armazenados localmente. Teste o cenário de dispositivo perdido e políticas de retenção.
+- Produção: scripts de backup/restauração precisam de teste de recuperação em instalação real e agendamento externo; não equivalem a backups automáticos já ativos.
