@@ -58,7 +58,9 @@ function App(){
    setCustomers(c);setVehicles(v);setServices(s);setProducts(p);setOrders(o);
    await saveSnapshot(tenant,{customers:c,vehicles:v,services:s,products:p,orders:o});
   }catch(e){
-   if(navigator.onLine)throw e;
+   // HTTP failures (including expired/revoked sessions) are not connectivity failures.
+   // Only fall back to the local snapshot when the network request itself failed.
+   if(e instanceof ApiError)throw e;
    const cached=await loadSnapshot(tenant);
    if(!cached)throw new Error('Sem dados offline. Conecte-se e entre ao menos uma vez.');
    setCustomers(cached.customers);setVehicles(cached.vehicles);setServices(cached.services);
