@@ -6,7 +6,7 @@
 - Após um login online, o IndexedDB guarda uma cópia por tenant de clientes, veículos, serviços, produtos e comandas para consulta offline no mesmo dispositivo.
 - Durante a sessão autenticada, o operador pode cadastrar clientes, veículos e comandas, além de enfileirar mudanças de etapa de lavagem (Aguardando → Lavando → Acabamento → Pronto). Os IDs temporários são remapeados durante a sincronização em ordem de dependência.
 - Conflitos de sincronização interrompem o envio e preservam os eventos pendentes; é necessário conferir o erro antes de continuar.
-- **Ainda não há** login offline após reiniciar o aplicativo, pagamento offline, serviço extra offline ou entrega offline. Essas ações exigem internet e API. A fila de cadastros pode exigir conferência manual em caso de conflito ou resposta de rede ambígua; não é garantia de sincronização exatamente uma vez.
+- **Ainda não há** login offline após reiniciar o aplicativo, pagamento offline, serviço extra offline ou entrega offline. Essas ações exigem internet e API. Os cadastros usam UUIDs estáveis para repetição idempotente; conflitos de placa, mudanças concorrentes e falhas de rede ainda exigem conferência manual.
 - O dispositivo deve ter criptografia e bloqueio de tela, pois o cache IndexedDB contém dados de clientes. Use apenas tablets administrados pela empresa.
 
 ## Android (Capacitor)
