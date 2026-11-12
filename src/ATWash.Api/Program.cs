@@ -65,6 +65,7 @@ app.UseAuthorization();
 app.MapAuth();
 app.MapOperations();
 app.MapInventory();
+app.MapOperationsManagement();
 app.MapPayments();
 app.MapFinance();
 await AdminBootstrap.RunAsync(app.Services, app.Configuration);
