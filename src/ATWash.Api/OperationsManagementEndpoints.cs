@@ -22,15 +22,14 @@ public static class OperationsManagementEndpoints {
  api.MapPost("/employees",async(EmployeeInput i,ClaimsPrincipal p,AtWashDbContext db,CancellationToken ct)=>{
   if(!Manage(p)||!Tenant(p,out var t))return Results.Forbid();
   var error=await ValidateEmployee(i,t,db,ct);if(error!=null)return Results.BadRequest(error);
-  var e=new Employee{TenantId=t,Name=i.Name.Trim(),Role=i.Role.Trim(),Phone=i.Phone?.Trim(),IsActive=i.IsActive,CommissionPercent=i.CommissionPercent,UserId=i.UserId};
+  var e=new Employee{TenantId=t,Name=i.Name.Trim(),Role=i.Role.Trim(),Phone=i.Phone?.Trim(),IsActive=i.IsActive,CommissionPercent=i.CommissionPercent,UserId=null};
   db.Employees.Add(e);await db.SaveChangesAsync(ct);return Results.Created("/api/employees/"+e.Id,e);
  });
  api.MapPut("/employees/{id:guid}",async(Guid id,EmployeeInput i,ClaimsPrincipal p,AtWashDbContext db,CancellationToken ct)=>{
   if(!Manage(p)||!Tenant(p,out var t))return Results.Forbid();
   var e=await db.Employees.SingleOrDefaultAsync(x=>x.TenantId==t&&x.Id==id,ct);if(e==null)return Results.NotFound();
   var error=await ValidateEmployee(i,t,db,ct);if(error!=null)return Results.BadRequest(error);
-  if(i.UserId.HasValue&&await db.Employees.AnyAsync(x=>x.TenantId==t&&x.Id!=id&&x.UserId==i.UserId,ct))return Results.Conflict("Usuário já vinculado a outro funcionário.");
-  e.Name=i.Name.Trim();e.Role=i.Role.Trim();e.Phone=i.Phone?.Trim();e.IsActive=i.IsActive;e.CommissionPercent=i.CommissionPercent;e.UserId=i.UserId;
+  e.Name=i.Name.Trim();e.Role=i.Role.Trim();e.Phone=i.Phone?.Trim();e.IsActive=i.IsActive;e.CommissionPercent=i.CommissionPercent;
   if(e.UserId.HasValue){var account=await db.Users.SingleOrDefaultAsync(x=>x.TenantId==t&&x.Id==e.UserId,ct);if(account!=null)account.IsActive=e.IsActive;}
   await db.SaveChangesAsync(ct);return Results.Ok(e);
  });
@@ -119,7 +118,6 @@ public static class OperationsManagementEndpoints {
  static async Task<string?> ValidateEmployee(EmployeeInput i,Guid t,AtWashDbContext db,CancellationToken ct) {
   if(string.IsNullOrWhiteSpace(i.Name)||i.Name.Length>160||string.IsNullOrWhiteSpace(i.Role)||i.Role.Length>50||
    i.CommissionPercent<0||i.CommissionPercent>100)return "Dados do funcionário inválidos.";
-  if(i.UserId.HasValue&&!await db.Users.AnyAsync(x=>x.TenantId==t&&x.Id==i.UserId,ct))return "Usuário de acesso inválido para esta empresa.";
   return null;
  }
 }
