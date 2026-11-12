@@ -126,7 +126,7 @@ public static class OperationalEndpoints
             var service = await db.Services.SingleOrDefaultAsync(x => x.Id == id && x.TenantId == tenant, ct);
             if (service is null) return Results.NotFound();
             if (await db.Orders.AnyAsync(x => x.TenantId == tenant && x.ServiceId == id, ct))
-                return Results.Conflict("Service has existing orders and cannot be deleted");
+                return Results.Conflict("Este serviço já foi utilizado em comandas e não pode ser excluído, pois faz parte do histórico de atendimentos.");
             db.Services.Remove(service);
             await db.SaveChangesAsync(ct);
             return Results.NoContent();
