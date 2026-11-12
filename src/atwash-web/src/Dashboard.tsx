@@ -1,9 +1,11 @@
 import {useEffect,useState} from 'react';
 import {api,currency} from './api';
+import {useDialog} from './Dialog';
 type DashboardData={orders:number;completed:number;open:number;cancelled:number;grossReceived:number;refunded:number;netReceived:number;averageTicket:number;estimatedSupplyCost:number;byDay:{date:string;orders:number;billed:number}[]};
 type Device={id:string;name:string;createdAt:string;revokedAt?:string};
 type Subscription={subscription:{status:string;planId:string;expiresAt?:string}|null;provisioning:string;billingIntegration:boolean};
 export default function Dashboard({token,onError}:{token:string;onError:(x:string)=>void}){
+ const dialog=useDialog();
  const [data,setData]=useState<DashboardData|null>(null);
  const [devices,setDevices]=useState<Device[]>([]);
  const [subscription,setSubscription]=useState<Subscription|null>(null);
@@ -26,7 +28,7 @@ export default function Dashboard({token,onError}:{token:string;onError:(x:strin
   const a=document.createElement('a');a.href=url;a.download='atwash-relatorio-'+from+'-'+to+'.csv';a.click();
   URL.revokeObjectURL(url);
  }
- async function revoke(id:string){if(!window.confirm('Revogar este dispositivo? O acesso será bloqueado imediatamente.'))return;try{await api('/devices/'+id+'/revoke',token,'POST',{});await load()}catch(e){onError(String(e))}}
+ async function revoke(id:string){if(!await dialog.confirm('Revogar este dispositivo? O acesso será bloqueado imediatamente.'))return;try{await api('/devices/'+id+'/revoke',token,'POST',{});await load();dialog.show('Dispositivo revogado com sucesso.','success')}catch(e){onError(String(e))}}
  return <section className="panel"><h2>Indicadores e gestão SaaS</h2>
  <div className="actions"><label>De<input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label><label>Até<input type="date" value={to} onChange={e=>setTo(e.target.value)}/></label><button onClick={()=>void load()}>Atualizar</button></div>
  {data&&<><div className="kanban-board">{[
