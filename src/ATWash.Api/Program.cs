@@ -50,7 +50,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
             var valid=await db.RegisteredDevices.AsNoTracking().AnyAsync(x=>x.Id==deviceId&&x.TenantId==tenantId&&x.UserId==userId&&x.RevokedAt==null);
             var userValid=await db.Users.AsNoTracking().AnyAsync(x=>x.Id==userId&&x.TenantId==tenantId&&x.IsActive);
             var tenantValid=await db.Tenants.AsNoTracking().AnyAsync(x=>x.Id==tenantId&&x.IsActive);
-            if(!valid||!userValid||!tenantValid)context.Fail("Dispositivo ou conta revogados.");
+            var sub=await db.TenantSubscriptions.AsNoTracking().SingleOrDefaultAsync(x=>x.TenantId==tenantId);
+            var subscriptionValid=sub==null || (sub.Status is "active" or "trial" &&
+                (!sub.ExpiresAt.HasValue||sub.ExpiresAt.Value>DateTimeOffset.UtcNow));
+            if(!valid||!userValid||!tenantValid||!subscriptionValid)
+                context.Fail("Dispositivo, conta ou assinatura inativos.");
         }
     };
 });
