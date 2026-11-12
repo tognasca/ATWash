@@ -41,11 +41,12 @@ public static class OperationsManagementEndpoints {
   var e=await db.Employees.SingleOrDefaultAsync(x=>x.TenantId==t&&x.Id==id,ct);
   if(e==null)return Results.NotFound();
   if(await db.Users.AnyAsync(x=>x.Email==email&&x.Id!=e.UserId,ct))return Results.Conflict("E-mail já utilizado.");
+  await using var accessTx=await db.Database.BeginTransactionAsync(ct);
   var user=e.UserId.HasValue?await db.Users.SingleOrDefaultAsync(x=>x.TenantId==t&&x.Id==e.UserId,ct):null;
-  if(user==null){user=new AppUser{TenantId=t,Email=email,PasswordHash="",Role=i.Role};db.Users.Add(user);e.UserId=user.Id;}
+  if(user==null){user=new AppUser{TenantId=t,Email=email,PasswordHash="",Role=i.Role};db.Users.Add(user);await db.SaveChangesAsync(ct);e.UserId=user.Id;}
   user.Email=email;user.Role=i.Role;user.IsActive=e.IsActive;
   user.PasswordHash=hasher.HashPassword(user,i.Password);
-  await db.SaveChangesAsync(ct);return Results.Ok(new{user.Id,user.Email,user.Role,user.IsActive});
+  await db.SaveChangesAsync(ct);await accessTx.CommitAsync(ct);return Results.Ok(new{user.Id,user.Email,user.Role,user.IsActive});
  });
  api.MapGet("/employees/performance",async(ClaimsPrincipal p,AtWashDbContext db,CancellationToken ct)=>{
   if(!Manage(p)||!Tenant(p,out var t))return Results.Forbid();
