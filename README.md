@@ -1,3 +1,9 @@
+ATWashControl — especificação e acompanhamento de implementação
+
+> Nome comercial e identidade visual atualizados: **ATWashControl** (roxo, grafite e branco). O nome técnico do repositório, namespaces e configurações existentes permanece **ATWash** para evitar quebra de compatibilidade.
+>
+> **Atenção:** esta especificação descreve o produto-alvo. Nem todos os itens abaixo estão implementados ou homologados. Veja o acompanhamento ao final do documento.
+
 PROMPT MASTER — ATWash
 
 Seu lava-rápido na palma da mão
@@ -21,7 +27,7 @@ Não desenvolver apenas protótipos, telas estáticas ou funcionalidades simulad
 
 1. IDENTIDADE DO PRODUTO
 
-Nome oficial: ATWash
+Nome comercial atual: ATWashControl (identificadores técnicos existentes: ATWash)
 
 Slogan: Seu lava-rápido na palma da mão.
 
@@ -29,8 +35,8 @@ Segmento: Gestão de lava-rápidos e estética automotiva.
 
 Identidade visual:
 
-* Azul moderno como cor principal.
-* Branco e tons de cinza.
+* Roxo profundo (#64107b) como cor principal.
+* Branco, grafite (#252a32) e tons de cinza.
 * Verde para operações concluídas.
 * Laranja para serviços em andamento.
 * Vermelho para alertas.
@@ -777,7 +783,7 @@ Fase 6 — Produção
 
 21. REGRAS FINAIS
 
-1. O nome oficial do produto é ATWash.
+1. A marca comercial atual é ATWashControl; preservar os identificadores técnicos ATWash existentes até migração controlada.
 2. Utilizar o slogan “Seu lava-rápido na palma da mão”.
 3. Não criar telas estáticas como produto final.
 4. Todas as operações devem funcionar com persistência real.
@@ -802,3 +808,30 @@ Depois, implemente o ATWash por fases, com código real, migrations, APIs, inter
 A primeira execução do ambiente de demonstração deverá carregar automaticamente os serviços, produtos, funcionários, clientes, veículos e comandas definidos neste documento.
 
 O resultado esperado é um SaaS profissional, multiempresa, online/offline, preparado para uso em tablets Android e computadores, com operação completa de lava-rápido, gestão financeira e modelo comercial de assinaturas.
+
+---
+
+## Estado real da implementação (12/11/2026)
+
+Este quadro diferencia **requisito planejado** de **funcionalidade entregue**. Build aprovado não substitui testes em tablet físico, testes de carga, auditoria de segurança ou homologação comercial.
+
+| Área | Estado | Evidência/limitação |
+|---|---|---|
+| API .NET 10, PostgreSQL, Docker | Implementado | Workflow `.github/workflows/build.yml` compila a API e aplica migrations em PostgreSQL de teste. |
+| Autenticação e isolamento básico por TenantId | Implementado parcialmente | Há filtros e validações por tenant nas rotas existentes; testes negativos completos entre duas empresas ainda necessários. |
+| Serviços, produtos, clientes, veículos, comandas | Implementado parcialmente | CRUD operacional e seed demonstrativo; ainda faltam ficha técnica, movimentações detalhadas de estoque, fornecedores e diversos campos do README. |
+| Pagamentos, caixa, Pix, estornos, conciliação | Implementado parcialmente | QR Code Pix estático e confirmação manual; não há confirmação bancária automática nem estorno bancário automático. |
+| Offline | Implementado parcialmente | Cache IndexedDB por tenant, fila de cadastros/comandas/etapas e replay com UUIDs; não há login offline após reinício, pagamentos offline ou extras offline. |
+| Android | APK debug compilado | Capacitor e workflow Android; requer URL HTTPS real da API, teste em dispositivo físico e build release assinado. |
+| Gestão comercial SaaS | Pendente | Planos, assinaturas, licenças, superadmin e gestão de dispositivos não estão completos. |
+| Dashboard, relatórios e exportações | Pendente/parcial | Indicadores avançados e exportação PDF/Excel/CSV previstos nesta especificação ainda não foram homologados. |
+| Segurança e produção | Pendente | Revisão de permissões, auditoria, LGPD, backup/restauração, observabilidade, testes de carga e homologação. |
+
+### Próximas entregas obrigatórias
+
+1. Gestão de dispositivos e revogação, autenticação offline segura e resolução explícita de conflitos.
+2. Movimentação de estoque, venda de produtos e consumo de insumos com integridade transacional.
+3. Relatórios reais e painel comercial multiempresa (planos, assinaturas, licenças).
+4. Testes negativos multi-tenant, simultaneidade entre dois tablets, backup/restauração e homologação Android físico.
+
+Consulte `docs/tablet-offline-android.md` para os limites operacionais e instruções Android. Nunca tratar esta especificação como prova de entrega funcional.
