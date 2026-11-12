@@ -38,3 +38,37 @@ input:focus,select:focus{border-color:var(--brand-purple)}
 .kanban-card{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:12px;margin-bottom:10px;border-radius:12px;background:#fff;border:1px solid #e7e1e9;box-shadow:0 2px 6px #00000008}
 .kanban-card small{color:#68606d}.kanban-card button{min-height:42px}
 @media(max-width:980px){.kanban-board{grid-template-columns:repeat(4,minmax(220px,1fr))}}
+
+/* Touch-first phone and tablet layout: no clipped navigation or tiny controls. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{min-width:320px}
+button,input,select,textarea{touch-action:manipulation}
+button{min-height:48px}
+table{min-width:650px}
+.tablewrap{-webkit-overflow-scrolling:touch;max-width:100%}
+header>div{gap:8px}
+.kanban-board{scroll-snap-type:x proximity;overscroll-behavior-x:contain}
+.kanban-column{scroll-snap-align:start}
+@media(max-width:850px){
+ header{flex-direction:column;align-items:stretch}
+ header>div{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));width:100%}
+ header>div button{width:100%}
+ .admin-layout{grid-template-columns:1fr}
+ .admin-menu{position:static;display:flex;flex-direction:row;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:8px}
+ .admin-menu button{flex-shrink:0;white-space:nowrap;scroll-snap-align:start}
+ .kanban-board{grid-template-columns:repeat(4,minmax(225px,72vw))}
+}
+@media(max-width:480px){
+ main{padding:10px}
+ .panel{padding:14px}
+ .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .stats article{padding:12px}
+ .stats strong{font-size:21px}
+ .actions{align-items:stretch;flex-wrap:wrap}
+ .actions button{flex:1 1 120px}
+ .kanban-board{grid-template-columns:repeat(4,minmax(235px,85vw))}
+ .login-error-modal{padding:20px;max-height:calc(100dvh - 28px);overflow:auto}
+ .modal-backdrop{padding:14px}
+ footer{line-height:1.6}
+}
+@media(prefers-reduced-motion:reduce){button{transition:none}}
