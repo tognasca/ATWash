@@ -74,7 +74,7 @@ public sealed class AtWashDbContext(DbContextOptions<AtWashDbContext> options) :
         foreach (var entity in model.Model.GetEntityTypes().Where(x => typeof(ITenantEntity).IsAssignableFrom(x.ClrType)))
             model.Entity(entity.ClrType).HasOne(typeof(Tenant)).WithMany().HasForeignKey(nameof(ITenantEntity.TenantId)).OnDelete(DeleteBehavior.Restrict);
         model.Entity<Employee>().HasAlternateKey(x=>new{x.TenantId,x.Id});
-        model.Entity<Employee>().HasIndex(x=>new{x.TenantId,x.UserId}).IsUnique().HasFilter("\\"UserId\\" IS NOT NULL");
+        model.Entity<Employee>().HasIndex(x=>new{x.TenantId,x.UserId}).IsUnique().HasFilter("\"UserId\" IS NOT NULL");
         model.Entity<Employee>().Property(x=>x.CommissionPercent).HasPrecision(5,2);
         model.Entity<WashOrder>().HasOne<Employee>().WithMany().HasForeignKey(x=>new{x.TenantId,x.EmployeeId})
             .HasPrincipalKey(x=>new{x.TenantId,x.Id}).OnDelete(DeleteBehavior.Restrict);
