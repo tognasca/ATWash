@@ -847,3 +847,14 @@ Consulte `docs/tablet-offline-android.md` para os limites operacionais e instru�
 - Migração `20261112190000_OperationsAndRecipes` e testes de integração adicionados.
 
 **Limites desta entrega:** a baixa automática ocorre ao marcar a lavagem como Pronta, não no início; não foi homologada a execução simultânea em dois tablets físicos. Os cargos administrativos não substituem testes negativos completos de autorização. A atribuição de funcionário e a baixa automática de insumos exigem conexão. O custo médio anterior ao cadastro de custos deve ser informado manualmente, quando aplicável. Os percentuais de comissão são estimativas, não folha de pagamento.
+
+
+### Entrega incremental: mobile, SaaS e recuperação (12/11/2026)
+
+- Mobile: layout responsivo para smartphone e tablet; PWA iPhone e web; build Android debug e workflow separado para release assinado condicionado a keystore e URL HTTPS.
+- Offline: fila de cadastros e avanço de etapas, comparação com estado remoto, proteção contra duplicação e resolução explícita de conflitos de etapa. Transações IndexedDB agora aguardam commit antes de confirmar gravação. O login offline após expiração da sessão, pagamentos offline e sincronização de estoque ainda **não** estão prontos.
+- SaaS: API global protegida por segredo independente para criar empresas, proprietários e planos, editar assinaturas, suspender/reativar empresas e consultar carteira; limites de dispositivos e status de assinatura aplicados à autenticação. **Não existe ainda checkout/renovação automática ou painel web global.**
+- Gestão: dashboard por empresa, exportação CSV, revogação de dispositivos, documentação de produção e scripts de backup/restauração; CI inclui ensaio de restauração em banco separado.
+- Homologação: exige domínio HTTPS definitivo, segredos de assinatura Android, configuração de backup externo, teste em dispositivos reais e escolha de provedor de cobrança. **Não considerar a plataforma homologada para produção apenas pela aprovação da pipeline.**
+
+Consulte `docs/production-checklist.md` para configurar o ambiente e conhecer os testes de aceitação restantes.
