@@ -63,13 +63,14 @@ jobs:
         run: python3 tests/integration_smoke.py
       - name: Verify backup and restore in isolated database
         run: |
-          export PGPASSWORD=integration-only-password
-          pg_dump -h localhost -U atwash -d atwash_test -Fc --no-owner --no-acl -f /tmp/atwash-test.dump
-          test -s /tmp/atwash-test.dump
-          psql -h localhost -U atwash -d postgres -c 'CREATE DATABASE atwash_restore_test'
-          pg_restore -h localhost -U atwash -d atwash_restore_test --no-owner --no-acl --exit-on-error /tmp/atwash-test.dump
-          SOURCE=$(psql -h localhost -U atwash -d atwash_test -Atc 'SELECT count(*) FROM "Orders"')
-          RESTORED=$(psql -h localhost -U atwash -d atwash_restore_test -Atc 'SELECT count(*) FROM "Orders"')
+          DB_CONTAINER=$(docker ps --filter ancestor=postgres:17-alpine --format '{{.ID}}' | head -n 1)
+          test -n "$DB_CONTAINER"
+          docker exec "$DB_CONTAINER" pg_dump -U atwash -d atwash_test -Fc --no-owner --no-acl -f /tmp/atwash-test.dump
+          docker exec "$DB_CONTAINER" test -s /tmp/atwash-test.dump
+          docker exec "$DB_CONTAINER" psql -U atwash -d postgres -c 'CREATE DATABASE atwash_restore_test'
+          docker exec "$DB_CONTAINER" pg_restore -U atwash -d atwash_restore_test --no-owner --no-acl --exit-on-error /tmp/atwash-test.dump
+          SOURCE=$(docker exec "$DB_CONTAINER" psql -U atwash -d atwash_test -Atc 'SELECT count(*) FROM "Orders"')
+          RESTORED=$(docker exec "$DB_CONTAINER" psql -U atwash -d atwash_restore_test -Atc 'SELECT count(*) FROM "Orders"')
           test "$SOURCE" = "$RESTORED"
           test "$RESTORED" -gt 0
       - name: API logs on failure
