@@ -79,3 +79,18 @@ public sealed class WashOrderItem : ITenantEntity
     public int Quantity { get; set; } = 1;
     public decimal Total { get; set; }
 }
+
+public enum PaymentMethod { Cash, Card, Pix }
+public sealed class OrderPayment : ITenantEntity
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid TenantId { get; set; }
+    public Guid OrderId { get; set; }
+    public Guid OperationId { get; set; }
+    public PaymentMethod Method { get; set; }
+    public decimal Amount { get; set; }
+    public decimal Tendered { get; set; }
+    public string? Reference { get; set; }
+    public Guid ConfirmedByUserId { get; set; }
+    public DateTimeOffset ConfirmedAt { get; set; } = DateTimeOffset.UtcNow;
+}
