@@ -81,8 +81,10 @@ jobs:
           java-version: '21'
       - name: Install Android SDK packages
         run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+          SDK_MANAGER="$(find "${ANDROID_HOME:-/usr/local/lib/android/sdk}" -type f -name sdkmanager | head -n 1)"
+          test -n "$SDK_MANAGER" || { echo "Android command-line tools not installed"; exit 1; }
+          yes | "$SDK_MANAGER" --licenses >/dev/null || true
+          "$SDK_MANAGER" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
       - run: npm install --no-audit --no-fund
         working-directory: src/atwash-web
       - run: npm run build
