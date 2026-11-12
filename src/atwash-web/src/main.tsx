@@ -3,7 +3,7 @@ import {createRoot} from 'react-dom/client';
 import {api,type Customer,type Vehicle,type Service,type Product,type Order} from './api';
 import Atendimento from './Atendimento';
 import Admin from './Admin';
-import {saveSnapshot,loadSnapshot,syncStatuses,tenantFromToken,pendingCount} from './offline';
+import {saveSnapshot,loadSnapshot,syncPending,tenantFromToken,pendingCount} from './offline';
 import './style.css';
 
 function App(){
