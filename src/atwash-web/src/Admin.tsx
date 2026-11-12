@@ -16,13 +16,13 @@ export default function Admin({token,services,products,reload,onError}:Props){
  const [stock,setStock]=useState('0');const [editing,setEditing]=useState<string|null>(null);
  const [busy,setBusy]=useState(false);
  const [movements,setMovements]=useState<{id:string;productId:string;kind:string;quantity:number;balanceAfter:number;reason:string;createdAt:string}[]>([]);
- const [adjustId,setAdjustId]=useState('');const [adjustQty,setAdjustQty]=useState('');const [adjustReason,setAdjustReason]=useState('');
+ const [adjustId,setAdjustId]=useState('');const [adjustQty,setAdjustQty]=useState('');const [adjustReason,setAdjustReason]=useState('');const [purchaseCost,setPurchaseCost]=useState('');
  useEffect(()=>{if(tab==='products')void api<typeof movements>('/inventory/movements',token).then(setMovements).catch(e=>onError(String(e)))},[tab,token,products]);
  async function adjust(){await run(async()=>{
   const quantity=Number(adjustQty.replace(',','.'));
   if(!adjustId||!Number.isFinite(quantity)||quantity===0||!adjustReason.trim())throw new Error('Informe produto, quantidade e motivo.');
-  await api('/products/'+adjustId+'/stock',token,'POST',{quantity,reason:adjustReason});
-  setAdjustQty('');setAdjustReason('');
+  await api('/products/'+adjustId+'/stock',token,'POST',{quantity,reason:adjustReason,unitCost:quantity>0&&purchaseCost.trim()?Number(purchaseCost.replace(',','.')):null});
+  setAdjustQty('');setAdjustReason('');setPurchaseCost('');
  })}
  const tabs:[Tab,string][]=[['services','Serviços'],['products','Produtos e estoque'],['employees','Funcionários'],['suppliers','Fornecedores'],['recipes','Fichas técnicas'],['finance','Financeiro'],['settings','Configurações']];
  function clear(){setEditing(null);setName('');setPrice('');setStock('0');setMinStock('0');setAvgCost('0');setUnit('un');setIsSupply(false);setSupplierId('')}
@@ -46,7 +46,7 @@ export default function Admin({token,services,products,reload,onError}:Props){
  {tab==='products'&&<><h3>Movimentação de estoque</h3><form onSubmit={e=>{e.preventDefault();void adjust()}}>
  <label>Produto<select required value={adjustId} onChange={e=>setAdjustId(e.target.value)}><option value="">Selecione</option>{products.map(p=><option key={p.id} value={p.id}>{p.name} — saldo {p.stock}</option>)}</select></label>
  <label>Quantidade (+ entrada / − saída)<input required inputMode="decimal" value={adjustQty} onChange={e=>setAdjustQty(e.target.value)}/></label>
- <label>Motivo<input required maxLength={300} value={adjustReason} onChange={e=>setAdjustReason(e.target.value)}/></label>
+ <label>Custo unitário da compra (R$, opcional para entradas)<input inputMode="decimal" value={purchaseCost} onChange={e=>setPurchaseCost(e.target.value)}/></label><label>Motivo<input required maxLength={300} value={adjustReason} onChange={e=>setAdjustReason(e.target.value)}/></label>
  <button disabled={busy}>Registrar movimentação</button></form>
  <h3>Histórico de estoque</h3><div className="tablewrap"><table><thead><tr><th>Data</th><th>Produto</th><th>Tipo</th><th>Quantidade</th><th>Saldo</th><th>Motivo</th></tr></thead><tbody>{movements.map(m=><tr key={m.id}><td>{new Date(m.createdAt).toLocaleString('pt-BR')}</td><td>{products.find(p=>p.id===m.productId)?.name??m.productId}</td><td>{m.kind}</td><td>{m.quantity}</td><td>{m.balanceAfter}</td><td>{m.reason}</td></tr>)}</tbody></table></div></>}
  </>:tab==='employees'?<EmployeesAdmin token={token} onError={onError}/>:tab==='suppliers'?<SuppliersAdmin token={token} onError={onError}/>:tab==='recipes'?<RecipesAdmin token={token} services={services} products={products} onError={onError}/>:tab==='finance'?<FinanceAdmin token={token} onError={onError}/>:tab==='settings'?<PixAdmin token={token} onError={onError}/>:null}</section></div>
