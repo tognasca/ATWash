@@ -7,6 +7,7 @@ type Recipe={productId:string;quantity:number};
 export function EmployeesAdmin({token,onError}:{token:string;onError:(s:string)=>void}){
  const dialog=useDialog();const [items,setItems]=useState<Employee[]>([]);const [editing,setEditing]=useState('');
  const [name,setName]=useState('');const [role,setRole]=useState('Lavador');const [phone,setPhone]=useState('');
+ const [accessEmail,setAccessEmail]=useState('');const [accessPassword,setAccessPassword]=useState('');const [accessRole,setAccessRole]=useState(3);
  const [commission,setCommission]=useState('0');const [active,setActive]=useState(true);
  async function load(){setItems(await api<Employee[]>('/employees',token))}
  useEffect(()=>{void load().catch(e=>onError(String(e)))},[token]);
@@ -21,6 +22,13 @@ export function EmployeesAdmin({token,onError}:{token:string;onError:(s:string)=
  <label><input type="checkbox" checked={active} onChange={e=>setActive(e.target.checked)}/>Funcionário ativo</label>
  <div className="actions"><button>{editing?'Salvar':'Cadastrar funcionário'}</button>{editing&&<button type="button" className="secondary" onClick={reset}>Cancelar</button>}</div></form>
  <div className="tablewrap"><table><thead><tr><th>Funcionário</th><th>Cargo</th><th>Contato</th><th>Comissão</th><th>Status</th><th></th></tr></thead><tbody>{items.map(x=><tr key={x.id}><td>{x.name}</td><td>{x.role}</td><td>{x.phone||'—'}</td><td>{x.commissionPercent}%</td><td>{x.isActive?'Ativo':'Inativo'}</td><td><button className="secondary" onClick={()=>{setEditing(x.id);setName(x.name);setRole(x.role);setPhone(x.phone||'');setCommission(String(x.commissionPercent));setActive(x.isActive)}}>Editar</button></td></tr>)}</tbody></table></div>
+ <h3>Credenciais de acesso</h3><p>Selecione um funcionário existente para criar ou redefinir seu acesso. Senha com pelo menos 12 caracteres.</p>
+ <form onSubmit={e=>{e.preventDefault();void (async()=>{try{await api('/employees/'+editing+'/access',token,'POST',{email:accessEmail,password:accessPassword,role:accessRole});setAccessPassword('');dialog.show('Acesso do funcionário configurado.','success')}catch(err){onError(String(err))}})()}}>
+ <label>Funcionário<select required value={editing} onChange={e=>setEditing(e.target.value)}><option value="">Selecione</option>{items.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
+ <label>E-mail de login<input required type="email" value={accessEmail} onChange={e=>setAccessEmail(e.target.value)}/></label>
+ <label>Senha<input required type="password" minLength={12} value={accessPassword} onChange={e=>setAccessPassword(e.target.value)}/></label>
+ <label>Permissão<select value={accessRole} onChange={e=>setAccessRole(Number(e.target.value))}><option value={3}>Lavador</option><option value={2}>Atendente</option><option value={1}>Gerente</option></select></label>
+ <button>Configurar acesso</button></form>
  <EmployeePerformance token={token} onError={onError}/></>
 }
 function EmployeePerformance({token,onError}:{token:string;onError:(s:string)=>void}){
