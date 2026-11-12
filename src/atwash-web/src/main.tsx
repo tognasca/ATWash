@@ -38,7 +38,7 @@ function App(){
  const isAdmin=role==='Owner'||role==='Manager';
  return <main><header><h1>AT<span>Wash</span></h1><div><button className={screen==='operation'?'':'secondary'} onClick={()=>setScreen('operation')}>Atendimento</button>{isAdmin&&<button className={screen==='admin'?'':'secondary'} onClick={()=>setScreen('admin')}>Administração</button>}<button className="secondary" onClick={()=>{setToken('');setRole('');setError('');setScreen('operation')}}>Sair</button></div></header>
  {error&&<p role="alert" className="error">{error}</p>}
- {screen==='operation'?<Atendimento token={token} customers={customers} vehicles={vehicles} services={services} orders={orders} reload={reload} onError={setError}/>:isAdmin?<Admin token={token} services={services} products={products} reload={reload} onError={setError}/>:null}
+ {screen==='operation'?<Atendimento token={token} customers={customers} vehicles={vehicles} services={services} orders={orders} reload={reload} onError={setError} canConfirmPix={isAdmin}/>:isAdmin?<Admin token={token} services={services} products={products} reload={reload} onError={setError}/>:null}
  <footer>ATWash · Em desenvolvimento · Não homologado para produção</footer></main>;
 }
 createRoot(document.getElementById('root')!).render(<App/>);
