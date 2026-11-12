@@ -4,6 +4,7 @@ import {api,ApiError,type Customer,type Vehicle,type Service,type Product,type O
 import Atendimento from './Atendimento';
 import Admin from './Admin';
 import Dashboard from './Dashboard';
+import PlatformAdmin from './PlatformAdmin';
 import {saveSnapshot,loadSnapshot,syncPending,tenantFromToken,pendingCount,listPending,discardPending} from './offline';
 import {DialogProvider,useDialog} from './Dialog';
 import './style.css';
@@ -73,4 +74,4 @@ function App(){
  {showPending&&<section className="panel"><h2>Pendências offline</h2><p>Revise operações antes de descartá-las. Apenas mudanças de etapa podem ser descartadas aqui; cadastros dependentes são preservados.</p>{pendingItems.map(x=><div className="actions" key={x.id}><span>{x.description}</span>{x.kind==='status'&&<button className="secondary" onClick={()=>void discardStatus(x.id)}>Descartar etapa</button>}</div>)}<button className="secondary" onClick={()=>setShowPending(false)}>Fechar</button></section>}
  <footer><button className="secondary" onClick={()=>void reviewPending()}>Revisar pendências</button><button className="secondary" disabled={!online||syncing||queued===0} onClick={()=>{setSyncing(true);void syncPending(token).then(()=>reload(token)).catch(e=>notifyError('Conflito de sincronização: '+String(e))).finally(()=>setSyncing(false))}}>Sincronizar pendências ({queued})</button> ATWash · {online?'Online':'Offline — consulta local e etapas de lavagem'} · {queued} etapa(s) pendente(s) · Em homologação</footer></main>;
 }
-createRoot(document.getElementById('root')!).render(<DialogProvider><App/></DialogProvider>);
+createRoot(document.getElementById('root')!).render(<DialogProvider>{window.location.pathname==='/platform'?<PlatformAdmin/>:<App/>}</DialogProvider>);
