@@ -28,9 +28,15 @@ def main():
     assert request("GET", "/auth/me")["role"] == "Owner"
     services = request("GET", "/services")
     assert services, "Default services must be seeded for new tenant"
-    customer = request("POST", "/customers", {"name":"Cliente Integração","phone":"11999999999"}, (201,))
-    vehicle = request("POST", "/vehicles", {"customerId":customer["id"],"plate":"ABC1D23","model":"Teste"}, (201,))
-    order = request("POST", "/orders", {"vehicleId":vehicle["id"],"serviceIds":[services[0]["id"]]}, (201,))
+    customer_input={"name":"Cliente Integração","phone":"11999999999","clientId":str(uuid.uuid4())}
+    customer = request("POST", "/customers", customer_input, (201,))
+    assert request("POST", "/customers", customer_input, (200,))["id"] == customer["id"]
+    vehicle_input={"customerId":customer["id"],"plate":"ABC1D23","model":"Teste","clientId":str(uuid.uuid4())}
+    vehicle = request("POST", "/vehicles", vehicle_input, (201,))
+    assert request("POST", "/vehicles", vehicle_input, (200,))["id"] == vehicle["id"]
+    order_input={"vehicleId":vehicle["id"],"serviceIds":[services[0]["id"]],"clientId":str(uuid.uuid4())}
+    order = request("POST", "/orders", order_input, (201,))
+    assert request("POST", "/orders", order_input, (200,))["id"] == order["id"]
     oid = order["id"]
     assert request("GET", f"/orders/{oid}/payments")["remaining"] == order["total"]
     request("POST", "/cash/open", {"openingFloat":100}, (201,))
