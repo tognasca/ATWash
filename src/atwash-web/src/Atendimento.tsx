@@ -1,9 +1,11 @@
 import {useState} from 'react';
+import {useDialog} from './Dialog';
 import PaymentPanel from './PaymentPanel';
 import {queueStatus,tenantFromToken,createOfflineCustomer,createOfflineVehicle,createOfflineOrder} from './offline';
 import {api,currency,type Customer,type Vehicle,type Service,type Product,type Order} from './api';
 type Props={token:string;customers:Customer[];vehicles:Vehicle[];services:Service[];products:Product[];orders:Order[];reload:()=>Promise<void>;onError:(error:string)=>void;canConfirmPix:boolean;online:boolean;onQueued:()=>void};
 export default function Atendimento({token,customers,vehicles,services,products,orders,reload,onError,canConfirmPix,online,onQueued}:Props){
+ const dialog=useDialog();
  const [query,setQuery]=useState('');const [matches,setMatches]=useState<Customer[]>([]);
  const [customer,setCustomer]=useState<Customer|null>(null);const [vehicleId,setVehicleId]=useState('');
  const [name,setName]=useState('');const [phone,setPhone]=useState('');const [plate,setPlate]=useState('');const [model,setModel]=useState('');
@@ -11,10 +13,10 @@ export default function Atendimento({token,customers,vehicles,services,products,
  const [busy,setBusy]=useState(false);
  const [selectedProduct,setSelectedProduct]=useState<Record<string,string>>({});const [productQty,setProductQty]=useState<Record<string,string>>({});const [consume,setConsume]=useState<Record<string,boolean>>({});
  const [paymentOrderId,setPaymentOrderId]=useState<string|null>(null);
- async function run(fn:()=>Promise<unknown>){setBusy(true);onError('');try{await fn();await reload()}catch(e){onError(String(e))}finally{setBusy(false)}}
+ async function run(fn:()=>Promise<unknown>){setBusy(true);onError('');try{await fn();await reload();dialog.show('Operação realizada com sucesso.','success')}catch(e){onError(String(e))}finally{setBusy(false)}}
  async function advance(order:Order){
   if(online){await run(()=>api('/orders/'+order.id+'/status',token,'PATCH',{status:order.status+1}));return}
-  await run(async()=>{await queueStatus(tenantFromToken(token),order.id,order.status,order.status+1);onQueued();onError('Etapa registrada offline. Será enviada quando a conexão voltar.')});
+  await run(async()=>{await queueStatus(tenantFromToken(token),order.id,order.status,order.status+1);onQueued();dialog.show('Etapa registrada offline. Será enviada quando a conexão voltar.','info')});
  }
  async function search(){if(query.trim().length<2){onError('Digite pelo menos 2 caracteres');return}await run(async()=>{const found=online?await api<Customer[]>('/customers/search?q='+encodeURIComponent(query),token):customers.filter(c=>c.name.toLowerCase().includes(query.toLowerCase())||c.phone?.includes(query)||vehicles.some(v=>v.customerId===c.id&&v.plate.toLowerCase().includes(query.toLowerCase()))).map(c=>({...c,vehicles:vehicles.filter(v=>v.customerId===c.id)}));setMatches(found);if(found.length===0)setCustomer(null)})}
  const clientVehicles=vehicles.filter(v=>v.customerId===customer?.id);
