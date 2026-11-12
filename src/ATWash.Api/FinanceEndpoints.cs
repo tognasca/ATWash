@@ -51,10 +51,12 @@ public static class FinanceEndpoints
             if(!Cashier(p)||!Context(p,out var tenant,out var user))return Results.Forbid();
             if(!Enum.IsDefined(input.Kind)||!Money(input.Amount)||input.Amount<=0||string.IsNullOrWhiteSpace(input.Reason)||input.Reason.Length>250)
                 return Results.BadRequest("Movimentação inválida.");
+            await using var tx=await db.Database.BeginTransactionAsync(ct);
+            await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({tenant.ToString()}, 0))",ct);
             var s=await db.CashSessions.SingleOrDefaultAsync(x=>x.TenantId==tenant&&x.ClosedAt==null,ct);
             if(s==null)return Results.Conflict("Abra o caixa primeiro.");
             var m=new CashMovement{TenantId=tenant,SessionId=s.Id,Kind=input.Kind,Amount=input.Amount,Reason=input.Reason.Trim(),CreatedBy=user};
-            db.CashMovements.Add(m);await db.SaveChangesAsync(ct);return Results.Created("/api/cash/current",m);
+            db.CashMovements.Add(m);await db.SaveChangesAsync(ct);await tx.CommitAsync(ct);return Results.Created("/api/cash/current",m);
         });
         api.MapPost("/cash/close",async (CloseCashInput input,ClaimsPrincipal p,AtWashDbContext db,CancellationToken ct)=>{
             if(!Manager(p)||!Context(p,out var tenant,out var user))return Results.Forbid();
@@ -94,7 +96,10 @@ public static class FinanceEndpoints
             var o=await db.Orders.AsNoTracking().SingleOrDefaultAsync(x=>x.TenantId==tenant&&x.Id==id,ct);
             if(o==null)return Results.NotFound();
             var paid=await db.Payments.Where(x=>x.TenantId==tenant&&x.OrderId==id).SumAsync(x=>(decimal?)x.Amount,ct)??0m;
-            var remaining=o.Total-paid;
+            var refunded=await (from refund in db.PaymentRefunds
+                join payment in db.Payments on new {refund.TenantId,Id=refund.PaymentId} equals new {payment.TenantId,payment.Id}
+                where refund.TenantId==tenant&&payment.OrderId==id select (decimal?)refund.Amount).SumAsync(ct)??0m;
+            var remaining=o.Total-paid+refunded;
             if(remaining<=0)return Results.Conflict("Comanda já quitada.");
             return Results.Ok(new {Amount=remaining,Payload=PixPayload.Build(s.PixKey,s.MerchantName,s.MerchantCity,remaining,"***"),
                 AutomaticConfirmation=false,Warning="Confirme o crédito na conta antes de registrar o pagamento."});
