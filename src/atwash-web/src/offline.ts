@@ -94,6 +94,22 @@ export async function createOfflineOrder(tenant:string,vehicleId:string,serviceI
  await saveSnapshot(tenant,snapshot);
  return order;
 }
+export async function listPending(tenant:string):Promise<{id:string;kind:string;description:string;createdAt:number}[]>{
+ const all=await store<Pending[]>('pending','readonly',s=>s.getAll());
+ return all.filter(x=>x.tenant===tenant).sort((a,b)=>a.createdAt-b.createdAt).map(x=>({
+  id:x.id,kind:x.kind,createdAt:x.createdAt,
+  description:x.kind==='status'?'Comanda '+x.orderId+': etapa '+x.from+' → '+x.to:
+   x.kind==='customer'?'Cliente '+x.name:x.kind==='vehicle'?'Veículo '+x.plate:'Nova comanda '+x.tempId
+ }));
+}
+export async function discardPending(tenant:string,id:string){
+ const all=await store<Pending[]>('pending','readonly',s=>s.getAll());
+ const item=all.find(x=>x.tenant===tenant&&x.id===id);
+ if(!item)throw new Error('Pendência não encontrada.');
+ if(item.kind!=='status')throw new Error('Cadastros pendentes dependem de outras operações; sincronize ou solicite suporte antes de descartar.');
+ await store('pending','readwrite',s=>s.delete(id));
+ // Rebuild local order statuses from the server on next successful reload.
+}
 export async function pendingCount(tenant:string):Promise<number>{
  const all=await store<Pending[]>('pending','readonly',s=>s.getAll());
  return all.filter(x=>x.tenant===tenant).length;
