@@ -1,0 +1,16 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/node_modules/
+**/dist/
+**/TestResults/
+**/*.user
+**/*.suo
+**/*.log
+.git/
+.env
+.env.*
+!.env.example
+Dockerfile*
+docker-compose*.yml
