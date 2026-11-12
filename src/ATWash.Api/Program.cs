@@ -56,6 +56,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapAuth();
 app.MapOperations();
+app.MapPayments();
 await AdminBootstrap.RunAsync(app.Services, app.Configuration);
 // Initialize the default catalog for real companies that have no services yet.
 await using (var catalogScope = app.Services.CreateAsyncScope())
