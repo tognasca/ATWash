@@ -54,7 +54,7 @@ function App(){
    setRole(me.role);setScreen('operation');setToken(result.accessToken);setPassword('');
   }catch(e){setError(String(e))}finally{setBusy(false)}
  }
- if(!token)return <main className="login"><section className="panel"><h1>AT<span>Wash</span></h1><p>Seu lava-rápido na palma da mão.</p><form onSubmit={login}><label>E-mail<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Senha<input type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label><button disabled={busy}>Entrar</button></form>{error&&<p role="alert" className="error">{error}</p>}</section></main>;
+ if(!token)return <main className="login"><section className="panel"><img className="brand-logo" src="/atwashcontrol-logo.png" alt="ATWashControl — Gestão de Lava-Rápido"/><p>Seu lava-rápido na palma da mão.</p><form onSubmit={login}><label>E-mail<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Senha<input type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label><button disabled={busy}>Entrar</button></form>{error&&<p role="alert" className="error">{error}</p>}</section></main>;
  const isAdmin=role==='Owner'||role==='Manager';
  return <main><header><h1>AT<span>Wash</span></h1><div><button className={screen==='operation'?'':'secondary'} onClick={()=>setScreen('operation')}>Atendimento</button>{isAdmin&&<button className={screen==='admin'?'':'secondary'} onClick={()=>setScreen('admin')}>Administração</button>}<button className="secondary" onClick={()=>{setToken('');setRole('');setError('');setScreen('operation')}}>Sair</button></div></header>
  {error&&<p role="alert" className="error">{error}</p>}
