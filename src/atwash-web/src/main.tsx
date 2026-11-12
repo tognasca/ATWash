@@ -60,7 +60,7 @@ function App(){
   try{
    const result=await api<{accessToken:string}>('/auth/login','','POST',{email,password,deviceId,deviceName:navigator.userAgent.slice(0,100)});
    const me=await api<{role:string}>('/auth/me',result.accessToken);
-   if(navigator.onLine)await syncPending(result.accessToken);
+   if(navigator.onLine)try{await syncPending(result.accessToken)}catch(syncError){notifyError('Pendências offline precisam de revisão: '+String(syncError))}
    await reload(result.accessToken);
    setRole(me.role);setScreen('operation');setToken(result.accessToken);setPassword('');
   }catch(e){if(e instanceof ApiError && e.status===401)dialog.show('E-mail ou senha incorretos. Verifique os dados e tente novamente.','error');else dialog.show(e instanceof ApiError&&e.status===429?'Muitas tentativas de acesso. Aguarde um minuto e tente novamente.':'Não foi possível entrar. Verifique a conexão e tente novamente.','error')}finally{setBusy(false)}
