@@ -153,6 +153,12 @@ public static class FinanceEndpoints
             if(payment==null)return Results.NotFound();
             var already=await db.PaymentRefunds.Where(x=>x.TenantId==tenant&&x.PaymentId==id).SumAsync(x=>(decimal?)x.Amount,ct)??0m;
             if(input.Amount>payment.Amount-already)return Results.Conflict("Estorno maior que o valor disponível.");
+            if(payment.Method==PaymentMethod.Cash)
+            {
+                await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({tenant.ToString()}, 0))",ct);
+                var activeCash=await db.CashSessions.AnyAsync(x=>x.TenantId==tenant&&x.ClosedAt==null,ct);
+                if(!activeCash)return Results.Conflict("Abra o caixa antes de registrar devolução em dinheiro.");
+            }
             if(await db.PaymentRefunds.AnyAsync(x=>x.TenantId==tenant&&x.PaymentId==id&&x.ExternalReference==input.ExternalReference.Trim(),ct))
                 return Results.Conflict("Referência de estorno já registrada.");
             var refund=new PaymentRefund{TenantId=tenant,PaymentId=id,Amount=input.Amount,Reason=input.Reason.Trim(),ExternalReference=input.ExternalReference.Trim(),ConfirmedBy=user};
