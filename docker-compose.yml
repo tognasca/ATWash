@@ -17,6 +17,8 @@ services:
     build: ./src/ATWash.Api
     environment:
       ASPNETCORE_URLS: http://+:8080
+      ATWASH_APPLY_MIGRATIONS: ${ATWASH_APPLY_MIGRATIONS:-false}
+      ATWASH_SEED_DEMO: ${ATWASH_SEED_DEMO:-false}
       ConnectionStrings__Default: Host=db;Port=5432;Database=${POSTGRES_DB:-atwash};Username=${POSTGRES_USER:-atwash};Password=${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD in .env}
     ports:
       - "5098:8080"
