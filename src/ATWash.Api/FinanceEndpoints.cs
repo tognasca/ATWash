@@ -111,11 +111,13 @@ public static class FinanceEndpoints
             var customer=await (from v in db.Vehicles join c in db.Customers on new {v.TenantId,Id=v.CustomerId} equals new {c.TenantId,c.Id}
                 where v.TenantId==tenant&&v.Id==order.VehicleId select new {c.Name,v.Plate,v.Model}).SingleOrDefaultAsync(ct);
             var items=await db.OrderItems.AsNoTracking().Where(x=>x.TenantId==tenant&&x.OrderId==id).Select(x=>new{x.ServiceName,x.Quantity,x.UnitPrice,x.Total}).ToListAsync(ct);
+            var productItems=await db.OrderProductItems.AsNoTracking().Where(x=>x.TenantId==tenant&&x.OrderId==id)
+                .Select(x=>new{x.ProductName,x.Quantity,x.UnitPrice,x.Total,x.IsConsumption}).ToListAsync(ct);
             var payments=await db.Payments.AsNoTracking().Where(x=>x.TenantId==tenant&&x.OrderId==id).Select(x=>new{x.Method,x.Amount,x.ConfirmedAt,x.Reference}).ToListAsync(ct);
             var refunds=await (from refund in db.PaymentRefunds join pay in db.Payments on new {refund.TenantId,Id=refund.PaymentId} equals new {pay.TenantId,pay.Id}
                 where refund.TenantId==tenant&&pay.OrderId==id select refund.Amount).SumAsync(ct);
             var company=await db.Tenants.AsNoTracking().Where(x=>x.Id==tenant).Select(x=>x.Name).SingleAsync(ct);
-            return Results.Ok(new {Company=company,order.Number,order.CreatedAt,Customer=customer,Items=items,Payments=payments,
+            return Results.Ok(new {Company=company,order.Number,order.CreatedAt,Customer=customer,Items=items,ProductItems=productItems,Payments=payments,
                 order.Total,Refunded=refunds,Paid=payments.Sum(x=>x.Amount)-refunds,order.Status,
                 Notice="Comprovante comercial, não é documento fiscal."});
         });
