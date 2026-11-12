@@ -60,12 +60,21 @@ public static class AuthEndpoints
             if (user is null || valid == PasswordVerificationResult.Failed) return Results.Unauthorized();
             var tenant = await db.Tenants.FindAsync([user.TenantId], ct);
             if (tenant is null || !tenant.IsActive) return Results.Unauthorized();
+            var subscription=await db.TenantSubscriptions.AsNoTracking().SingleOrDefaultAsync(x=>x.TenantId==user.TenantId,ct);
+            if(subscription!=null&&(subscription.Status is not ("active" or "trial")||
+               (subscription.ExpiresAt.HasValue&&subscription.ExpiresAt.Value<=DateTimeOffset.UtcNow)))
+                return Results.Unauthorized();
             if (request.DeviceId == Guid.Empty) return Results.BadRequest("Identificador de dispositivo inválido.");
             var deviceId=request.DeviceId ?? Guid.NewGuid();
             var device=await db.RegisteredDevices.SingleOrDefaultAsync(x=>x.Id==deviceId,ct);
             if(device!=null && (device.RevokedAt!=null || device.UserId!=user.Id || device.TenantId!=user.TenantId))
                 return Results.Unauthorized();
             if(device==null){
+                if(subscription!=null){
+                    var plan=await db.SubscriptionPlans.AsNoTracking().SingleAsync(x=>x.Id==subscription.PlanId,ct);
+                    var activeDevices=await db.RegisteredDevices.CountAsync(x=>x.TenantId==user.TenantId&&x.RevokedAt==null,ct);
+                    if(activeDevices>=plan.MaxDevices)return Results.Conflict("Limite de dispositivos do plano atingido. Revogue um dispositivo antes de cadastrar outro.");
+                }
                 device=new RegisteredDevice{Id=deviceId,TenantId=user.TenantId,UserId=user.Id,
                     Name=string.IsNullOrWhiteSpace(request.DeviceName)?"Navegador":request.DeviceName.Trim()[..Math.Min(request.DeviceName.Trim().Length,100)]};
                 db.RegisteredDevices.Add(device);
