@@ -25,6 +25,9 @@ def main():
     global TOKEN
     login = request("POST", "/auth/login", {"email":"integration@atwash.test","password":"IntegrationOnlyPassword2026!"})
     TOKEN = login["accessToken"]
+    assert login["deviceId"]
+    assert any(d["id"]==login["deviceId"] for d in request("GET","/devices"))
+    assert request("GET","/dashboard")["orders"] >= 0
     assert request("GET", "/auth/me")["role"] == "Owner"
     services = request("GET", "/services")
     assert services, "Default services must be seeded for new tenant"
