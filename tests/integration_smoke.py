@@ -56,7 +56,32 @@ def main():
     closed = request("POST", "/cash/close", {"countedCash":120+amount,"note":"Integração"})
     assert closed["difference"] == 0, closed
     assert request("GET", "/cash/current")["open"] is False
-    print("PASS: migrations, login, tenant catalog, customer, vehicle, order, idempotent mixed payments, delivery, cash reconciliation")
+    # Refund and reconciliation cannot silently create paid/delivered orders.
+    order2 = request("POST", "/orders", {"vehicleId":vehicle["id"],"serviceIds":[services[0]["id"]]}, (201,))
+    oid2 = order2["id"]
+    total = order2["total"]
+    request("PUT", "/settings/pix", {"pixKey":"pix@atwash.test","merchantName":"ATWash Teste","merchantCity":"Sao Paulo"})
+    pix = request("GET", f"/orders/{oid2}/pix")
+    assert pix["payload"].startswith("000201") and len(pix["payload"]) > 60
+    assert pix["automaticConfirmation"] is False
+    pix_pay = request("POST", f"/orders/{oid2}/payments",
+        {"operationId":str(uuid.uuid4()),"method":2,"amount":total,"tendered":total,"reference":"PIX-CI-123"}, (201,))
+    payment_id = pix_pay["id"]
+    request("POST", f"/payments/{payment_id}/reconcile", {"bankReference":"BANK-CI-123"})
+    request("POST", f"/payments/{payment_id}/reconcile", {"bankReference":"BANK-CI-123"}, (409,))
+    refund_amount = round(total / 2, 2)
+    request("POST", f"/payments/{payment_id}/refund",
+        {"amount":refund_amount,"reason":"Teste de devolução","externalReference":"REF-CI-123"})
+    assert request("GET", f"/orders/{oid2}/payments")["remaining"] == refund_amount
+    assert request("POST", f"/orders/{oid2}/deliver", expected=(409,)), "refunded order must not deliver"
+    request("POST", f"/orders/{oid2}/payments",
+        {"operationId":str(uuid.uuid4()),"method":1,"amount":refund_amount,"tendered":refund_amount,"reference":"CARD-CI-456"}, (201,))
+    assert request("GET", f"/orders/{oid2}/payments")["remaining"] == 0
+    request("POST", "/cash/open", {"openingFloat":0}, (201,))
+    request("POST", f"/payments/{payment_id}/refund",
+        {"amount":1,"reason":"Excesso","externalReference":"REF-CI-123"}, (409,))
+    request("POST", "/cash/close", {"countedCash":0,"note":"Segundo fechamento"})
+    print("PASS: migrations, auth, orders, mixed payments, idempotency, delivery, cash, Pix, reconciliation and refunds")
 
 if __name__ == "__main__":
     main()
