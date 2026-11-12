@@ -1,10 +1,12 @@
 import {useEffect,useState} from 'react';
+import {useDialog} from './Dialog';
 import FinanceAdmin from './FinanceAdmin';
 import PixAdmin from './PixAdmin';
 import {api,ApiError,currency,type Product,type Service} from './api';
 type Props={token:string;services:Service[];products:Product[];reload:()=>Promise<void>;onError:(message:string)=>void};
 type Tab='services'|'products'|'employees'|'finance'|'settings';
 export default function Admin({token,services,products,reload,onError}:Props){
+ const dialog=useDialog();
  const [tab,setTab]=useState<Tab>('services');
  const [name,setName]=useState('');const [price,setPrice]=useState('');
  const [stock,setStock]=useState('0');const [editing,setEditing]=useState<string|null>(null);
@@ -20,7 +22,7 @@ export default function Admin({token,services,products,reload,onError}:Props){
  })}
  const tabs:[Tab,string][]=[['services','Serviços'],['products','Produtos e estoque'],['employees','Funcionários'],['finance','Financeiro'],['settings','Configurações']];
  function clear(){setEditing(null);setName('');setPrice('');setStock('0')}
- async function run(action:()=>Promise<unknown>){setBusy(true);onError('');try{await action();await reload()}catch(e){onError(e instanceof ApiError?e.message:String(e))}finally{setBusy(false)}}
+ async function run(action:()=>Promise<unknown>){setBusy(true);onError('');try{await action();await reload();dialog.show('Operação realizada com sucesso.','success')}catch(e){onError(e instanceof ApiError?e.message:String(e))}finally{setBusy(false)}}
  const rows=tab==='services'?services:products;
  return <div className="admin-layout"><nav className="admin-menu" aria-label="Submenu administrativo">{tabs.map(([id,label])=><button key={id} className={tab===id?'active':'secondary'} onClick={()=>{setTab(id);clear()}}>{label}</button>)}</nav>
  <section className="panel admin-content"><h2>{tabs.find(([id])=>id===tab)?.[1]}</h2>
@@ -29,7 +31,7 @@ export default function Admin({token,services,products,reload,onError}:Props){
  <label>Preço (R$)<input required inputMode="decimal" value={price} onChange={e=>setPrice(e.target.value)}/></label>
  {tab==='products'&&<label>Estoque inicial (novos produtos)<input required inputMode="decimal" disabled={!!editing} value={stock} onChange={e=>setStock(e.target.value)}/></label>}
  <div className="actions"><button disabled={busy}>{editing?'Salvar alterações':'Cadastrar'}</button>{editing&&<button type="button" className="secondary" onClick={clear}>Cancelar</button>}</div></form>
- <div className="tablewrap"><table><thead><tr><th>Nome</th><th>Preço</th>{tab==='products'&&<th>Estoque</th>}<th>Ações</th></tr></thead><tbody>{rows.map(item=><tr key={item.id}><td>{item.name}</td><td>{currency(item.price)}</td>{tab==='products'&&<td>{(item as Product).stock}</td>}<td><button className="secondary" onClick={()=>{setEditing(item.id);setName(item.name);setPrice(String(item.price));setStock(String((item as Product).stock??0))}}>Editar</button> {tab==='services'&&<button className="secondary" disabled={busy} onClick={()=>{if(!window.confirm('Excluir serviço?'))return;void run(()=>api('/services/'+item.id,token,'DELETE'))}}>Excluir</button>}</td></tr>)}</tbody></table></div>
+ <div className="tablewrap"><table><thead><tr><th>Nome</th><th>Preço</th>{tab==='products'&&<th>Estoque</th>}<th>Ações</th></tr></thead><tbody>{rows.map(item=><tr key={item.id}><td>{item.name}</td><td>{currency(item.price)}</td>{tab==='products'&&<td>{(item as Product).stock}</td>}<td><button className="secondary" onClick={()=>{setEditing(item.id);setName(item.name);setPrice(String(item.price));setStock(String((item as Product).stock??0))}}>Editar</button> {tab==='services'&&<button className="secondary" disabled={busy} onClick={()=>{void (async()=>{if(await dialog.confirm('Deseja realmente excluir este serviço?'))await run(()=>api('/services/'+item.id,token,'DELETE'))})()}}>Excluir</button>}</td></tr>)}</tbody></table></div>
  {tab==='products'&&<><h3>Movimentação de estoque</h3><form onSubmit={e=>{e.preventDefault();void adjust()}}>
  <label>Produto<select required value={adjustId} onChange={e=>setAdjustId(e.target.value)}><option value="">Selecione</option>{products.map(p=><option key={p.id} value={p.id}>{p.name} — saldo {p.stock}</option>)}</select></label>
  <label>Quantidade (+ entrada / − saída)<input required inputMode="decimal" value={adjustQty} onChange={e=>setAdjustQty(e.target.value)}/></label>
