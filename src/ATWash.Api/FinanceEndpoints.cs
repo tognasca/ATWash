@@ -111,6 +111,18 @@ public static class FinanceEndpoints
                 order.Total,Refunded=refunds,Paid=payments.Sum(x=>x.Amount)-refunds,order.Status,
                 Notice="Comprovante comercial, não é documento fiscal."});
         });
+        api.MapGet("/finance/payments",async (ClaimsPrincipal p,AtWashDbContext db,CancellationToken ct)=>{
+            if(!Manager(p)||!Context(p,out var tenant,out _))return Results.Forbid();
+            var payments=await (from pay in db.Payments.AsNoTracking()
+                join order in db.Orders.AsNoTracking() on new {pay.TenantId,Id=pay.OrderId} equals new {order.TenantId,order.Id}
+                where pay.TenantId==tenant
+                orderby pay.ConfirmedAt descending
+                select new {pay.Id,pay.Method,pay.Amount,pay.Reference,pay.ConfirmedAt,OrderNumber=order.Number,
+                    Reconciled=db.BankReconciliations.Any(r=>r.TenantId==tenant&&r.PaymentId==pay.Id),
+                    Refunded=db.PaymentRefunds.Where(r=>r.TenantId==tenant&&r.PaymentId==pay.Id).Sum(r=>(decimal?)r.Amount)??0m})
+                .Take(200).ToListAsync(ct);
+            return Results.Ok(payments);
+        });
         api.MapPost("/payments/{id:guid}/reconcile",async (Guid id,ReconcileInput input,ClaimsPrincipal p,AtWashDbContext db,CancellationToken ct)=>{
             if(!Manager(p)||!Context(p,out var tenant,out var user))return Results.Forbid();
             if(string.IsNullOrWhiteSpace(input.BankReference)||input.BankReference.Length>150)return Results.BadRequest("Referência inválida.");
