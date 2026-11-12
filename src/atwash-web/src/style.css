@@ -23,3 +23,10 @@ input:focus,select:focus{border-color:var(--brand-purple)}
 .selected-customer{background:var(--brand-purple-light)}
 .payment-panel{border-color:#d7b6df}
 @media(max-width:650px){header{align-items:flex-start;gap:12px;flex-wrap:wrap}.brand-logo{width:210px}}
+
+/* Modal de autenticação: legível no tablet e no desktop. */
+.modal-backdrop{position:fixed;inset:0;background:rgba(20,17,25,.55);display:flex;align-items:center;justify-content:center;padding:20px;z-index:9999}
+.login-error-modal{width:min(100%,420px);background:#fff;color:#252a32;border-radius:18px;padding:28px;box-shadow:0 18px 70px rgba(0,0,0,.25);text-align:center}
+.login-error-modal h2{margin:0 0 14px;font-size:1.35rem;color:#64107b}
+.login-error-modal p{margin:0 0 24px;line-height:1.5}
+.login-error-modal button{min-width:130px}
