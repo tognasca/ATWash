@@ -2,6 +2,9 @@ using Microsoft.EntityFrameworkCore;
 namespace ATWash.Api;
 public sealed class AtWashDbContext(DbContextOptions<AtWashDbContext> options) : DbContext(options)
 {
+    public DbSet<RegisteredDevice> RegisteredDevices => Set<RegisteredDevice>();
+    public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
+    public DbSet<TenantSubscription> TenantSubscriptions => Set<TenantSubscription>();
     public DbSet<AppUser> Users => Set<AppUser>();
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<Branch> Branches => Set<Branch>();
@@ -25,6 +28,11 @@ public sealed class AtWashDbContext(DbContextOptions<AtWashDbContext> options) :
     public DbSet<BankReconciliation> BankReconciliations => Set<BankReconciliation>();
     protected override void OnModelCreating(ModelBuilder model)
     {
+        model.Entity<RegisteredDevice>().HasIndex(x=>new{x.TenantId,x.UserId});
+        model.Entity<RegisteredDevice>().HasOne<AppUser>().WithMany().HasForeignKey(x=>x.UserId).OnDelete(DeleteBehavior.Restrict);
+        model.Entity<SubscriptionPlan>().Property(x=>x.MonthlyPrice).HasPrecision(18,2);
+        model.Entity<TenantSubscription>().HasIndex(x=>x.TenantId).IsUnique();
+        model.Entity<TenantSubscription>().HasOne<SubscriptionPlan>().WithMany().HasForeignKey(x=>x.PlanId).OnDelete(DeleteBehavior.Restrict);
         model.Entity<AppUser>().HasIndex(x => new { x.TenantId, x.Email }).IsUnique();
         model.Entity<AppUser>().Property(x => x.Role).HasConversion<string>().HasMaxLength(32);
         model.Entity<Customer>().HasAlternateKey(x => new { x.TenantId, x.Id });
