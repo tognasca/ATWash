@@ -4,7 +4,7 @@ import {api,ApiError,type Customer,type Vehicle,type Service,type Product,type O
 import Atendimento from './Atendimento';
 import Admin from './Admin';
 import Dashboard from './Dashboard';
-import {saveSnapshot,loadSnapshot,syncPending,tenantFromToken,pendingCount} from './offline';
+import {saveSnapshot,loadSnapshot,syncPending,tenantFromToken,pendingCount,listPending,discardPending} from './offline';
 import {DialogProvider,useDialog} from './Dialog';
 import './style.css';
 
@@ -22,6 +22,11 @@ function App(){
  const [online,setOnline]=useState(navigator.onLine);
  const [queued,setQueued]=useState(0);
  const [syncing,setSyncing]=useState(false);
+ const [showPending,setShowPending]=useState(false);
+ const [pendingItems,setPendingItems]=useState<{id:string;kind:string;description:string;createdAt:number}[]>([]);
+ async function reviewPending(){try{setPendingItems(await listPending(tenantFromToken(token)));setShowPending(true)}catch(e){notifyError(String(e))}}
+ async function discardStatus(id:string){if(!window.confirm('Descartar esta atualização local? O estado do servidor será mantido.'))return;try{const t=tenantFromToken(token);await discardPending(t,id);setPendingItems(await listPending(t));setQueued(await pendingCount(t));await reload(token)}catch(e){notifyError(String(e))}}
+
  useEffect(()=>{
   const onOnline=()=>{setOnline(true);if(token)void syncPending(token).then(()=>reload(token)).catch(e=>notifyError('Sincronização pendente: '+String(e)))};
   const onOffline=()=>setOnline(false);
@@ -65,6 +70,7 @@ function App(){
  return <main><header><h1>AT<span>Wash</span></h1><div><button className={screen==='operation'?'':'secondary'} onClick={()=>setScreen('operation')}>Atendimento</button>{isAdmin&&<button className={screen==='dashboard'?'':'secondary'} onClick={()=>setScreen('dashboard')}>Dashboard</button>}{isAdmin&&<button className={screen==='admin'?'':'secondary'} onClick={()=>setScreen('admin')}>Administração</button>}<button className="secondary" onClick={()=>{setToken('');setRole('');setError('');setScreen('operation')}}>Sair</button></div></header>
  {error&&<p role="alert" className="error">{error}</p>}
  {screen==='operation'?<Atendimento token={token} customers={customers} vehicles={vehicles} services={services} products={products} orders={orders} reload={reload} onError={notifyError} canConfirmPix={isAdmin} canWrite={role!=='Washer'} online={online} onQueued={()=>setQueued(x=>x+1)}/>:isAdmin&&screen==='dashboard'?<Dashboard token={token} onError={notifyError}/>:isAdmin?<Admin token={token} services={services} products={products} reload={reload} onError={setError}/>:null}
- <footer><button className="secondary" disabled={!online||syncing||queued===0} onClick={()=>{setSyncing(true);void syncPending(token).then(()=>reload(token)).catch(e=>notifyError('Conflito de sincronização: '+String(e))).finally(()=>setSyncing(false))}}>Sincronizar pendências ({queued})</button> ATWash · {online?'Online':'Offline — consulta local e etapas de lavagem'} · {queued} etapa(s) pendente(s) · Em homologação</footer></main>;
+ {showPending&&<section className="panel"><h2>Pendências offline</h2><p>Revise operações antes de descartá-las. Apenas mudanças de etapa podem ser descartadas aqui; cadastros dependentes são preservados.</p>{pendingItems.map(x=><div className="actions" key={x.id}><span>{x.description}</span>{x.kind==='status'&&<button className="secondary" onClick={()=>void discardStatus(x.id)}>Descartar etapa</button>}</div>)}<button className="secondary" onClick={()=>setShowPending(false)}>Fechar</button></section>}
+ <footer><button className="secondary" onClick={()=>void reviewPending()}>Revisar pendências</button><button className="secondary" disabled={!online||syncing||queued===0} onClick={()=>{setSyncing(true);void syncPending(token).then(()=>reload(token)).catch(e=>notifyError('Conflito de sincronização: '+String(e))).finally(()=>setSyncing(false))}}>Sincronizar pendências ({queued})</button> ATWash · {online?'Online':'Offline — consulta local e etapas de lavagem'} · {queued} etapa(s) pendente(s) · Em homologação</footer></main>;
 }
 createRoot(document.getElementById('root')!).render(<DialogProvider><App/></DialogProvider>);
