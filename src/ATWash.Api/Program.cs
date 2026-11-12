@@ -54,6 +54,7 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapAuth();
+app.MapOperations();
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
 app.MapHealthChecks("/health");
 // Public API is intentionally read-only and limited to the demo tenant until authentication is implemented.
