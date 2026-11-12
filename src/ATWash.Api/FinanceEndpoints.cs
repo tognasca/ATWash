@@ -148,6 +148,7 @@ public static class FinanceEndpoints
                 string.IsNullOrWhiteSpace(input.ExternalReference)||input.ExternalReference.Length>150)
                 return Results.BadRequest("Dados de estorno inválidos.");
             await using var tx=await db.Database.BeginTransactionAsync(ct);
+            await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({tenant.ToString()}, 0))",ct);
             await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({tenant.ToString()+id.ToString()}, 0))",ct);
             var payment=await db.Payments.SingleOrDefaultAsync(x=>x.TenantId==tenant&&x.Id==id,ct);
             if(payment==null)return Results.NotFound();
@@ -155,7 +156,6 @@ public static class FinanceEndpoints
             if(input.Amount>payment.Amount-already)return Results.Conflict("Estorno maior que o valor disponível.");
             if(payment.Method==PaymentMethod.Cash)
             {
-                await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({tenant.ToString()}, 0))",ct);
                 var activeCash=await db.CashSessions.AnyAsync(x=>x.TenantId==tenant&&x.ClosedAt==null,ct);
                 if(!activeCash)return Results.Conflict("Abra o caixa antes de registrar devolução em dinheiro.");
             }
