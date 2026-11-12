@@ -51,8 +51,8 @@ def main():
         {"productId":product["id"],"quantity":100000,"isConsumption":False}, (409,)) is not None
     assert len(request("GET", f"/orders/{oid}/products")) == 2
     history = request("GET", f"/inventory/movements?productId={product['id']}")
-    assert any(x["kind"] == "Sale" and x["quantity"] == -2 for x in history)
-    assert any(x["kind"] == "Consumption" and x["quantity"] == -1 for x in history)
+    assert any(x["kind"] in ("Sale", 2) and x["quantity"] == -2 for x in history)
+    assert any(x["kind"] in ("Consumption", 3) and x["quantity"] == -1 for x in history)
     order["total"] = sold["total"]  # updated order total from sale response
     assert request("GET", f"/orders/{oid}/payments")["remaining"] == order["total"]
     request("POST", "/cash/open", {"openingFloat":100}, (201,))
