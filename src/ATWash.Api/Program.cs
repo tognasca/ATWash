@@ -5,6 +5,15 @@ builder.Services.AddDbContext<AtWashDbContext>(o => o.UseNpgsql(builder.Configur
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
 var app = builder.Build();
+if (app.Configuration.GetValue<bool>("ATWASH_SEED_DEMO"))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var db = scope.ServiceProvider.GetRequiredService<AtWashDbContext>();
+    if (!(await db.Database.GetPendingMigrationsAsync()).Any() && (await db.Database.GetAppliedMigrationsAsync()).Any())
+        await DemoSeeder.SeedAsync(db);
+    else
+        throw new InvalidOperationException("Demo seed requires all EF Core migrations to be applied first.");
+}
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
 app.MapHealthChecks("/health");
 // Public API is intentionally read-only and limited to the demo tenant until authentication is implemented.
