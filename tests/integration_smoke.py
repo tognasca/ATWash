@@ -53,7 +53,7 @@ def main():
     history = request("GET", f"/inventory/movements?productId={product['id']}")
     assert any(x["kind"] in ("Sale", 2) and x["quantity"] == -2 for x in history)
     assert any(x["kind"] in ("Consumption", 3) and x["quantity"] == -1 for x in history)
-    order["total"] = sold["total"]  # updated order total from sale response
+    order["total"] = sold["orderTotal"]  # updated order total from sale response
     assert request("GET", f"/orders/{oid}/payments")["remaining"] == order["total"]
     request("POST", "/cash/open", {"openingFloat":100}, (201,))
     amount = round(order["total"] / 2, 2)
