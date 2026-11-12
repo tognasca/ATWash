@@ -3,6 +3,7 @@ import {createRoot} from 'react-dom/client';
 import {api,ApiError,type Customer,type Vehicle,type Service,type Product,type Order} from './api';
 import Atendimento from './Atendimento';
 import Admin from './Admin';
+import Dashboard from './Dashboard';
 import {saveSnapshot,loadSnapshot,syncPending,tenantFromToken,pendingCount} from './offline';
 import {DialogProvider,useDialog} from './Dialog';
 import './style.css';
@@ -13,7 +14,7 @@ function App(){
  const [token,setToken]=useState('');
  const [deviceId]=useState(()=>{const key='atwash-device-id';let id=localStorage.getItem(key);if(!id){id=crypto.randomUUID();localStorage.setItem(key,id)}return id});
  const [role,setRole]=useState('');
- const [screen,setScreen]=useState<'operation'|'admin'>('operation');
+ const [screen,setScreen]=useState<'operation'|'admin'|'dashboard'>('operation');
  const [email,setEmail]=useState('');
  const [password,setPassword]=useState('');
  const [error,setError]=useState('');
@@ -61,9 +62,9 @@ function App(){
  }
  if(!token)return <main className="login"><section className="panel"><div className="brand"><img className="brand-logo" src="/atwashcontrol-logo.png" alt="ATWashControl — Gestão de Lava-Rápido" onError={e=>{e.currentTarget.style.display="none";e.currentTarget.nextElementSibling?.removeAttribute("hidden")}}/><span className="brand-fallback" hidden>ATWash<span>Control</span></span></div><p>Seu lava-rápido na palma da mão.</p><form onSubmit={login}><label>E-mail<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Senha<input type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label><button disabled={busy}>Entrar</button></form></section></main>;
  const isAdmin=role==='Owner'||role==='Manager';
- return <main><header><h1>AT<span>Wash</span></h1><div><button className={screen==='operation'?'':'secondary'} onClick={()=>setScreen('operation')}>Atendimento</button>{isAdmin&&<button className={screen==='admin'?'':'secondary'} onClick={()=>setScreen('admin')}>Administração</button>}<button className="secondary" onClick={()=>{setToken('');setRole('');setError('');setScreen('operation')}}>Sair</button></div></header>
+ return <main><header><h1>AT<span>Wash</span></h1><div><button className={screen==='operation'?'':'secondary'} onClick={()=>setScreen('operation')}>Atendimento</button>{isAdmin&&<button className={screen==='dashboard'?'':'secondary'} onClick={()=>setScreen('dashboard')}>Dashboard</button>}{isAdmin&&<button className={screen==='admin'?'':'secondary'} onClick={()=>setScreen('admin')}>Administração</button>}<button className="secondary" onClick={()=>{setToken('');setRole('');setError('');setScreen('operation')}}>Sair</button></div></header>
  {error&&<p role="alert" className="error">{error}</p>}
- {screen==='operation'?<Atendimento token={token} customers={customers} vehicles={vehicles} services={services} products={products} orders={orders} reload={reload} onError={notifyError} canConfirmPix={isAdmin} canWrite={role!=='Washer'} online={online} onQueued={()=>setQueued(x=>x+1)}/>:isAdmin?<Admin token={token} services={services} products={products} reload={reload} onError={setError}/>:null}
+ {screen==='operation'?<Atendimento token={token} customers={customers} vehicles={vehicles} services={services} products={products} orders={orders} reload={reload} onError={notifyError} canConfirmPix={isAdmin} canWrite={role!=='Washer'} online={online} onQueued={()=>setQueued(x=>x+1)}/>:isAdmin&&screen==='dashboard'?<Dashboard token={token} onError={notifyError}/>:isAdmin?<Admin token={token} services={services} products={products} reload={reload} onError={setError}/>:null}
  <footer><button className="secondary" disabled={!online||syncing||queued===0} onClick={()=>{setSyncing(true);void syncPending(token).then(()=>reload(token)).catch(e=>notifyError('Conflito de sincronização: '+String(e))).finally(()=>setSyncing(false))}}>Sincronizar pendências ({queued})</button> ATWash · {online?'Online':'Offline — consulta local e etapas de lavagem'} · {queued} etapa(s) pendente(s) · Em homologação</footer></main>;
 }
 createRoot(document.getElementById('root')!).render(<DialogProvider><App/></DialogProvider>);
