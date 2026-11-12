@@ -38,6 +38,22 @@ def main():
     order = request("POST", "/orders", order_input, (201,))
     assert request("POST", "/orders", order_input, (200,))["id"] == order["id"]
     oid = order["id"]
+    products = request("GET", "/products")
+    assert products, "Default product catalog missing"
+    product = products[0]
+    initial_stock = product["stock"]
+    request("POST", f"/products/{product['id']}/stock", {"quantity":3,"reason":"Reposição teste"}, (201,))
+    sold = request("POST", f"/orders/{oid}/products", {"productId":product["id"],"quantity":2,"isConsumption":False}, (201,))
+    assert sold["stock"] == initial_stock + 1
+    consumed = request("POST", f"/orders/{oid}/products", {"productId":product["id"],"quantity":1,"isConsumption":True}, (201,))
+    assert consumed["stock"] == initial_stock
+    assert request("POST", f"/orders/{oid}/products",
+        {"productId":product["id"],"quantity":100000,"isConsumption":False}, (409,)) is not None
+    assert len(request("GET", f"/orders/{oid}/products")) == 2
+    history = request("GET", f"/inventory/movements?productId={product['id']}")
+    assert any(x["kind"] == "Sale" and x["quantity"] == -2 for x in history)
+    assert any(x["kind"] == "Consumption" and x["quantity"] == -1 for x in history)
+    order["total"] = sold["total"]  # updated order total from sale response
     assert request("GET", f"/orders/{oid}/payments")["remaining"] == order["total"]
     request("POST", "/cash/open", {"openingFloat":100}, (201,))
     amount = round(order["total"] / 2, 2)
