@@ -177,6 +177,27 @@ def main():
     request("GET","/auth/me",expected=(401,))
     TOKEN=previous
     request("POST","/auth/login",{"email":"security-test@atwash.test","password":"TestOnlySecurityPassword2026!"},(401,))
+    platform("PUT",f"/tenants/{tenant['id']}/users/{account['id']}",{"role":"Washer","isActive":True})
+    platform("PUT",f"/tenants/{tenant['id']}/users/{account['id']}/password",
+        {"password":"UpdatedSecurityPassword2026!"})
+    request("POST","/auth/login",{"email":"security-test@atwash.test",
+        "password":"TestOnlySecurityPassword2026!"},(401,))
+    assert request("POST","/auth/login",{"email":"security-test@atwash.test",
+        "password":"UpdatedSecurityPassword2026!"})["accessToken"]
+    owner_session=request("POST","/auth/login",{"email":"new-tenant@atwash.test",
+        "password":"IntegrationTenantPassword2026!"})
+    platform("PUT",f"/tenants/{tenant['id']}/subscription",
+        {"planId":plan["id"],"status":"suspended","expiresAt":None})
+    TOKEN=owner_session["accessToken"]
+    request("GET","/auth/me",expected=(401,))
+    TOKEN=previous
+    platform("PUT",f"/tenants/{tenant['id']}/subscription",
+        {"planId":plan["id"],"status":"active","expiresAt":None})
+    owner_user=next(u for u in platform("GET",f"/tenants/{tenant['id']}/users")
+                    if u["email"]=="new-tenant@atwash.test")
+    platform("PUT",f"/tenants/{tenant['id']}/users/{owner_user['id']}",
+        {"role":"Washer","isActive":False},(409,))
+    platform("GET",f"/tenants/{uuid.uuid4()}/users",expected=(404,))
     devices=request("GET","/devices")
     current=next(d for d in devices if d["id"]==login["deviceId"])
     assert current["revokedAt"] is None
