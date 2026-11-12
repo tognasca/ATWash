@@ -11,6 +11,11 @@ if (-not $container) { throw "Banco PostgreSQL não está em execução." }
 $database = docker exec $container printenv POSTGRES_DB
 $username = docker exec $container printenv POSTGRES_USER
 $database = $database.Trim(); $username = $username.Trim()
-docker exec $container pg_dump -U $username -d $database -Fc --no-owner --no-acl | Set-Content -Path $path -AsByteStream
-if ($LASTEXITCODE -ne 0) { Remove-Item $path -ErrorAction SilentlyContinue; throw "Falha ao gerar backup." }
+$remote = "/tmp/atwash-$stamp.dump"
+docker exec $container pg_dump -U $username -d $database -Fc --no-owner --no-acl -f $remote
+if ($LASTEXITCODE -ne 0) { throw "Falha ao gerar backup." }
+docker cp "${container}:${remote}" $path
+if ($LASTEXITCODE -ne 0) { throw "Falha ao copiar backup." }
+docker exec $container rm -f $remote | Out-Null
+if ((Get-Item $path).Length -eq 0) { throw "Backup vazio." }
 Write-Host "Backup gerado: $path"
