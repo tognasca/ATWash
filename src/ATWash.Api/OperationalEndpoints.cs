@@ -100,6 +100,64 @@ public static class OperationalEndpoints
             return Results.NoContent();
         });
 
+
+        api.MapGet("/products", async (ClaimsPrincipal principal, AtWashDbContext db, CancellationToken ct) =>
+        {
+            if (!TryTenant(principal, out var tenant)) return Results.Unauthorized();
+            return Results.Ok(await db.Products.AsNoTracking().Where(x => x.TenantId == tenant)
+                .OrderBy(x => x.Name).ToListAsync(ct));
+        });
+
+        api.MapPost("/products", async (ProductInput input, ClaimsPrincipal principal, AtWashDbContext db, CancellationToken ct) =>
+        {
+            if (!CanManageServices(principal) || !TryTenant(principal, out var tenant)) return Results.Forbid();
+            var name = input.Name?.Trim();
+            if (string.IsNullOrWhiteSpace(name) || name.Length > 160 || input.Price < 0 || input.Price > 1000000 ||
+                input.Stock < 0 || input.Stock > 1000000) return Results.BadRequest("Invalid product");
+            if (await db.Products.AnyAsync(x => x.TenantId == tenant && x.Name.ToLower() == name.ToLower(), ct))
+                return Results.Conflict("Product already exists");
+            var product = new Product { TenantId = tenant, Name = name, Price = input.Price, Stock = input.Stock };
+            db.Products.Add(product);
+            await db.SaveChangesAsync(ct);
+            return Results.Created($"/api/products/{product.Id}", product);
+        });
+
+        api.MapPut("/products/{id:guid}", async (Guid id, ProductInput input, ClaimsPrincipal principal, AtWashDbContext db, CancellationToken ct) =>
+        {
+            if (!CanManageServices(principal) || !TryTenant(principal, out var tenant)) return Results.Forbid();
+            var name = input.Name?.Trim();
+            if (string.IsNullOrWhiteSpace(name) || name.Length > 160 || input.Price < 0 || input.Price > 1000000 ||
+                input.Stock < 0 || input.Stock > 1000000) return Results.BadRequest("Invalid product");
+            var product = await db.Products.SingleOrDefaultAsync(x => x.TenantId == tenant && x.Id == id, ct);
+            if (product is null) return Results.NotFound();
+            if (await db.Products.AnyAsync(x => x.TenantId == tenant && x.Id != id && x.Name.ToLower() == name.ToLower(), ct))
+                return Results.Conflict("Product already exists");
+            product.Name = name; product.Price = input.Price; product.Stock = input.Stock;
+            await db.SaveChangesAsync(ct);
+            return Results.Ok(product);
+        });
+
+        api.MapPatch("/orders/{id:guid}/status", async (Guid id, OrderStatusInput input, ClaimsPrincipal principal, AtWashDbContext db, CancellationToken ct) =>
+        {
+            if (!CanWrite(principal) || !TryTenant(principal, out var tenant)) return Results.Forbid();
+            if (!Enum.IsDefined(input.Status)) return Results.BadRequest("Invalid status");
+            var order = await db.Orders.SingleOrDefaultAsync(x => x.TenantId == tenant && x.Id == id, ct);
+            if (order is null) return Results.NotFound();
+            if (order.Status is OrderStatus.Delivered or OrderStatus.Cancelled)
+                return Results.Conflict("Completed orders cannot be changed");
+            if (input.Status == OrderStatus.Cancelled)
+            {
+                if (!CanManageServices(principal)) return Results.Forbid();
+            }
+            else if ((int)input.Status != (int)order.Status + 1)
+                return Results.Conflict("Invalid status transition");
+            if (input.Status == OrderStatus.Delivered && order.PaymentStatus != PaymentStatus.Paid)
+                return Results.Conflict("Payment must be confirmed before delivery");
+            order.Status = input.Status;
+            await db.SaveChangesAsync(ct);
+            return Results.Ok(order);
+        });
+
         api.MapGet("/orders", async (ClaimsPrincipal principal, AtWashDbContext db, CancellationToken ct) =>
         {
             if (!TryTenant(principal, out var tenant)) return Results.Unauthorized();
@@ -139,5 +197,7 @@ public static class OperationalEndpoints
 
 public sealed record CustomerInput(string Name, string? Phone);
 public sealed record VehicleInput(Guid CustomerId, string Plate, string Model, string? Brand, string? Color);
+public sealed record ProductInput(string Name, decimal Price, decimal Stock);
+public sealed record OrderStatusInput(OrderStatus Status);
 public sealed record ServiceInput(string Name, decimal Price);
 public sealed record OrderInput(string Number, Guid VehicleId, Guid ServiceId);
