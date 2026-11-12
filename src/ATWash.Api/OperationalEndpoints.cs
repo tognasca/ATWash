@@ -174,7 +174,7 @@ public static class OperationalEndpoints
 
         api.MapPatch("/orders/{id:guid}/status", async (Guid id, OrderStatusInput input, ClaimsPrincipal principal, AtWashDbContext db, CancellationToken ct) =>
         {
-            if (!CanWrite(principal) || !TryTenant(principal, out var tenant)) return Results.Forbid();
+            if (!(CanWrite(principal) || principal.IsInRole(nameof(UserRole.Washer))) || !TryTenant(principal, out var tenant)) return Results.Forbid();
             if (!Enum.IsDefined(input.Status)) return Results.BadRequest("Invalid status");
             if (input.Status == OrderStatus.Delivered)
                 return Results.Conflict("Use o fechamento da comanda para entregar o veículo após validar o saldo.");
@@ -185,6 +185,13 @@ public static class OperationalEndpoints
                 $"SELECT pg_advisory_xact_lock(hashtextextended({tenant.ToString() + id.ToString()}, 0))", ct);
             var order = await db.Orders.SingleOrDefaultAsync(x => x.TenantId == tenant && x.Id == id, ct);
             if (order is null) return Results.NotFound();
+            if (principal.IsInRole(nameof(UserRole.Washer)))
+            {
+                if (!Guid.TryParse(principal.FindFirstValue("sub"), out var userId) ||
+                    !await db.Employees.AnyAsync(x => x.TenantId == tenant && x.Id == order.EmployeeId && x.UserId == userId && x.IsActive, ct))
+                    return Results.Forbid();
+                if (input.Status == OrderStatus.Cancelled) return Results.Forbid();
+            }
             if (order.Status is OrderStatus.Delivered or OrderStatus.Cancelled)
                 return Results.Conflict("Esta comanda já foi finalizada ou cancelada.");
             if (input.Status == OrderStatus.Cancelled)
