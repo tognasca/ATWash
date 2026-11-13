@@ -15,7 +15,9 @@ export default function Atendimento({token,customers,vehicles,services,products,
  const [busy,setBusy]=useState(false);
  const [selectedProduct,setSelectedProduct]=useState<Record<string,string>>({});const [productQty,setProductQty]=useState<Record<string,string>>({});const [consume,setConsume]=useState<Record<string,boolean>>({});
  const [paymentOrderId,setPaymentOrderId]=useState<string|null>(null);
- const [showAllOrders,setShowAllOrders]=useState(false);
+ const [orderFilter,setOrderFilter]=useState('active');
+ const [orderQuery,setOrderQuery]=useState('');
+ const [expandedOrder,setExpandedOrder]=useState<string|null>(null);
  const [catalogTab,setCatalogTab]=useState<'services'|'products'>('services');
  const [draftQty,setDraftQty]=useState<Record<string,string>>({});
  const [catalogSearch,setCatalogSearch]=useState('');
@@ -78,17 +80,41 @@ export default function Atendimento({token,customers,vehicles,services,products,
  </div>
  <button type="button" className="aw-mobile-cart" onClick={()=>setCartOpen(v=>!v)}>{cartOpen?'Fechar comanda':'Ver comanda'} <strong>{currency(activeOrder?.total??draftTotal)}</strong></button>
  </section>
- <section className="panel"><h2>Comandas em atendimento</h2>
- <div className="kanban-board">{[0,1,2,3].map(status=><div className="kanban-column" key={status}><h3>{['Aguardando','Em lavagem','Acabamento','Pronto'][status]} ({orders.filter(o=>o.status===status).length})</h3>{orders.filter(o=>o.status===status).map(o=><article className="kanban-card" key={o.id}><strong>#{o.number} · {vehicles.find(v=>v.id===o.vehicleId)?.plate||'—'}</strong><span>{currency(o.total)}</span><small>{employees.find(e=>e.id===o.employeeId)?.name||'Sem responsável'}</small>{status<3&&<button disabled={busy} onClick={()=>void advance(o)}>{['Iniciar','Acabamento','Marcar pronto'][status]}</button>}</article>)}</div>)}</div>
- <div className="actions"><h3>Lista de comandas</h3><button className="secondary" onClick={()=>setShowAllOrders(x=>!x)}>{showAllOrders?'Somente em andamento':'Mostrar todas'}</button></div>
- <div className="tablewrap order-cards"><table><thead><tr><th>Comanda</th><th>Veículo</th><th>Responsável</th><th>Etapa</th><th>Valor</th><th>Serviço extra</th><th>Produtos / insumos</th><th>Ação</th><th>Pagamento</th></tr></thead><tbody>{orders.filter(o=>showAllOrders||o.status<4).map(o=><tr key={o.id}><td>#{o.number}</td><td>{vehicles.find(v=>v.id===o.vehicleId)?.plate||'—'}</td><td><select aria-label={'Responsável '+o.number} disabled={!canWrite||!online||o.status>=4} value={o.employeeId||''} onChange={e=>void run(()=>api('/orders/'+o.id+'/employee',token,'PUT',{employeeId:e.target.value||null}))}><option value="">Não atribuído</option>{employees.filter(e=>e.isActive||e.id===o.employeeId).map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></td><td>{['Aguardando','Lavando','Acabamento','Pronto','Entregue','Cancelado'][o.status]||'—'}</td><td>{currency(o.total)}</td><td>{canWrite&&o.status<4&&o.paymentStatus===0&&<div className="actions"><select aria-label={'Serviço extra '+o.number} value={extra[o.id]||''} onChange={e=>setExtra(old=>({...old,[o.id]:e.target.value}))}><option value="">Adicionar serviço</option>{services.map(s=><option key={s.id} value={s.id}>{s.name} — {currency(s.price)}</option>)}</select><button className="secondary" disabled={busy||!online||!extra[o.id]} onClick={()=>void run(async()=>{await api('/orders/'+o.id+'/services',token,'POST',{serviceId:extra[o.id]});setExtra(old=>({...old,[o.id]:''}))})}>+</button></div>}</td><td>{o.status<4&&o.paymentStatus===0&&<div className="actions">
- <select aria-label={'Produto '+o.number} value={selectedProduct[o.id]||''} onChange={e=>setSelectedProduct(v=>({...v,[o.id]:e.target.value}))}><option value="">Produto</option>{products.map(p=><option key={p.id} value={p.id}>{p.name} · {currency(p.price)} · saldo {p.stock}</option>)}</select>
- <input aria-label={'Quantidade '+o.number} inputMode="decimal" style={{width:70}} placeholder="Qtd." value={productQty[o.id]??'1'} onChange={e=>setProductQty(v=>({...v,[o.id]:e.target.value}))}/>
- {canConfirmPix&&<label><input type="checkbox" checked={!!consume[o.id]} onChange={e=>setConsume(v=>({...v,[o.id]:e.target.checked}))}/>Insumo</label>}
- <button className="secondary" disabled={busy||!online||!selectedProduct[o.id]} onClick={()=>void run(async()=>{
-  const quantity=Number((productQty[o.id]??'1').replace(',','.'));
-  if(!Number.isFinite(quantity)||quantity<=0)throw new Error('Quantidade inválida.');
-  await api('/orders/'+o.id+'/products',token,'POST',{productId:selectedProduct[o.id],quantity,isConsumption:!!consume[o.id]});
-  setSelectedProduct(v=>({...v,[o.id]:''}));
- })}>Adicionar</button></div>}</td><td>{o.status<3?<button disabled={busy} onClick={()=>void advance(o)}>{['Iniciar','Acabamento','Marcar pronto'][o.status]}</button>:o.status===3?<span>Pronto · Aguardando pagamento</span>:null}</td><td>{canWrite&&o.status<4&&<button className="secondary" disabled={!online} onClick={()=>setPaymentOrderId(o.id)}>{o.paymentStatus===2?'Ver pagamento':'Receber / fechar'}</button>}</td></tr>)}</tbody></table></div></section></>;
+ <section className="panel aw-orders-section">
+ <div className="aw-section-title"><div><h2>Comandas</h2><p>Toque na comanda para ver os detalhes e realizar outras ações.</p></div><strong>{orders.filter(o=>o.status<4).length} em aberto</strong></div>
+ <input aria-label="Pesquisar comandas" placeholder="Buscar placa, cliente ou número..." value={orderQuery} onChange={e=>setOrderQuery(e.target.value)}/>
+ <div className="aw-order-filters">{[{id:'active',name:'Em aberto'},{id:'0',name:'Aguardando'},{id:'1',name:'Lavando'},{id:'2',name:'Acabamento'},{id:'3',name:'Prontas'},{id:'all',name:'Todas'}].map(f=><button key={f.id} type="button" className={orderFilter===f.id?'':'secondary'} aria-pressed={orderFilter===f.id} onClick={()=>setOrderFilter(f.id)}>{f.name}</button>)}</div>
+ <div className="aw-order-grid">
+ {orders.filter(o=>(orderFilter==='all'||(orderFilter==='active'?o.status<4:o.status===Number(orderFilter)))&&(()=>{
+  const v=vehicles.find(v=>v.id===o.vehicleId);const cl=customers.find(c=>c.id===v?.customerId);const q=orderQuery.trim().toLowerCase();
+  return !q||[o.number,v?.plate,v?.model,cl?.name].some(x=>x?.toLowerCase().includes(q));
+ })()).map(o=>{
+  const v=vehicles.find(v=>v.id===o.vehicleId);const cl=customers.find(c=>c.id===v?.customerId);
+  const employee=employees.find(e=>e.id===o.employeeId);
+  const expanded=expandedOrder===o.id;
+  const statusLabel=['Aguardando','Lavando','Acabamento','Pronto','Entregue','Cancelado'][o.status]||'Desconhecido';
+  return <article className="aw-order-card" key={o.id}>
+   <div className="aw-order-top"><strong>Comanda #{o.number}</strong><span className={'aw-status aw-status-'+o.status}>{statusLabel}</span></div>
+   <div className="aw-order-summary"><div className="aw-order-car" aria-hidden="true">🚘</div><div className="aw-order-ident"><strong>{v?.plate||'Veículo não encontrado'}</strong><span>{v?.model||'Modelo não informado'}</span><small>{cl?.name||'Cliente não encontrado'}</small></div><strong className="aw-order-price">{currency(o.total)}</strong></div>
+   <div className="aw-order-employee"><span>👤 {employee?.name||'Sem responsável'}</span><button type="button" className="secondary" aria-expanded={expanded} onClick={()=>setExpandedOrder(expanded?null:o.id)}>{expanded?'Ocultar detalhes':'Ver detalhes'}</button></div>
+   {expanded&&<div className="aw-order-details">
+    <label>Funcionário responsável<select aria-label={'Responsável '+o.number} disabled={!canWrite||!online||o.status>=4||busy} value={o.employeeId||''} onChange={e=>void run(()=>api('/orders/'+o.id+'/employee',token,'PUT',{employeeId:e.target.value||null}))}><option value="">Sem responsável</option>{employees.filter(e=>e.isActive||e.id===o.employeeId).map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></label>
+    {canWrite&&o.status<4&&o.paymentStatus===0&&<><label>Adicionar serviço extra<div className="aw-detail-action"><select aria-label={'Serviço extra '+o.number} value={extra[o.id]||''} onChange={e=>setExtra(old=>({...old,[o.id]:e.target.value}))}><option value="">Selecione um serviço</option>{services.map(s=><option key={s.id} value={s.id}>{s.name} — {currency(s.price)}</option>)}</select><button type="button" disabled={busy||!online||!extra[o.id]} onClick={()=>void run(async()=>{await api('/orders/'+o.id+'/services',token,'POST',{serviceId:extra[o.id]});setExtra(old=>({...old,[o.id]:''}))})}>Adicionar</button></div></label>
+    <label>Adicionar produto ou insumo<select aria-label={'Produto '+o.number} value={selectedProduct[o.id]||''} onChange={e=>setSelectedProduct(x=>({...x,[o.id]:e.target.value}))}><option value="">Selecione um produto</option>{products.map(p=><option key={p.id} value={p.id}>{p.name} — {currency(p.price)} · saldo {p.stock}</option>)}</select></label>
+    <div className="aw-detail-action"><input aria-label={'Quantidade '+o.number} inputMode="decimal" placeholder="Quantidade" value={productQty[o.id]??'1'} onChange={e=>setProductQty(x=>({...x,[o.id]:e.target.value}))}/><button type="button" disabled={busy||!online||!selectedProduct[o.id]} onClick={()=>void run(async()=>{const quantity=Number((productQty[o.id]??'1').replace(',','.'));if(!Number.isFinite(quantity)||quantity<=0)throw new Error('Quantidade inválida');await api('/orders/'+o.id+'/products',token,'POST',{productId:selectedProduct[o.id],quantity,isConsumption:!!consume[o.id]});setSelectedProduct(x=>({...x,[o.id]:''}))})}>Adicionar</button></div>
+    {canConfirmPix&&<label className="aw-check-label"><input type="checkbox" checked={!!consume[o.id]} onChange={e=>setConsume(x=>({...x,[o.id]:e.target.checked}))}/>Utilizado como insumo</label>}
+    </>}
+    {o.paymentStatus===2&&<p>Pagamento confirmado.</p>}
+   </div>}
+   {canWrite&&o.status<3&&<button type="button" className="aw-order-primary" disabled={busy} onClick={()=>void advance(o)}>{['Iniciar lavagem','Ir para acabamento','Marcar como pronto'][o.status]}</button>}
+   {canWrite&&o.status===3&&<button type="button" className="aw-order-primary" disabled={!online||busy} onClick={()=>setPaymentOrderId(o.id)}>Receber pagamento</button>}
+   {canWrite&&o.status<3&&o.paymentStatus===2&&<p className="aw-hint">Pagamento já confirmado.</p>}
+   {canWrite&&o.status<4&&o.status!==3&&<button type="button" className="secondary aw-order-pay" disabled={!online||busy} onClick={()=>setPaymentOrderId(o.id)}>Pagamento / fechamento</button>}
+  </article>;
+ })}
+ </div>
+ {orders.filter(o=>(orderFilter==='all'||(orderFilter==='active'?o.status<4:o.status===Number(orderFilter)))&&(()=>{
+ const v=vehicles.find(v=>v.id===o.vehicleId);const cl=customers.find(c=>c.id===v?.customerId);const q=orderQuery.trim().toLowerCase();return !q||[o.number,v?.plate,v?.model,cl?.name].some(x=>x?.toLowerCase().includes(q));
+ })()).length===0&&<p className="aw-empty">Nenhuma comanda encontrada.</p>}
+ </section></>;
 }
