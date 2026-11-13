@@ -119,3 +119,45 @@ header>div{gap:8px}
  .catalog-cards td:nth-child(3):not(:last-child)::before{content:"Estoque: ";font-weight:600;color:#73667a}
  .catalog-cards td:last-child button{margin:4px 6px 4px 0}
 }
+
+/* ATWashControl — interactive attendance, matching approved white/purple mockup. */
+.aw-attendance{display:block;margin-bottom:20px}
+.aw-heading,.aw-section-title{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.aw-heading{margin-bottom:16px}.aw-heading h2{font-size:27px;margin:0 0 5px}.aw-heading p{margin:0}
+.aw-connect{border-radius:100px;padding:9px 15px;font-size:13px;font-weight:800;white-space:nowrap}
+.aw-on{background:#dcfce7;color:#166534}.aw-off{background:#fff3dc;color:#9a6700}
+.aw-notice{padding:12px;border:1px solid #eac9a2;border-radius:12px;background:#fff9eb}
+.aw-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}
+.aw-kpis article{display:flex;align-items:center;gap:12px;padding:16px;border-radius:16px;background:#fff;border:1px solid #eee4f0;box-shadow:0 2px 12px #1708250b}
+.aw-kpis article:nth-child(1){background:#64107b;color:#fff}.aw-kpis article:nth-child(2){background:#eaf3ff}.aw-kpis article:nth-child(3){background:#e8f8ef}.aw-kpis article:nth-child(4){background:#fff5e5}
+.aw-kpis strong{font-size:27px}.aw-kpis span{font-size:13px;font-weight:600}
+.aw-workspace{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:16px;align-items:start}
+.aw-left{display:flex;flex-direction:column;gap:16px;min-width:0}.aw-left .panel{margin:0}
+.aw-section-title h3{font-size:18px;margin:0}.aw-section-title>span{color:#73667a;font-size:13px}
+.aw-customer .actions{margin:14px 0}.aw-customer-matches{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+.aw-customer-matches button{text-align:left;display:flex;flex-direction:column;gap:4px}
+.aw-customer-matches span{font-size:12px}.aw-identity{display:grid;grid-template-columns:1fr 1.3fr;gap:12px;align-items:center;padding:14px;border-radius:14px;background:#f8f2fa}
+.aw-identity>div{display:flex;flex-direction:column;gap:4px}.aw-identity small,.aw-identity span{color:#73667a}
+.aw-mini-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:14px}.aw-mini-form h3{grid-column:1/-1}.aw-mini-form button{grid-column:1/-1}
+.aw-add-vehicle{margin-top:12px}.aw-add-vehicle summary{cursor:pointer;font-weight:700;color:#64107b;padding:9px 0}
+.aw-tabs{display:flex;gap:8px;margin:16px 0 12px}.aw-tabs button{flex:1;min-width:0}.aw-catalog-search{margin-bottom:14px}
+.aw-service-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px}
+.aw-service-card{display:flex;flex-direction:column;min-width:0;padding:0;text-align:left;border:1px solid #e7dceb;background:white;border-radius:15px;overflow:hidden;color:#252a32;box-shadow:0 3px 12px #1c122013;transition:transform .15s,border-color .15s}
+.aw-service-card:not(:disabled):hover{background:#fff;transform:translateY(-2px);border-color:#64107b}
+.aw-service-card.aw-selected{border:2px solid #64107b;background:#fdf9ff}
+.aw-service-illustration{display:grid;place-items:center;height:95px;font-size:44px;background:linear-gradient(135deg,#ede7f5,#d2e6f1)}
+.aw-ill-1{background:linear-gradient(135deg,#e2eaf3,#c6d5e3)}.aw-ill-2{background:linear-gradient(135deg,#e7e1ed,#d7cadf)}.aw-ill-3{background:linear-gradient(135deg,#d8e8f1,#b9d5e2)}.aw-ill-4{background:linear-gradient(135deg,#e7eaf2,#d2d9e8)}.aw-ill-5{background:linear-gradient(135deg,#e3e5f1,#cbd3e6)}
+.aw-service-body{display:flex;flex:1;flex-direction:column;gap:8px;padding:12px;width:100%}.aw-service-body strong{font-size:14px;line-height:1.3}
+.aw-service-body small{color:#73667a}.aw-service-bottom{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-top:auto}
+.aw-service-bottom b{font-size:15px;color:#64107b}.aw-add-icon{display:grid;place-items:center;width:33px;height:33px;border-radius:9px;background:#64107b;color:white;font-size:22px;font-weight:500}
+.aw-quantity{display:flex;flex-wrap:wrap;gap:5px}.aw-quantity input{width:65px;min-width:0;flex:1}.aw-quantity button{padding:8px;flex:2;min-width:90px}
+.aw-hint{font-size:13px;line-height:1.5}.aw-cart{position:sticky;top:14px;margin:0!important;display:flex;flex-direction:column;gap:16px;min-width:0}
+.aw-cart-customer{display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:12px;background:#f7f0fa}.aw-cart-customer span{color:#73667a}
+.aw-cart-items{display:flex;flex-direction:column;gap:8px;min-height:100px}.aw-cart-line{display:flex;align-items:center;gap:8px;padding:12px 0;border-bottom:1px solid #ede5f0;font-size:13px}
+.aw-cart-line>span:first-child{flex:1}.aw-cart-line strong{white-space:nowrap}.aw-remove{min-width:30px;min-height:32px;padding:2px 6px;background:#fce9eb;color:#b42335}
+.aw-empty{padding:25px 8px;text-align:center;color:#8a8190}.aw-cart-total{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e9e1eb;padding-top:16px}
+.aw-cart-total strong{font-size:25px;color:#64107b}.aw-checkout{background:#64107b;width:100%}.aw-cart-footer{font-size:12px;color:#7a7080;text-align:center}
+.aw-mobile-cart,.aw-cart-close{display:none}
+@media(max-width:1000px){.aw-workspace{grid-template-columns:minmax(0,1fr) 270px}.aw-service-grid{grid-template-columns:repeat(auto-fill,minmax(135px,1fr))}.aw-kpis article{padding:12px;gap:7px}}
+@media(max-width:760px){.aw-workspace{display:block}.aw-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.aw-kpis article{min-height:75px}.aw-cart{display:none;position:fixed;z-index:90;inset:12px 12px 78px;overflow-y:auto;box-shadow:0 0 0 100vmax #16091e88}.aw-cart.aw-cart-open{display:flex}.aw-cart-close{display:block}.aw-mobile-cart{display:flex;justify-content:space-between;align-items:center;position:sticky;bottom:10px;z-index:80;width:100%;margin:14px 0;box-shadow:0 8px 22px #64107b44}.aw-service-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.aw-identity{grid-template-columns:1fr}.aw-service-illustration{height:85px}.aw-heading h2{font-size:23px}}
+@media(max-width:380px){.aw-kpis strong{font-size:22px}.aw-kpis span{font-size:11px}.aw-service-body{padding:9px}.aw-service-bottom b{font-size:13px}}
