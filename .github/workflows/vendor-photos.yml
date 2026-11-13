@@ -1,0 +1,26 @@
+name: Vendor ATWash photos
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download fixed photo assets
+        run: python scripts/vendor_service_images.py
+      - name: Commit local images
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/atwash-web/public/images/
+          if ! git diff --cached --quiet; then
+            git commit -m "assets: store fixed service and sidebar photographs locally"
+            git push
+          fi
