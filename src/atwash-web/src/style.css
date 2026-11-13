@@ -266,3 +266,16 @@ main,.panel,.aw-attendance,.aw-workspace,.aw-left,.aw-catalog,.aw-customer,.aw-s
 .aw-pix-panel textarea{width:100%;max-width:100%;resize:vertical;overflow-wrap:anywhere}
 .aw-pix-panel .aw-pix-warning{font-size:13px;color:#7c4b00;background:#fff3d7;padding:12px;border-radius:10px}
 @media(max-width:600px){.aw-payment-overlay{padding:0;align-items:stretch}.aw-payment-dialog{max-height:100dvh;width:100%;border-radius:0}.aw-payment-dialog .payment-panel{padding:16px}.aw-vehicle-compact button{width:100%}}
+
+/* Camera-first plate lookup on tablets and phones. */
+.aw-plate-reader{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid #e5d6eb;border-radius:14px;background:#faf7fc;margin-bottom:14px}
+.aw-plate-camera{display:flex;align-items:center;justify-content:center;min-height:52px;padding:12px 18px;border-radius:12px;background:#64107b;color:white;font-weight:700;cursor:pointer;text-align:center}
+.aw-plate-camera input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.aw-plate-reader small{font-size:12px;color:#65606b}
+.aw-plate-reader p{margin:0;font-size:13px}
+.aw-plate-preview{width:100%;max-height:220px;object-fit:contain;border-radius:10px;background:#eee}
+.aw-plate-confirm{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+.aw-plate-confirm label{flex:1;min-width:150px}
+.aw-plate-confirm input{text-transform:uppercase;letter-spacing:2px;font-weight:700}
+.aw-plate-confirm button{min-height:48px}
+@media(max-width:480px){.aw-plate-confirm button{width:100%}}
