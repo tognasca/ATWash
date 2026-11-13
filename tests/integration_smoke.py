@@ -150,8 +150,9 @@ def main():
         "password":"IntegrationTenantPassword2026!"},(401,))
     platform("PUT",f"/tenants/{tenant['id']}/subscription",
         {"planId":plan["id"],"status":"active","expiresAt":None})
-    assert request("POST","/auth/login",{"email":"new-tenant@atwash.test",
-        "password":"IntegrationTenantPassword2026!"})["accessToken"]
+    owner_first=request("POST","/auth/login",{"email":"new-tenant@atwash.test",
+        "password":"IntegrationTenantPassword2026!"})
+    assert owner_first["accessToken"]
     platform("PUT",f"/tenants/{tenant['id']}/status?active=false",expected=(200,))
     request("POST","/auth/login",{"email":"new-tenant@atwash.test",
         "password":"IntegrationTenantPassword2026!"},(401,))
@@ -167,7 +168,7 @@ def main():
     TOKEN=worker["accessToken"]
     request("GET","/auth/me",expected=(401,))
     TOKEN=previous
-    worker=request("POST","/auth/login",{"email":"security-test@atwash.test","password":"TestOnlySecurityPassword2026!"})
+    worker=request("POST","/auth/login",{"email":"security-test@atwash.test","password":"TestOnlySecurityPassword2026!","deviceId":worker["deviceId"]})
     TOKEN=worker["accessToken"]
     assert request("GET","/auth/me")["role"]=="Washer"
     request("GET","/devices",expected=(403,))
@@ -183,9 +184,9 @@ def main():
     request("POST","/auth/login",{"email":"security-test@atwash.test",
         "password":"TestOnlySecurityPassword2026!"},(401,))
     assert request("POST","/auth/login",{"email":"security-test@atwash.test",
-        "password":"UpdatedSecurityPassword2026!"})["accessToken"]
+        "password":"UpdatedSecurityPassword2026!","deviceId":worker["deviceId"]})["accessToken"]
     owner_session=request("POST","/auth/login",{"email":"new-tenant@atwash.test",
-        "password":"IntegrationTenantPassword2026!"})
+        "password":"IntegrationTenantPassword2026!","deviceId":owner_first["deviceId"]})
     platform("PUT",f"/tenants/{tenant['id']}/subscription",
         {"planId":plan["id"],"status":"suspended","expiresAt":None})
     TOKEN=owner_session["accessToken"]
