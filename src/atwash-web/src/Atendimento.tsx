@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react';
+import {useEffect,useState,type ChangeEvent} from 'react';
 import {useDialog} from './Dialog';
 import PaymentPanel from './PaymentPanel';
 import {queueStatus,tenantFromToken,createOfflineCustomer,createOfflineVehicle,createOfflineOrder} from './offline';
@@ -9,6 +9,38 @@ export default function Atendimento({token,customers,vehicles,services,products,
  const [employees,setEmployees]=useState<{id:string;name:string;isActive:boolean}[]>([]);
  useEffect(()=>{if(!online)return;void api<typeof employees>('/employees',token).then(setEmployees).catch(()=>{})},[token,online]);
  const [query,setQuery]=useState('');
+ const [plateScanning,setPlateScanning]=useState(false);
+ const [detectedPlate,setDetectedPlate]=useState('');
+ const [platePreview,setPlatePreview]=useState('');
+ const [plateNotice,setPlateNotice]=useState('');
+ async function scanPlate(e:ChangeEvent<HTMLInputElement>){
+  const file=e.target.files?.[0];e.target.value='';
+  if(!file)return;
+  if(!file.type.startsWith('image/')){onError('Selecione uma foto da placa.');return}
+  if(file.size>12*1024*1024){onError('Foto muito grande. Use uma imagem de até 12 MB.');return}
+  setPlateScanning(true);setPlateNotice('Lendo a placa na foto...');setDetectedPlate('');
+  const url=URL.createObjectURL(file);setPlatePreview(old=>{if(old)URL.revokeObjectURL(old);return url});
+  try{
+   const {recognize}=await import('tesseract.js');
+   const result=await recognize(file,'eng');
+   const raw=result.data.text.toUpperCase().replace(/[^A-Z0-9]/g,'');
+   const candidates=raw.match(/[A-Z]{3}[0-9][A-Z0-9][0-9]{2}/g)||[];
+   const best=candidates.find(x=>/^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(x));
+   if(best){setDetectedPlate(best);setPlateNotice('Confira os caracteres antes de pesquisar. A leitura automática pode errar.')}
+   else setPlateNotice('Não foi possível identificar a placa. Digite os caracteres manualmente.');
+  }catch{setPlateNotice('Não foi possível ler a foto. Digite a placa manualmente ou tente outra imagem.')}
+  finally{setPlateScanning(false)}
+ }
+ function searchPlate(){
+  const normalized=detectedPlate.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(!/^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(normalized)){onError('Confira a placa: informe 7 caracteres no padrão brasileiro.');return}
+  setDetectedPlate(normalized);setQuery(normalized);setPlate(normalized);
+  const found=vehicles.find(v=>v.plate.replace(/[^A-Z0-9]/gi,'').toUpperCase()===normalized);
+  const owner=found&&customers.find(x=>x.id===found.customerId);
+  if(found&&owner){setCustomer(owner);setVehicleId(found.id);setChoosingVehicle(false);setCreatingCustomer(false);setPlateNotice('Veículo encontrado! Confira o cliente e escolha os serviços.')}
+  else{setCustomer(null);setVehicleId('');setCreatingCustomer(true);setPlateNotice('Placa não encontrada nos cadastros carregados. Confira os dados e cadastre o cliente para continuar.')}
+ }
+
  const [customer,setCustomer]=useState<Customer|null>(null);const [vehicleId,setVehicleId]=useState('');
  const [name,setName]=useState('');const [phone,setPhone]=useState('');const [plate,setPlate]=useState('');const [model,setModel]=useState('');
  const [selected,setSelected]=useState<string[]>([]);const [extra,setExtra]=useState<Record<string,string>>({});
@@ -50,8 +82,8 @@ export default function Atendimento({token,customers,vehicles,services,products,
  <div className="aw-workspace">
  <div className="aw-left">
  <section className="aw-customer panel">
- <div className="aw-section-title"><h3>1. Quem chegou?</h3>{customer&&<button type="button" className="secondary" onClick={()=>{setCustomer(null);setVehicleId('');setChoosingVehicle(false);setSelected([]);setActiveOrderId(null);setQuery('');setCreatingCustomer(false)}}>Trocar</button>}</div>
- {!customer?<><label className="aw-search-label">Digite a placa, nome ou telefone<input autoComplete="off" aria-label="Encontrar cliente" placeholder="Ex.: ABC1234 ou João" value={query} onChange={e=>setQuery(e.target.value)}/></label>
+ <div className="aw-section-title"><h3>1. Quem chegou?</h3>{customer&&<button type="button" className="secondary" onClick={()=>{setCustomer(null);setVehicleId('');setChoosingVehicle(false);setDetectedPlate('');setPlateNotice('');setSelected([]);setActiveOrderId(null);setQuery('');setCreatingCustomer(false)}}>Trocar</button>}</div>
+ {!customer?<><div className="aw-plate-reader"><label className="aw-plate-camera">📷 Tirar foto da placa<input type="file" accept="image/*" capture="environment" disabled={plateScanning} onChange={e=>void scanPlate(e)}/></label><small>A câmera abre em dispositivos compatíveis. Você também pode escolher uma foto.</small>{platePreview&&<img className="aw-plate-preview" src={platePreview} alt="Foto da placa para conferência"/>}{plateNotice&&<p role="status">{plateNotice}</p>}{(detectedPlate||platePreview)&&<div className="aw-plate-confirm"><label>Placa identificada<input autoCapitalize="characters" maxLength={7} placeholder="ABC1D23" value={detectedPlate} onChange={e=>setDetectedPlate(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,''))}/></label><button type="button" disabled={plateScanning||detectedPlate.length!==7} onClick={searchPlate}>{plateScanning?'Lendo...':'Pesquisar placa'}</button></div>}</div><label className="aw-search-label">Digite a placa, nome ou telefone<input autoComplete="off" aria-label="Encontrar cliente" placeholder="Ex.: ABC1234 ou João" value={query} onChange={e=>setQuery(e.target.value)}/></label>
  {query.trim().length>=2&&<div className="aw-customer-matches">{customers.filter(c=>c.name.toLowerCase().includes(query.toLowerCase())||c.phone?.includes(query)||vehicles.some(v=>v.customerId===c.id&&v.plate.replace(/[^a-z0-9]/gi,'').toLowerCase().includes(query.replace(/[^a-z0-9]/gi,'').toLowerCase()))).slice(0,12).map(c=><button key={c.id} type="button" className="aw-person-choice" onClick={()=>{setCustomer(c);setVehicleId(vehicles.find(v=>v.customerId===c.id)?.id||'');setChoosingVehicle(!vehicles.some(v=>v.customerId===c.id));setQuery('');setCreatingCustomer(false);setActiveOrderId(null)}}><span className="aw-person-avatar">👤</span><span><strong>{c.name}</strong><small>{vehicles.filter(v=>v.customerId===c.id).map(v=>v.plate).join(' · ')||c.phone||'Sem veículo'}</small></span><b>›</b></button>)}</div>}
  {canWrite&&<><button type="button" className="aw-new-person" onClick={()=>setCreatingCustomer(v=>!v)}>{creatingCustomer?'Fechar cadastro':'+ Cliente novo'}</button>
  {creatingCustomer&&<form className="aw-easy-form" onSubmit={e=>{e.preventDefault();void run(async()=>{const created=online?await api<{id:string}>('/customers',token,'POST',{name,phone}):await createOfflineCustomer(tenantFromToken(token),name,phone);setCustomer({id:created.id,name,phone});setChoosingVehicle(true);if(!online)onQueued();setName('');setPhone('');setCreatingCustomer(false)})}}><label>Nome do cliente<input required autoFocus placeholder="Nome" value={name} onChange={e=>setName(e.target.value)}/></label><label>Celular (opcional)<input inputMode="tel" placeholder="(11) 99999-9999" value={phone} onChange={e=>setPhone(e.target.value)}/></label><button disabled={busy||!name.trim()}>Salvar e continuar →</button></form>}</>}
