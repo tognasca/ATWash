@@ -45,8 +45,9 @@ export async function saveSnapshot(tenant:string,snapshot:Snapshot){
  await store('snapshots','readwrite',s=>s.put(snapshot,tenant));
 }
 export async function loadSnapshot(tenant:string):Promise<Snapshot|undefined>{
- const snapshot=await store<Snapshot|undefined>('snapshots','readonly',s=>s.get(tenant));
- if(!snapshot)return undefined;
+ const persisted=await store<Snapshot|undefined>('snapshots','readonly',s=>s.get(tenant));
+ if(!persisted)return undefined;
+ const snapshot:Snapshot=structuredClone(persisted);
  // Replay unacknowledged status transitions over the persisted server snapshot.
  // This prevents an interrupted refresh from visually rolling back local work.
  const all=await store<Pending[]>('pending','readonly',s=>s.getAll());
@@ -164,7 +165,7 @@ let activeSync:Promise<number>|null=null;
 const SYNC_LOCK='atwash-sync-owner';
 const SYNC_TTL=120000;
 function lockSync():()=>void{
- const owner=crypto.randomUUID();
+ const owner=newId();
  const current=localStorage.getItem(SYNC_LOCK);
  if(current){
   try{const lock=JSON.parse(current) as {owner:string;expires:number};
