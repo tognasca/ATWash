@@ -10,8 +10,10 @@ namespace ATWash.Api;
 
 public static class MercadoPagoBilling
 {
-    private static bool Owner(ClaimsPrincipal p,out Guid tenantId) =>
-        p.IsInRole("Owner") && Guid.TryParse(p.FindFirst("tenant_id")?.Value,out tenantId) && tenantId!=Guid.Empty;
+    private static bool Owner(ClaimsPrincipal p,out Guid tenantId) {
+        tenantId=Guid.Empty;
+        return p.IsInRole("Owner") && Guid.TryParse(p.FindFirst("tenant_id")?.Value,out tenantId) && tenantId!=Guid.Empty;
+    }
 
     private static string MapStatus(string? status) => status switch {
         "authorized"=>"active", "paused"=>"suspended",
