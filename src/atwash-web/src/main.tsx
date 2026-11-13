@@ -27,6 +27,7 @@ function App(){
  const [screen,setScreen]=useState<'operation'|'admin'|'dashboard'>('operation');
  const [email,setEmail]=useState('');
  const [password,setPassword]=useState('');
+ const [showPassword,setShowPassword]=useState(false);
  const [busy,setBusy]=useState(false);
  const [online,setOnline]=useState(navigator.onLine);
  const [queued,setQueued]=useState(0);
@@ -84,16 +85,24 @@ function App(){
  }
  async function login(e:FormEvent){
   e.preventDefault();setBusy(true);
+  let authenticated=false;
   try{
    const result=await api<{accessToken:string}>('/auth/login','','POST',{email,password,deviceId,deviceName:navigator.userAgent.slice(0,100)});
+   authenticated=true;
    const me=await api<{role:string}>('/auth/me',result.accessToken);
    if(navigator.onLine)try{await syncPending(result.accessToken)}catch(syncError){notifyError('Pendências offline precisam de revisão: '+String(syncError))}
    await reload(result.accessToken);
    sessionStorage.setItem('atwash-session',JSON.stringify({token:result.accessToken,role:me.role}));
    setRole(me.role);setScreen('operation');setToken(result.accessToken);setPassword('');
-  }catch(e){if(e instanceof ApiError && e.status===401)dialog.show('E-mail ou senha incorretos. Verifique os dados e tente novamente.','error');else dialog.show(e instanceof ApiError&&e.status===429?'Muitas tentativas de acesso. Aguarde um minuto e tente novamente.':'Não foi possível entrar. Verifique a conexão e tente novamente.','error')}finally{setBusy(false)}
+  }catch(e){
+   if(e instanceof ApiError&&e.status===401)dialog.show(authenticated?'Senha aceita, mas a sessão não foi autorizada. Entre novamente.':'E-mail ou senha incorretos. Confira os dados.','error');
+   else if(e instanceof ApiError&&e.status===429)dialog.show('Muitas tentativas. Aguarde um minuto e tente novamente.','error');
+   else if(e instanceof ApiError&&e.status===403)dialog.show('Empresa ou assinatura inativa. Contate o administrador.','error');
+   else if(e instanceof ApiError&&e.status===409)dialog.show('Dispositivo não autorizado ou limite atingido. Solicite liberação ao administrador.','error');
+   else dialog.show(authenticated?'Senha aceita, mas houve falha ao carregar os dados. Verifique a conexão.':'Não foi possível conectar. Verifique a conexão e tente novamente.','error');
+  }finally{setBusy(false)}
  }
- if(!token)return <main className="login"><section className="panel"><div className="brand"><img className="brand-logo" src="/atwashcontrol-logo.png" alt="ATWashControl — Gestão de Lava-Rápido" onError={e=>{e.currentTarget.style.display="none";e.currentTarget.nextElementSibling?.removeAttribute("hidden")}}/><span className="brand-fallback" hidden>ATWash<span>Control</span></span></div><p>Seu lava-rápido na palma da mão.</p><form onSubmit={login}><label>E-mail<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Senha<input type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label><button disabled={busy}>Entrar</button></form><button className="secondary" type="button" onClick={()=>{if(!window.confirm('Redefinir este dispositivo? As pendências offline antigas não serão sincronizadas automaticamente.'))return;const next=createOperationId();localStorage.setItem('atwash-device-id',next);setDeviceId(next)}}>Registrar como novo dispositivo</button></section></main>;
+ if(!token)return <main className="login"><section className="panel"><div className="brand"><img className="brand-logo" src="/atwashcontrol-logo.png" alt="ATWashControl — Gestão de Lava-Rápido" onError={e=>{e.currentTarget.style.display="none";e.currentTarget.nextElementSibling?.removeAttribute("hidden")}}/><span className="brand-fallback" hidden>ATWash<span>Control</span></span></div><p>Seu lava-rápido na palma da mão.</p><form onSubmit={login}><label>E-mail<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Senha<div className="aw-password-field"><input type={showPassword?'text':'password'} required autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)}/><button type="button" className="aw-password-toggle" aria-label={showPassword?'Ocultar senha':'Mostrar senha'} aria-pressed={showPassword} onClick={()=>setShowPassword(v=>!v)}>{showPassword?'🙈':'👁'}</button></div></label><button disabled={busy}>Entrar</button></form><button className="secondary" type="button" onClick={()=>{if(!window.confirm('Redefinir este dispositivo? As pendências offline antigas não serão sincronizadas automaticamente.'))return;const next=createOperationId();localStorage.setItem('atwash-device-id',next);setDeviceId(next)}}>Registrar como novo dispositivo</button></section></main>;
  const isAdmin=role==='Owner'||role==='Manager';
  return <main><header><h1>AT<span>Wash</span></h1><div><button className={screen==='operation'?'':'secondary'} onClick={()=>setScreen('operation')}>Atendimento</button>{isAdmin&&<button className={screen==='dashboard'?'':'secondary'} onClick={()=>setScreen('dashboard')}>Dashboard</button>}{isAdmin&&<button className={screen==='admin'?'':'secondary'} onClick={()=>setScreen('admin')}>Administração</button>}<button className="secondary" onClick={()=>{sessionStorage.removeItem('atwash-session');setToken('');setRole('');setScreen('operation')}}>Sair</button></div></header>
 
