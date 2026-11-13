@@ -1,6 +1,11 @@
 name: Vendor ATWash photos
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/vendor_service_images.py'
+      - '.github/workflows/vendor-photos.yml'
 permissions:
   contents: write
 jobs:
