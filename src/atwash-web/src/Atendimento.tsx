@@ -3,20 +3,21 @@ import {useDialog} from './Dialog';
 import PaymentPanel from './PaymentPanel';
 import {queueStatus,tenantFromToken,createOfflineCustomer,createOfflineVehicle,createOfflineOrder} from './offline';
 import {api,currency,type Customer,type Vehicle,type Service,type Product,type Order} from './api';
-// Use only a photograph that depicts the actual service. Never reuse a generic car photo.
-const servicePhotos:{match:RegExp;url:string}[]=[
- {match:/^lavagem simples$/i,url:'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&w=700&q=80'}
+// Curated photographs of real detailing processes; each catalog category gets its own image.
+// No generic car shots, repeated image fallback, or emoji placeholders.
+const servicePhotos:{match:RegExp;url:string;position?:string}[]=[
+ {match:/aspira[cç][aã]o|aspirar/,url:'https://lirp.cdn-website.com/2d8ab408/dms3rep/multi/opt/Full%2BCar%2BDeep%2BClean-640w.png',position:'center top'},
+ {match:/higieniza[cç][aã]o interna|limpeza interna|bancos|estofad/,url:'https://content.app-sources.com/s/970591715528428101/thumbnails/640x480/Images/Full_Interior_Image-6264845.png?format=webp',position:'center bottom'},
+ {match:/lavagem de motor|limpeza de motor|motor/,url:'https://img.grouponcdn.com/metro_draft_service/2UpESm9CXpMP88Eg4z9NbD4Byoas/2U-1158x1154/v1/t2800x1696.jpg',position:'left bottom'},
+ {match:/higieniza[cç][aã]o de ar|ar condicionado|ventila[cç][aã]o/,url:'https://i.shgcdn.com/980297aa-55dd-4d71-839d-4b3e97cc157b/-/format/auto/-/preview/3000x3000/-/quality/lighter/',position:'left center'},
+ {match:/poliment|cristaliza[cç][aã]o/,url:'https://cdn.prod.website-files.com/68a506949befd25caf9ad118/6985ac3dc68523b77af916bd_car-wash-carlisle-pa-car-detailing.jpeg',position:'center center'},
+ {match:/enceramento|cera/,url:'https://www.nextgenautocare.co.in/assets/images/services/17.jpg',position:'right bottom'},
+ {match:/vitrifica[cç][aã]o|cer[aâ]mic/,url:'https://images.unsplash.com/photo-1607860108855-64acf2078ed9?auto=format&fit=crop&w=700&q=80'},
+ {match:/revitaliza[cç][aã]o|pl[aá]stic/,url:'https://media.karousell.com/media/photos/products/2024/9/13/interior_detailing_tier_2__sha_1726223090_6c3bbcc7_progressive.jpg',position:'right top'},
+ {match:/lavagem completa|lavagem premium/,url:'https://www.nextgenautocare.co.in/assets/images/services/17.jpg',position:'left top'},
+ {match:/lavagem simples|lavagem externa|lavar carro/,url:'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&w=700&q=80'}
 ];
-function servicePhoto(name:string){return servicePhotos.find(p=>p.match.test(name.trim()))?.url}
-function serviceIcon(name:string){
- const n=name.toLowerCase();
- if(/aspira|interior|interna|estofad|banco/.test(n))return '🧹';
- if(/encer|cera/.test(n))return '✨';
- if(/poliment|cristaliz|vitrific/.test(n))return '💎';
- if(/motor/.test(n))return '⚙️';
- if(/premium|completa/.test(n))return '🚘';
- return '🫧';
-}
+function servicePhoto(name:string){return servicePhotos.find(p=>p.match.test(name.trim().toLowerCase()))}
 type Props={token:string;customers:Customer[];vehicles:Vehicle[];services:Service[];products:Product[];orders:Order[];reload:()=>Promise<void>;onError:(error:string)=>void;canConfirmPix:boolean;canWrite:boolean;online:boolean;onQueued:()=>void};
 export default function Atendimento({token,customers,vehicles,services,products,orders,reload,onError,canConfirmPix,canWrite,online,onQueued}:Props){
  const dialog=useDialog();
@@ -114,7 +115,7 @@ export default function Atendimento({token,customers,vehicles,services,products,
  <div className="aw-tabs"><button type="button" className={catalogTab==='services'?'aw-active':'secondary'} onClick={()=>{setCatalogTab('services');setCatalogSearch('')}}>Serviços</button><button type="button" className={catalogTab==='products'?'aw-active':'secondary'} onClick={()=>{setCatalogTab('products');setCatalogSearch('')}}>Produtos / Extras</button></div>
  <input className="aw-catalog-search" aria-label="Filtrar itens" placeholder="Pesquisar no catálogo..." value={catalogSearch} onChange={e=>setCatalogSearch(e.target.value)}/>
  <div className="aw-service-grid">
- {catalogTab==='services'?visibleServices.map((s,i)=><button type="button" key={s.id} disabled={!canWrite} aria-pressed={selected.includes(s.id)} className={'aw-service-card '+(selected.includes(s.id)?'aw-selected':'')} onClick={()=>setSelected(old=>old.includes(s.id)?old.filter(id=>id!==s.id):[...old,s.id])}><span className={'aw-service-illustration aw-service-photo aw-ill-'+i%6} aria-hidden="true">{servicePhoto(s.name)?<img loading="lazy" src={servicePhoto(s.name)} alt="" onError={e=>{e.currentTarget.style.display='none'}}/>:<span className="aw-photo-placeholder"><span aria-hidden="true">{serviceIcon(s.name)}</span></span>}</span><span className="aw-service-body"><strong>{s.name}</strong><span className="aw-service-bottom"><b>{currency(s.price)}</b><span className="aw-add-icon">{selected.includes(s.id)?'✓':'+'}</span></span></span></button>):visibleProducts.map((p,i)=><article className="aw-service-card" key={p.id}><span className={'aw-service-illustration aw-ill-'+i%6} aria-hidden="true">{p.isSupply?'🧴':'📦'}</span><div className="aw-service-body"><strong>{p.name}</strong><small>Estoque: {p.stock} {p.unit}</small><span className="aw-service-bottom"><b>{currency(p.price)}</b></span><div className="aw-quantity"><input aria-label={'Quantidade '+p.name} inputMode="decimal" value={draftQty[p.id]??'1'} onChange={e=>setDraftQty(v=>({...v,[p.id]:e.target.value}))}/><button type="button" disabled={!canWrite||!online||!activeOrder||activeOrder.status>=4||activeOrder.paymentStatus!==0||busy} onClick={()=>void run(async()=>{if(!activeOrder)throw new Error('Selecione uma comanda em andamento.');const quantity=Number((draftQty[p.id]??'1').replace(',','.'));if(!Number.isFinite(quantity)||quantity<=0)throw new Error('Quantidade inválida');await api('/orders/'+activeOrder.id+'/products',token,'POST',{productId:p.id,quantity,isConsumption:false})})}>+ Adicionar</button></div></div></article>)}
+ {catalogTab==='services'?visibleServices.map((s,i)=><button type="button" key={s.id} disabled={!canWrite} aria-pressed={selected.includes(s.id)} className={'aw-service-card '+(selected.includes(s.id)?'aw-selected':'')} onClick={()=>setSelected(old=>old.includes(s.id)?old.filter(id=>id!==s.id):[...old,s.id])}><span className={'aw-service-illustration aw-service-photo aw-ill-'+i%6} aria-hidden="true">{servicePhoto(s.name)&&<img loading="lazy" src={servicePhoto(s.name)!.url} style={{objectPosition:servicePhoto(s.name)!.position||'center'}} alt="" onError={e=>{e.currentTarget.style.display='none'}}/>}</span><span className="aw-service-body"><strong>{s.name}</strong><span className="aw-service-bottom"><b>{currency(s.price)}</b><span className="aw-add-icon">{selected.includes(s.id)?'✓':'+'}</span></span></span></button>):visibleProducts.map((p,i)=><article className="aw-service-card" key={p.id}><span className={'aw-service-illustration aw-ill-'+i%6} aria-hidden="true">{p.isSupply?'🧴':'📦'}</span><div className="aw-service-body"><strong>{p.name}</strong><small>Estoque: {p.stock} {p.unit}</small><span className="aw-service-bottom"><b>{currency(p.price)}</b></span><div className="aw-quantity"><input aria-label={'Quantidade '+p.name} inputMode="decimal" value={draftQty[p.id]??'1'} onChange={e=>setDraftQty(v=>({...v,[p.id]:e.target.value}))}/><button type="button" disabled={!canWrite||!online||!activeOrder||activeOrder.status>=4||activeOrder.paymentStatus!==0||busy} onClick={()=>void run(async()=>{if(!activeOrder)throw new Error('Selecione uma comanda em andamento.');const quantity=Number((draftQty[p.id]??'1').replace(',','.'));if(!Number.isFinite(quantity)||quantity<=0)throw new Error('Quantidade inválida');await api('/orders/'+activeOrder.id+'/products',token,'POST',{productId:p.id,quantity,isConsumption:false})})}>+ Adicionar</button></div></div></article>)}
  </div>
  {catalogTab==='products'&&<p className="aw-hint">Produtos são adicionados a uma comanda já aberta. Selecione a comanda no painel à direita. Operação disponível online.</p>}
  </section>:<section className="panel aw-catalog aw-catalog-locked"><h3>2. Serviços e produtos</h3><p className="aw-hint">Selecione primeiro o cliente e o veículo para visualizar os serviços disponíveis.</p></section>}
