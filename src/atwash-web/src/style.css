@@ -279,3 +279,47 @@ main,.panel,.aw-attendance,.aw-workspace,.aw-left,.aw-catalog,.aw-customer,.aw-s
 .aw-plate-confirm input{text-transform:uppercase;letter-spacing:2px;font-weight:700}
 .aw-plate-confirm button{min-height:48px}
 @media(max-width:480px){.aw-plate-confirm button{width:100%}}
+
+/* ATWashControl 2026 — approved desktop visual direction, scoped to authenticated shell. */
+.aw-app-shell{display:grid;grid-template-columns:212px minmax(0,1fr);max-width:none;min-height:100dvh;padding:0;margin:0;background:#f8f8fc}
+.aw-app-sidebar{display:flex;flex-direction:column;position:sticky;top:0;height:100dvh;min-width:0;padding:24px 10px 18px;background:linear-gradient(165deg,#1b0b36 0%,#2c0c4d 58%,#160c32 100%);color:white}
+.aw-sidebar-brand{padding:8px 12px 30px;text-align:center;border-bottom:1px solid #ffffff1a}
+.aw-sidebar-brand strong{font-size:21px;letter-spacing:-1px;white-space:nowrap}
+.aw-sidebar-brand strong span{font-weight:400}
+.aw-sidebar-brand small{display:block;margin-top:4px;color:#d7c4e6;font-size:10px}
+.aw-sidebar-nav{display:flex;flex-direction:column;gap:7px;margin-top:20px}
+.aw-sidebar-nav button{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:13px 14px;background:transparent;color:#eee3f6;border-radius:9px;font-size:14px;font-weight:600}
+.aw-sidebar-nav button:not(:disabled):hover,.aw-sidebar-nav .aw-nav-active{background:linear-gradient(100deg,#7f28cf,#5a14aa);color:#fff}
+.aw-sidebar-nav button:disabled{opacity:.45}
+.aw-sidebar-foot{margin-top:auto;padding:20px 8px 4px;text-align:center;border-top:1px solid #ffffff24}
+.aw-sidebar-foot strong{display:block;font-size:14px}
+.aw-sidebar-foot small{display:block;color:#c9b5d9;font-size:10px;margin-top:7px}
+.aw-app-content{min-width:0;padding:0 22px 26px}
+.aw-app-topbar{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:16px;margin:0 -22px 18px;padding:15px 24px;background:#fff;border-bottom:1px solid #e9e6ef}
+.aw-topbar-title{display:flex;align-items:center;gap:12px}
+.aw-topbar-title h1{font-size:23px;color:#211634;line-height:1.1;margin:0 0 4px}
+.aw-topbar-title small{color:#756886;font-size:12px}
+.aw-topbar-icon{display:grid;place-items:center;font-size:27px;color:#64107b}
+.aw-topbar-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.aw-topbar-online,.aw-topbar-offline{border-radius:30px;padding:7px 12px;font-size:12px;font-weight:800}
+.aw-topbar-online{background:#e1f8e8;color:#0c873b}.aw-topbar-offline{background:#fff0d6;color:#a66300}
+.aw-topbar-role{font-size:12px;font-weight:700;color:#342442}
+.aw-topbar-actions button{min-height:34px;padding:7px 12px}
+.aw-app-content .aw-heading{display:none}
+.aw-app-content .aw-kpis{gap:10px;margin:0 0 15px}
+.aw-app-content .aw-kpis article{border:0;border-radius:12px;padding:15px;box-shadow:0 2px 9px #2613330d}
+.aw-app-content .aw-kpis article:first-child{background:linear-gradient(125deg,#8d2ce0,#5310a2);color:white}
+.aw-app-content .aw-kpis strong{font-size:25px}
+.aw-app-content .aw-workspace{gap:14px;align-items:start}
+.aw-app-content .aw-customer,.aw-app-content .aw-catalog,.aw-app-content .aw-cart{border:1px solid #e9e4f3;box-shadow:0 3px 14px #20122d0c;border-radius:15px}
+.aw-app-content .aw-selected-person,.aw-app-content .aw-vehicle-compact{background:#f6f4fb;border:1px solid #ece6f6}
+.aw-app-content .aw-tabs{gap:9px}
+.aw-app-content .aw-tabs button{border-radius:10px}
+.aw-app-content .aw-service-card{border:1px solid #e8e1ef;border-radius:13px;box-shadow:0 3px 10px #25103812;overflow:hidden}
+.aw-app-content .aw-service-card:hover{border-color:#b57bd0;box-shadow:0 5px 18px #64107b24}
+.aw-app-content .aw-service-bottom b,.aw-app-content .aw-cart-total strong{color:#6211a4}
+.aw-app-content .aw-checkout{background:linear-gradient(100deg,#16b85e,#05a445)}
+.aw-app-content .aw-checkout:hover:not(:disabled){background:#068b3c}
+.aw-app-content .aw-orders-section{border-radius:15px}
+@media(max-width:1020px){.aw-app-shell{grid-template-columns:175px minmax(0,1fr)}.aw-app-sidebar{padding-inline:7px}.aw-sidebar-brand strong{font-size:17px}.aw-app-content{padding-inline:14px}.aw-app-topbar{margin-inline:-14px;padding-inline:16px}}
+@media(max-width:760px){.aw-app-shell{display:block}.aw-app-sidebar{position:static;height:auto;padding:10px 12px}.aw-sidebar-brand{padding:3px 0 8px;border:0}.aw-sidebar-brand small,.aw-sidebar-foot{display:none}.aw-sidebar-nav{flex-direction:row;overflow-x:auto;gap:6px;margin-top:7px;padding-bottom:3px}.aw-sidebar-nav button{flex:0 0 auto;width:auto;min-height:40px;padding:9px 12px;font-size:12px}.aw-app-content{padding:0 10px 20px}.aw-app-topbar{margin:0 -10px 12px;padding:12px;align-items:flex-start;flex-direction:column}.aw-topbar-title h1{font-size:20px}.aw-topbar-actions{width:100%;justify-content:space-between}.aw-app-content .aw-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.aw-app-content .aw-heading{display:none}}
