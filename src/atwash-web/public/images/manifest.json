@@ -1,0 +1,46 @@
+{
+  "aspiracao.jpg": {
+    "sha256": "265bdf6ef5ab6c45ef7cb0abd99019dc6eb130c240c87050e869773d6f5576ba",
+    "source": "https://lirp.cdn-website.com/2d8ab408/dms3rep/multi/opt/Full%2BCar%2BDeep%2BClean-640w.png"
+  },
+  "higienizacao-interna.jpg": {
+    "sha256": "a3fe6118715186a9ea2caf6ecf42160de73d7c58efa1774727a5ec2f34dde0e1",
+    "source": "https://content.app-sources.com/s/970591715528428101/thumbnails/640x480/Images/Full_Interior_Image-6264845.png?format=webp"
+  },
+  "motor.jpg": {
+    "sha256": "7d72aa45e0bc44f8669a99b65e7dac9956973b5cec74ff19ddb78661c9e9d9f3",
+    "source": "https://img.grouponcdn.com/metro_draft_service/2UpESm9CXpMP88Eg4z9NbD4Byoas/2U-1158x1154/v1/t2800x1696.jpg"
+  },
+  "ar-condicionado.jpg": {
+    "sha256": "c470dfee0ab10c7d8505fa48b3a8b05eb455955d378ea092bd14dfcc42b16ca4",
+    "source": "https://i.shgcdn.com/980297aa-55dd-4d71-839d-4b3e97cc157b/-/format/auto/-/preview/3000x3000/-/quality/lighter/"
+  },
+  "polimento.jpg": {
+    "sha256": "ce7da45f631ad1a0caf67dea0d057089ffdb0f15a2554bbf8577e4d0e1a6e396",
+    "source": "https://cdn.prod.website-files.com/68a506949befd25caf9ad118/6985ac3dc68523b77af916bd_car-wash-carlisle-pa-car-detailing.jpeg"
+  },
+  "enceramento.jpg": {
+    "sha256": "1ba6c3e7100fd91d9b46f35e8fc298bf6dd1c36ffe5898b1d9f2501b34873721",
+    "source": "https://www.nextgenautocare.co.in/assets/images/services/17.jpg"
+  },
+  "vitrificacao.jpg": {
+    "sha256": "98acbe610b24442d26d21a5e4376a364b9103c0055e1fec07a9e9f4ce7bb09ad",
+    "source": "https://images.unsplash.com/photo-1607860108855-64acf2078ed9?auto=format&fit=crop&w=700&q=80"
+  },
+  "plasticos.jpg": {
+    "sha256": "78d7e0413479e6c6242e47d59543e7897c87c8cde440fbab837764a30996e39c",
+    "source": "https://media.karousell.com/media/photos/products/2024/9/13/interior_detailing_tier_2__sha_1726223090_6c3bbcc7_progressive.jpg"
+  },
+  "lavagem-completa.jpg": {
+    "sha256": "1ba6c3e7100fd91d9b46f35e8fc298bf6dd1c36ffe5898b1d9f2501b34873721",
+    "source": "https://www.nextgenautocare.co.in/assets/images/services/17.jpg"
+  },
+  "lavagem-simples.jpg": {
+    "sha256": "22445cd9db2f7f5d45c215f42677bd2071735bcb240f01b5e5e7f8110fd05184",
+    "source": "https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&w=700&q=80"
+  },
+  "sidebar-carro.jpg": {
+    "sha256": "f34d08b7d9cf73d0adf98c7bd12d2fe5201cc5c6ba3176832a29ad3f0ad9f10a",
+    "source": "https://images.unsplash.com/photo-1493238792000-8113da705763?auto=format&fit=crop&w=650&q=78"
+  }
+}
