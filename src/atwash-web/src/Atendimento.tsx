@@ -8,7 +8,7 @@ export default function Atendimento({token,customers,vehicles,services,products,
  const dialog=useDialog();
  const [employees,setEmployees]=useState<{id:string;name:string;isActive:boolean}[]>([]);
  useEffect(()=>{if(!online)return;void api<typeof employees>('/employees',token).then(setEmployees).catch(()=>{})},[token,online]);
- const [query,setQuery]=useState('');const [matches,setMatches]=useState<Customer[]>([]);
+ const [query,setQuery]=useState('');
  const [customer,setCustomer]=useState<Customer|null>(null);const [vehicleId,setVehicleId]=useState('');
  const [name,setName]=useState('');const [phone,setPhone]=useState('');const [plate,setPlate]=useState('');const [model,setModel]=useState('');
  const [selected,setSelected]=useState<string[]>([]);const [extra,setExtra]=useState<Record<string,string>>({});
@@ -19,6 +19,7 @@ export default function Atendimento({token,customers,vehicles,services,products,
  const [catalogTab,setCatalogTab]=useState<'services'|'products'>('services');
  const [draftQty,setDraftQty]=useState<Record<string,string>>({});
  const [catalogSearch,setCatalogSearch]=useState('');
+ const [creatingCustomer,setCreatingCustomer]=useState(false);
  const [cartOpen,setCartOpen]=useState(false);
  const [activeOrderId,setActiveOrderId]=useState<string|null>(null);
  async function run(fn:()=>Promise<unknown>){setBusy(true);onError('');try{await fn();await reload();dialog.show('Operação realizada com sucesso.','success')}catch(e){onError(String(e))}finally{setBusy(false)}}
@@ -26,7 +27,7 @@ export default function Atendimento({token,customers,vehicles,services,products,
   if(online){await run(()=>api('/orders/'+order.id+'/status',token,'PATCH',{status:order.status+1}));return}
   await run(async()=>{await queueStatus(tenantFromToken(token),order.id,order.status,order.status+1);onQueued();dialog.show('Etapa registrada offline. Será enviada quando a conexão voltar.','info')});
  }
- async function search(){if(query.trim().length<2){onError('Digite pelo menos 2 caracteres');return}await run(async()=>{const found=online?await api<Customer[]>('/customers/search?q='+encodeURIComponent(query),token):customers.filter(c=>c.name.toLowerCase().includes(query.toLowerCase())||c.phone?.includes(query)||vehicles.some(v=>v.customerId===c.id&&v.plate.toLowerCase().includes(query.toLowerCase()))).map(c=>({...c,vehicles:vehicles.filter(v=>v.customerId===c.id)}));setMatches(found);if(found.length===0)setCustomer(null)})}
+
  const clientVehicles=vehicles.filter(v=>v.customerId===customer?.id);
  const paymentOrder=orders.find(o=>o.id===paymentOrderId);
  const draftServices=services.filter(s=>selected.includes(s.id));
@@ -46,12 +47,17 @@ export default function Atendimento({token,customers,vehicles,services,products,
  <div className="aw-workspace">
  <div className="aw-left">
  <section className="aw-customer panel">
- <div className="aw-section-title"><h3>Cliente e veículo</h3>{customer&&<button type="button" className="secondary" onClick={()=>{setCustomer(null);setVehicleId('');setSelected([]);setActiveOrderId(null)}}>Trocar cliente</button>}</div>
- <div className="actions"><input aria-label="Buscar cliente ou placa" placeholder="Buscar nome, placa ou telefone" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();void search()}}}/><button type="button" disabled={busy} onClick={()=>void search()}>Buscar</button></div>
- {matches.length>0&&<div className="aw-customer-matches">{matches.map(c=><button key={c.id} type="button" className="secondary" onClick={()=>{setCustomer(c);setVehicleId(c.vehicles?.[0]?.id||vehicles.find(v=>v.customerId===c.id)?.id||'');setMatches([]);setActiveOrderId(null)}}><strong>{c.name}</strong><span>{c.phone||'Sem telefone'} · {c.vehicles?.map(v=>v.plate).join(', ')||'Sem veículo'}</span></button>)}</div>}
- {customer?<div className="aw-identity"><div><small>Cliente selecionado</small><strong>{customer.name}</strong><span>{customer.phone||'Sem telefone'}</span></div><label>Veículo<select value={vehicleId} onChange={e=>{setVehicleId(e.target.value);setActiveOrderId(null)}}><option value="">Selecione o veículo</option>{clientVehicles.map(v=><option key={v.id} value={v.id}>{v.plate} — {v.model}</option>)}</select></label></div>:<p>Pesquise um cliente existente ou cadastre um novo abaixo.</p>}
- {canWrite&&!customer&&<form className="aw-mini-form" onSubmit={e=>{e.preventDefault();void run(async()=>{const created=online?await api<{id:string}>('/customers',token,'POST',{name,phone}):await createOfflineCustomer(tenantFromToken(token),name,phone);setCustomer({id:created.id,name,phone});if(!online)onQueued();setName('');setPhone('')})}}><h3>Novo cliente</h3><input required placeholder="Nome completo" value={name} onChange={e=>setName(e.target.value)}/><input placeholder="Telefone" value={phone} onChange={e=>setPhone(e.target.value)}/><button disabled={busy}>Cadastrar cliente</button></form>}
- {canWrite&&customer&&<details className="aw-add-vehicle"><summary>+ Adicionar veículo ao cliente</summary><form className="aw-mini-form" onSubmit={e=>{e.preventDefault();void run(async()=>{const created=online?await api<{id:string}>('/vehicles',token,'POST',{customerId:customer.id,plate,model}):await createOfflineVehicle(tenantFromToken(token),customer.id,plate,model);setVehicleId(created.id);if(!online)onQueued();setPlate('');setModel('')})}}><input required placeholder="Placa" value={plate} onChange={e=>setPlate(e.target.value)}/><input required placeholder="Modelo" value={model} onChange={e=>setModel(e.target.value)}/><button disabled={busy}>Adicionar veículo</button></form></details>}
+ <div className="aw-section-title"><h3>1. Quem chegou?</h3>{customer&&<button type="button" className="secondary" onClick={()=>{setCustomer(null);setVehicleId('');setSelected([]);setActiveOrderId(null);setQuery('');setCreatingCustomer(false)}}>Trocar</button>}</div>
+ {!customer?<><label className="aw-search-label">Digite a placa, nome ou telefone<input autoComplete="off" aria-label="Encontrar cliente" placeholder="Ex.: ABC1234 ou João" value={query} onChange={e=>setQuery(e.target.value)}/></label>
+ {query.trim().length>=2&&<div className="aw-customer-matches">{customers.filter(c=>c.name.toLowerCase().includes(query.toLowerCase())||c.phone?.includes(query)||vehicles.some(v=>v.customerId===c.id&&v.plate.replace(/[^a-z0-9]/gi,'').toLowerCase().includes(query.replace(/[^a-z0-9]/gi,'').toLowerCase()))).slice(0,12).map(c=><button key={c.id} type="button" className="aw-person-choice" onClick={()=>{setCustomer(c);setVehicleId(vehicles.find(v=>v.customerId===c.id)?.id||'');setQuery('');setCreatingCustomer(false);setActiveOrderId(null)}}><span className="aw-person-avatar">👤</span><span><strong>{c.name}</strong><small>{vehicles.filter(v=>v.customerId===c.id).map(v=>v.plate).join(' · ')||c.phone||'Sem veículo'}</small></span><b>›</b></button>)}</div>}
+ {canWrite&&<><button type="button" className="aw-new-person" onClick={()=>setCreatingCustomer(v=>!v)}>{creatingCustomer?'Fechar cadastro':'+ Cliente novo'}</button>
+ {creatingCustomer&&<form className="aw-easy-form" onSubmit={e=>{e.preventDefault();void run(async()=>{const created=online?await api<{id:string}>('/customers',token,'POST',{name,phone}):await createOfflineCustomer(tenantFromToken(token),name,phone);setCustomer({id:created.id,name,phone});if(!online)onQueued();setName('');setPhone('');setCreatingCustomer(false)})}}><label>Nome do cliente<input required autoFocus placeholder="Nome" value={name} onChange={e=>setName(e.target.value)}/></label><label>Celular (opcional)<input inputMode="tel" placeholder="(11) 99999-9999" value={phone} onChange={e=>setPhone(e.target.value)}/></label><button disabled={busy||!name.trim()}>Salvar e continuar →</button></form>}</>}
+ {query.trim().length<2&&!creatingCustomer&&<p className="aw-hint">Basta digitar duas letras ou parte da placa. Toque no cliente para continuar.</p>}
+ </>:<><div className="aw-selected-person"><span className="aw-person-avatar">✓</span><div><small>Cliente</small><strong>{customer.name}</strong></div></div>
+ <h3 className="aw-vehicle-title">2. Qual veículo?</h3>
+ <div className="aw-vehicle-choices">{clientVehicles.map(v=><button type="button" key={v.id} className={'aw-vehicle-choice '+(vehicleId===v.id?'aw-vehicle-active':'')} onClick={()=>{setVehicleId(v.id);setActiveOrderId(null)}}><span>🚘</span><strong>{v.plate}</strong><small>{v.model}</small><b>{vehicleId===v.id?'✓':'Selecionar'}</b></button>)}</div>
+ {canWrite&&<details className="aw-add-vehicle"><summary>+ Cadastrar outro veículo</summary><form className="aw-easy-form" onSubmit={e=>{e.preventDefault();void run(async()=>{const created=online?await api<{id:string}>('/vehicles',token,'POST',{customerId:customer.id,plate,model}):await createOfflineVehicle(tenantFromToken(token),customer.id,plate,model);setVehicleId(created.id);if(!online)onQueued();setPlate('');setModel('')})}}><label>Placa<input required autoCapitalize="characters" placeholder="ABC1D23" value={plate} onChange={e=>setPlate(e.target.value.toUpperCase())}/></label><label>Modelo<input required placeholder="Ex.: Gol branco" value={model} onChange={e=>setModel(e.target.value)}/></label><button disabled={busy}>Salvar veículo →</button></form></details>}
+ </>}
  </section>
  <section className="panel aw-catalog">
  <div className="aw-section-title"><h3>Escolha os itens</h3><span>{selected.length} serviço(s)</span></div>
