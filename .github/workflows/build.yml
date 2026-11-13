@@ -55,11 +55,12 @@ jobs:
         run: |
           PGPASSWORD=integration-only-password psql -h localhost -U atwash -d atwash_test -Atc 'SELECT "MigrationId" FROM "__EFMigrationsHistory" ORDER BY "MigrationId"' > /tmp/migrations.txt
           cat /tmp/migrations.txt
-          test "$(wc -l < /tmp/migrations.txt)" -eq 8
+          test "$(wc -l < /tmp/migrations.txt)" -eq 9
           grep -q '20261112170000_AddCashAndReconciliation' /tmp/migrations.txt
           grep -q '20261112180000_AddInventoryLedger' /tmp/migrations.txt
           grep -q '20261112190000_OperationsAndRecipes' /tmp/migrations.txt
           grep -q '20261112200000_AddDevicesAndSaas' /tmp/migrations.txt
+          grep -q '20261113210000_AddMercadoPagoSubscriptions' /tmp/migrations.txt
       - name: Integration tests (API and PostgreSQL)
         run: python3 tests/integration_smoke.py
       - name: Verify backup and restore in isolated database
