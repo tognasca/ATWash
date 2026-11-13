@@ -201,3 +201,39 @@ main,.panel,.aw-attendance,.aw-workspace,.aw-left,.aw-catalog,.aw-customer,.aw-s
  .aw-vehicle-choices{grid-template-columns:repeat(2,minmax(0,1fr))}
  .aw-cart{max-width:none}
 }
+
+/* Single intuitive command list — replaces the duplicate Kanban/table. */
+.aw-orders-section{margin-top:18px}
+.aw-orders-section>.aw-section-title{margin-bottom:14px;align-items:start}
+.aw-orders-section>.aw-section-title h2{margin:0 0 5px}
+.aw-orders-section>.aw-section-title p{margin:0;font-size:13px}
+.aw-orders-section>.aw-section-title>strong{white-space:nowrap;color:#64107b;font-size:13px}
+.aw-order-filters{display:flex;gap:8px;overflow-x:auto;padding:12px 0 16px;scrollbar-width:thin}
+.aw-order-filters button{flex:0 0 auto;padding:10px 14px;min-height:42px;border-radius:24px;font-size:13px}
+.aw-order-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,310px),1fr));gap:14px}
+.aw-order-card{display:flex;flex-direction:column;gap:12px;padding:16px;border:1px solid #e8deed;border-radius:16px;background:#fff;box-shadow:0 3px 12px #24102e10;min-width:0}
+.aw-order-top,.aw-order-summary,.aw-order-employee{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.aw-order-top>strong{font-size:14px;overflow-wrap:anywhere}
+.aw-status{font-size:12px;font-weight:700;padding:7px 9px;border-radius:30px;background:#eee8f2;color:#64107b;white-space:nowrap}
+.aw-status-0{background:#fff1d7;color:#986000}.aw-status-1,.aw-status-2{background:#e6f1ff;color:#1559a2}.aw-status-3,.aw-status-4{background:#dcfce7;color:#166534}.aw-status-5{background:#fee2e2;color:#991b1b}
+.aw-order-car{display:grid;place-items:center;background:#f3edf7;border-radius:13px;width:60px;height:60px;flex-shrink:0;font-size:30px}
+.aw-order-ident{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;overflow-wrap:anywhere}
+.aw-order-ident strong{font-size:17px}.aw-order-ident span{font-size:13px}.aw-order-ident small{font-size:12px;color:#71667a}
+.aw-order-price{font-size:17px;color:#64107b;white-space:nowrap}
+.aw-order-employee{padding-top:10px;border-top:1px solid #eee7f0;font-size:12px;color:#71667a}
+.aw-order-employee button{min-height:40px;padding:9px 12px}
+.aw-order-primary{width:100%;background:#64107b}
+.aw-order-pay{width:100%;min-height:42px}
+.aw-order-details{display:flex;flex-direction:column;gap:12px;border-top:1px solid #eee7f0;padding-top:14px}
+.aw-detail-action{display:flex;gap:7px;align-items:stretch;min-width:0}
+.aw-detail-action select,.aw-detail-action input{min-width:0;flex:1}
+.aw-detail-action button{flex-shrink:0;padding:10px}
+.aw-check-label{display:flex;flex-direction:row;align-items:center;gap:9px}
+.aw-check-label input{width:20px;min-height:20px;height:20px}
+@media(max-width:760px){
+ .aw-order-grid{grid-template-columns:1fr}
+ .aw-order-card{padding:14px}
+ .aw-order-summary{flex-wrap:wrap}
+ .aw-order-price{margin-left:auto}
+ .aw-orders-section>.aw-section-title{flex-wrap:wrap}
+}
