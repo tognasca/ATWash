@@ -3,6 +3,12 @@ concurrency:
   group: atwash-build-${{ github.ref }}
   cancel-in-progress: true
 on:
+  workflow_dispatch:
+    inputs:
+      android_api_url:
+        description: 'Public HTTPS API origin for configured Android test APK (leave blank for unconfigured build)'
+        required: false
+        type: string
   push:
   pull_request:
 jobs:
@@ -108,7 +114,19 @@ jobs:
           "$SDK_MANAGER" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
       - run: npm install --no-audit --no-fund
         working-directory: src/atwash-web
+      - name: Validate Android API endpoint
+        if: github.event_name == 'workflow_dispatch' && inputs.android_api_url != ''
+        env:
+          API_URL: ${{ inputs.android_api_url }}
+        run: |
+          python3 - <<'PY'
+          import os,urllib.parse
+          url=urllib.parse.urlparse(os.environ['API_URL'])
+          assert url.scheme=='https' and url.hostname and not url.username and not url.password and not url.fragment and not url.query and url.path in ('','/'), 'Provide an HTTPS API origin without path, credentials or query'
+          PY
       - run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ inputs.android_api_url || '' }}
         working-directory: src/atwash-web
       - run: npx cap add android
         working-directory: src/atwash-web
@@ -119,6 +137,6 @@ jobs:
         working-directory: src/atwash-web/android
       - uses: actions/upload-artifact@v4
         with:
-          name: atwash-android-debug-unconfigured
+          name: atwash-android-debug
           path: src/atwash-web/android/app/build/outputs/apk/debug/*.apk
           retention-days: 7
