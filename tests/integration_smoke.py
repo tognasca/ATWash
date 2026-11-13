@@ -137,6 +137,8 @@ def main():
     request("POST", f"/payments/{payment_id}/refund",
         {"amount":1,"reason":"Excesso","externalReference":"REF-CI-123"}, (409,))
     request("POST", "/cash/close", {"countedCash":0,"note":"Segundo fechamento"})
+    assert request("GET","/saas/mercadopago/subscriptions")==[]
+    request("POST","/saas/mercadopago/checkout",expected=(503,))
     platform("GET","/tenants",expected=(401,),key="wrong")
     plan=platform("POST","/plans",{"name":"Teste","monthlyPrice":99.9,"maxDevices":2},(201,))
     tenant=platform("POST","/tenants",{"name":"Lava rápido integração",
