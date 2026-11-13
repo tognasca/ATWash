@@ -22,3 +22,14 @@ public sealed class TenantSubscription : ITenantEntity {
  public DateTimeOffset StartsAt {get;set;}=DateTimeOffset.UtcNow;
  public DateTimeOffset? ExpiresAt {get;set;}
 }
+
+public sealed class MercadoPagoSubscription : ITenantEntity {
+ public Guid Id {get;set;}=Guid.NewGuid();
+ public Guid TenantId {get;set;}
+ public string ProviderId {get;set;}=string.Empty;
+ public string ProviderStatus {get;set;}="pending";
+ public string LocalStatus {get;set;}="pending";
+ public DateTimeOffset CreatedAt {get;set;}=DateTimeOffset.UtcNow;
+ public DateTimeOffset? LastSyncedAt {get;set;}
+ public DateTimeOffset? LastNotificationAt {get;set;}
+}
