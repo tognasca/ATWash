@@ -343,3 +343,9 @@ main,.panel,.aw-attendance,.aw-workspace,.aw-left,.aw-catalog,.aw-customer,.aw-s
 .aw-app-content .aw-service-body{padding:11px;gap:7px}
 .aw-app-content .aw-service-body strong{font-size:13px;min-height:34px}
 @media(max-width:600px){.aw-app-content .aw-service-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Sidebar: discreet photographic car detail anchored to the bottom. */
+.aw-app-sidebar{isolation:isolate;overflow:hidden}
+.aw-app-sidebar::before{content:"";position:absolute;z-index:-1;left:0;right:0;bottom:0;height:39%;background-image:linear-gradient(to bottom,#200c3e 0%,rgba(32,12,62,.55) 24%,rgba(19,7,37,.48) 65%,rgba(19,7,37,.86) 100%),url("https://images.unsplash.com/photo-1493238792000-8113da705763?auto=format&fit=crop&w=650&q=78");background-size:cover;background-position:center 62%;opacity:.58;pointer-events:none}
+.aw-sidebar-nav,.aw-sidebar-brand,.aw-sidebar-foot{position:relative;z-index:1}
+@media(max-width:760px){.aw-app-sidebar::before{display:none}}
