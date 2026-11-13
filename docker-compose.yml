@@ -35,7 +35,7 @@ services:
     build: ./src/atwash-web
     restart: unless-stopped
     ports:
-      - "127.0.0.1:5173:80"
+      - "127.0.0.1:${ATWASH_FRONTEND_PORT:-8087}:80"
     depends_on:
       - api
 volumes:
