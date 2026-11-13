@@ -349,3 +349,75 @@ main,.panel,.aw-attendance,.aw-workspace,.aw-left,.aw-catalog,.aw-customer,.aw-s
 .aw-app-sidebar::before{content:"";position:absolute;z-index:-1;left:0;right:0;bottom:0;height:39%;background-image:linear-gradient(to bottom,#200c3e 0%,rgba(32,12,62,.55) 24%,rgba(19,7,37,.48) 65%,rgba(19,7,37,.86) 100%),url("/images/sidebar-carro.jpg");background-size:cover;background-position:center 62%;opacity:.58;pointer-events:none}
 .aw-sidebar-nav,.aw-sidebar-brand,.aw-sidebar-foot{position:relative;z-index:1}
 @media(max-width:760px){.aw-app-sidebar::before{display:none}}
+
+/* Unified premium dashboard and administration, matching the approved attendance UI. */
+.aw-dashboard{display:flex;flex-direction:column;gap:17px;min-width:0;padding-bottom:22px}
+.aw-dashboard-hero{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:25px 28px;border-radius:18px;background:linear-gradient(112deg,#261044,#4d1375 65%,#7427a8);color:white;box-shadow:0 10px 24px #2d10432a}
+.aw-dashboard-eyebrow{font-size:10px;font-weight:800;letter-spacing:.15em;color:#d5b8e9}
+.aw-dashboard-hero h2{font-size:clamp(21px,2.5vw,30px);margin:7px 0;color:white}
+.aw-dashboard-hero p{margin:0;color:#e6d6ef;font-size:13px}
+.aw-dashboard-hero-icon{font-size:55px;opacity:.28}
+.aw-dashboard-filters{display:flex;align-items:end;flex-wrap:wrap;gap:10px;padding:16px 18px;background:#fff;border:1px solid #ebe5f1;border-radius:15px}
+.aw-dashboard-filter-fields{display:flex;gap:10px;flex:1 1 280px;flex-wrap:wrap}
+.aw-dashboard-filter-fields label{flex:1 1 145px;font-size:12px;color:#6c6174}
+.aw-dashboard-filter-fields input{min-height:42px;padding:9px}
+.aw-dashboard-filters button{min-height:42px}
+.aw-dashboard-metrics,.aw-dashboard-finances{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.aw-metric,.aw-finance-metric{min-width:0;background:white;border:1px solid #ebe5f1;border-radius:15px;padding:18px;box-shadow:0 3px 14px #2510380a}
+.aw-metric{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.aw-metric-icon{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;font-size:22px;font-weight:800}
+.aw-metric small,.aw-finance-metric small{color:#706579;font-size:12px;font-weight:650}
+.aw-metric strong{font-size:30px;line-height:1.1;color:#24172d}
+.aw-metric-purple .aw-metric-icon{background:#f1e5fb;color:#7315ad}
+.aw-metric-green .aw-metric-icon{background:#ddf8e8;color:#11924a}
+.aw-metric-blue .aw-metric-icon{background:#e4f1ff;color:#2276c6}
+.aw-metric-orange .aw-metric-icon{background:#fff0dc;color:#bb7b1a}
+.aw-finance-metric{display:flex;flex-direction:column;gap:12px}
+.aw-finance-metric strong{font-size:clamp(16px,1.8vw,23px);overflow-wrap:anywhere;color:#251831}
+.aw-finance-bar{height:4px;border-radius:5px;background:#7828bb;margin-top:auto}
+.aw-finance-orange .aw-finance-bar{background:#e9a039}
+.aw-finance-green .aw-finance-bar{background:#1eb26a}
+.aw-finance-blue .aw-finance-bar{background:#5d9ee5}
+.aw-dashboard-card{min-width:0;background:#fff;border:1px solid #ebe5f1;border-radius:16px;padding:22px;box-shadow:0 3px 14px #2510380a}
+.aw-dashboard-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.aw-dashboard-card-head h3{margin:0 0 5px;color:#261831;font-size:17px}
+.aw-dashboard-card-head p{margin:0;color:#756a7e;font-size:12px}
+.aw-dashboard-chip{font-size:11px;font-weight:750;background:#f3eafa;color:#651290;padding:7px 11px;border-radius:20px;white-space:nowrap}
+.aw-daily-bars{display:flex;align-items:flex-end;gap:7px;min-height:170px;height:170px;overflow-x:auto;border-bottom:1px solid #e8e1ee;padding:5px 4px 0;margin-bottom:14px}
+.aw-daily-column{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;flex:1 0 24px;height:100%;max-width:62px}
+.aw-daily-bar{width:100%;min-height:4px;border-radius:5px 5px 0 0;background:linear-gradient(180deg,#9b48dc,#65119a)}
+.aw-daily-column small{font-size:9px;color:#85778e;white-space:nowrap}
+.aw-dashboard-table table{min-width:480px}
+.aw-dashboard-table th{background:#faf8fc;color:#766780;font-size:11px}
+.aw-dashboard-table td{font-size:13px}
+.aw-dashboard-table td strong{color:#361d48}
+.aw-dashboard-footnote{font-size:12px;color:#7c7184;margin:13px 0 0}
+.aw-dashboard-empty{padding:20px;background:#faf8fc;border-radius:10px;font-size:13px}
+.aw-dashboard-bottom{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(270px,1fr);gap:14px;align-items:start}
+.aw-device-status{display:inline-block;padding:6px 10px;border-radius:20px;font-size:11px;font-weight:750}
+.aw-device-active{background:#e1f8eb;color:#118546}.aw-device-revoked{background:#fce8e8;color:#a12b2b}
+.aw-dashboard-table button{min-height:35px;padding:7px 11px;font-size:12px}
+.aw-subscription-card{display:flex;flex-direction:column;gap:12px}
+.aw-subscription-visual{display:flex;flex-direction:column;align-items:flex-start;gap:9px;padding:18px;border-radius:13px;background:linear-gradient(125deg,#f4e9fb,#f9f6fc)}
+.aw-subscription-visual>span{font-size:31px;color:#7115a2}
+.aw-subscription-visual small{color:#776580;font-size:12px}
+.aw-subscription-visual strong{font-size:17px;color:#43105f;overflow-wrap:anywhere}
+.aw-subscription-card>p{font-size:12px;margin:0}
+.aw-subscription-card>button{width:100%}
+/* Admin: consistent premium navigation and content surfaces. */
+.aw-app-content .admin-layout{grid-template-columns:205px minmax(0,1fr);gap:15px;align-items:start}
+.aw-app-content .admin-menu{background:#fff;border:1px solid #ebe5f1;border-radius:16px;padding:12px;box-shadow:0 3px 14px #2510380a;gap:5px}
+.aw-app-content .admin-menu button{min-height:45px;border-radius:10px;padding:11px 13px;background:transparent;color:#554660;font-size:13px;text-align:left}
+.aw-app-content .admin-menu button.active{background:linear-gradient(100deg,#7f28cf,#5b13a1);color:white}
+.aw-app-content .admin-menu button:not(.active):hover{background:#f5ecfa;color:#65128d}
+.aw-app-content .admin-content{border-radius:16px;padding:24px;box-shadow:0 3px 14px #2510380a}
+.aw-app-content .admin-content>h2{font-size:23px;color:#2d183e;border-bottom:1px solid #f0eaf4;padding-bottom:16px;margin-bottom:20px}
+.aw-app-content .admin-content h3{color:#3d2350;margin-top:22px}
+.aw-app-content .admin-content form{padding:18px;border-radius:13px;background:#faf8fc;border:1px solid #eee8f3;max-width:100%}
+.aw-app-content .admin-content form>label{max-width:540px}
+.aw-app-content .admin-content .tablewrap{border:1px solid #eee8f3;border-radius:12px}
+.aw-app-content .admin-content table th{background:#faf8fc}
+.aw-app-content .admin-content table td{font-size:13px}
+@media(max-width:1100px){.aw-dashboard-metrics,.aw-dashboard-finances{grid-template-columns:repeat(2,minmax(0,1fr))}.aw-dashboard-bottom{grid-template-columns:1fr}}
+@media(max-width:900px){.aw-app-content .admin-layout{grid-template-columns:1fr}.aw-app-content .admin-menu{position:static;display:flex;flex-direction:row;overflow-x:auto}.aw-app-content .admin-menu button{flex-shrink:0;white-space:nowrap}}
+@media(max-width:600px){.aw-dashboard-hero{padding:20px}.aw-dashboard-hero-icon{display:none}.aw-dashboard-metrics,.aw-dashboard-finances{gap:8px}.aw-metric,.aw-finance-metric{padding:13px}.aw-metric strong{font-size:24px}.aw-dashboard-card{padding:14px}.aw-dashboard-filters{padding:12px}.aw-dashboard-filters>button{flex:1 1 120px}.aw-app-content .admin-content{padding:15px}.aw-app-content .admin-content form{padding:12px}}
