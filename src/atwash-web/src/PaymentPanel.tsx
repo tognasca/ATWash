@@ -49,13 +49,24 @@ export default function PaymentPanel({order,token,onClose,onChanged,onError,canC
   setBusy(true);onError('');
   try{
    await api('/orders/'+order.id+'/payments',token,'POST',{operationId,method,amount:paymentAmount,tendered:method===0?given:paymentAmount,reference:reference.trim()||null});
-   setOperationId(createOperationId());setReference('');await load();await onChanged();dialog.show('Pagamento registrado com sucesso.','success');
+   setOperationId(createOperationId());setReference('');
+   if(ledger.remaining-paymentAmount<=0.005){
+    try{
+     await api('/orders/'+order.id+'/deliver',token,'POST');
+     await onChanged();onClose();dialog.show('Pagamento integral confirmado. Comanda encerrada com sucesso.','success');
+    }catch(closeError){
+     await load();await onChanged();
+     onError('Pagamento registrado, mas não foi possível encerrar a comanda: '+String(closeError));
+    }
+   }else{
+    await load();await onChanged();dialog.show('Pagamento parcial registrado. A comanda continua aberta até quitar o saldo.','success');
+   }
   }catch(e){onError(String(e))}finally{setBusy(false)}
  }
  async function deliver(){
-  if(!await dialog.confirm('Confirmar a entrega do veículo e fechar a comanda?'))return;
+  if(!await dialog.confirm('Confirmar o encerramento desta comanda já paga?'))return;
   setBusy(true);onError('');
-  try{await api('/orders/'+order.id+'/deliver',token,'POST');await onChanged();onClose();dialog.show('Veículo entregue e comanda encerrada.','success')}
+  try{await api('/orders/'+order.id+'/deliver',token,'POST');await onChanged();onClose();dialog.show('Comanda encerrada com sucesso.','success')}
   catch(e){onError(String(e))}finally{setBusy(false)}
  }
  return <section className="panel payment-panel"><div className="actions"><h2>Pagamento · Comanda #{order.number}</h2><button className="secondary" onClick={onClose}>Fechar</button></div>
@@ -70,7 +81,7 @@ export default function PaymentPanel({order,token,onClose,onChanged,onError,canC
  {method===2&&<p>Este sistema não consulta o banco nem confirma Pix automaticamente. Somente registre após verificar o crédito.</p>}
  <button disabled={busy}>Confirmar recebimento</button></form>}
  {ledger&&<><h3>Pagamentos registrados</h3>{ledger.payments.length===0?<p>Nenhum pagamento registrado.</p>:<ul>{ledger.payments.map(p=><li key={p.id}>{['Dinheiro','Cartão','Pix'][p.method]} · {currency(p.amount)} · {new Date(p.confirmedAt).toLocaleString('pt-BR')}</li>)}</ul>}
- {ledger.remaining===0&&order.status===3&&<button disabled={busy} onClick={()=>void deliver()}>Entregar veículo e fechar comanda</button>}
- {ledger.remaining===0&&order.status!==3&&<p>Pagamento completo. Aguarde a lavagem ficar pronta para entregar.</p>}</>}
+ {ledger.remaining===0&&order.status<4&&<button disabled={busy} onClick={()=>void deliver()}>Encerrar comanda paga</button>}
+ {ledger.remaining===0&&order.status>=4&&<p>Pagamento completo. Comanda finalizada.</p>}</>}
  </section>;
 }
