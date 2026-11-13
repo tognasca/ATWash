@@ -2,11 +2,11 @@ import {useEffect,useState} from 'react';
 import {useDialog} from './Dialog';
 import FinanceAdmin from './FinanceAdmin';
 import {EmployeesAdmin,RecipesAdmin,SuppliersAdmin} from './OperationsAdmin';
-import PixAdmin from './PixAdmin';
+import SettingsAdmin from './SettingsAdmin';
 import {api,ApiError,currency,type Product,type Service} from './api';
-type Props={token:string;services:Service[];products:Product[];reload:()=>Promise<void>;onError:(message:string)=>void};
+type Props={token:string;role:string;services:Service[];products:Product[];reload:()=>Promise<void>;onError:(message:string)=>void};
 type Tab='services'|'products'|'employees'|'suppliers'|'recipes'|'finance'|'settings';
-export default function Admin({token,services,products,reload,onError}:Props){
+export default function Admin({token,role,services,products,reload,onError}:Props){
  const dialog=useDialog();
  const [tab,setTab]=useState<Tab>('services');
  const [name,setName]=useState('');const [price,setPrice]=useState('');
@@ -49,5 +49,5 @@ export default function Admin({token,services,products,reload,onError}:Props){
  <label>Custo unitário da compra (R$, opcional para entradas)<input inputMode="decimal" value={purchaseCost} onChange={e=>setPurchaseCost(e.target.value)}/></label><label>Motivo<input required maxLength={300} value={adjustReason} onChange={e=>setAdjustReason(e.target.value)}/></label>
  <button disabled={busy}>Registrar movimentação</button></form>
  <h3>Histórico de estoque</h3><div className="tablewrap"><table><thead><tr><th>Data</th><th>Produto</th><th>Tipo</th><th>Quantidade</th><th>Saldo</th><th>Motivo</th></tr></thead><tbody>{movements.map(m=><tr key={m.id}><td>{new Date(m.createdAt).toLocaleString('pt-BR')}</td><td>{products.find(p=>p.id===m.productId)?.name??m.productId}</td><td>{m.kind}</td><td>{m.quantity}</td><td>{m.balanceAfter}</td><td>{m.reason}</td></tr>)}</tbody></table></div></>}
- </>:tab==='employees'?<EmployeesAdmin token={token} onError={onError}/>:tab==='suppliers'?<SuppliersAdmin token={token} onError={onError}/>:tab==='recipes'?<RecipesAdmin token={token} services={services} products={products} onError={onError}/>:tab==='finance'?<FinanceAdmin token={token} onError={onError}/>:tab==='settings'?<PixAdmin token={token} onError={onError}/>:null}</section></div>
+ </>:tab==='employees'?<EmployeesAdmin token={token} onError={onError}/>:tab==='suppliers'?<SuppliersAdmin token={token} onError={onError}/>:tab==='recipes'?<RecipesAdmin token={token} services={services} products={products} onError={onError}/>:tab==='finance'?<FinanceAdmin token={token} onError={onError}/>:tab==='settings'?<SettingsAdmin token={token} role={role} onError={onError}/>:null}</section></div>
 }
