@@ -1,14 +1,31 @@
-# Mercado Pago — cobrança recorrente do ATWashControl
+# Mercado Pago — assinaturas recorrentes do ATWashControl
 
-Integração inicial de assinatura mensal via API oficial `POST /preapproval` com status `pending`. O backend usa o token privado; nunca coloque o token no frontend, no Android, em logs ou no GitHub.
+A integração persiste cada assinatura criada no PostgreSQL, recebe notificações com validação criptográfica, consulta a API oficial antes de atualizar o estado da empresa e executa reconciliação automática a cada 15 minutos.
 
-## Configuração
+## Variáveis (configuração final, não necessárias no CI)
 
-- `MERCADOPAGO_ACCESS_TOKEN`: token de acesso privado de produção/teste da aplicação Mercado Pago.
-- `MERCADOPAGO_BACK_URL`: URL pública HTTPS de retorno ao site ATWashControl.
-- `POST /api/saas/mercadopago/checkout`: apenas Owner autenticado; retorna `checkoutUrl` para concluir autorização no Mercado Pago.
-- `POST /api/saas/mercadopago/sync/{subscriptionId}`: consulta o status na API oficial e confere `external_reference` contra a empresa autenticada antes de alterar o status local.
+- `MERCADOPAGO_ACCESS_TOKEN`: token privado da aplicação.
+- `MERCADOPAGO_BACK_URL`: retorno HTTPS para o frontend.
+- `MERCADOPAGO_WEBHOOK_SECRET`: assinatura secreta configurada no painel do Mercado Pago.
+- Endpoint de notificações: `POST /api/webhooks/mercadopago`.
 
-**Limitações:** a integração ainda não recebe webhooks verificados, não tem reconciliação automática agendada, não armazena o ID da assinatura em tabela própria e não implementa renovação de acesso de empresa suspensa. O endpoint de sincronização requer JWT válido; portanto não recupera por si só uma conta já bloqueada. Não habilite cobrança real para clientes até implementar e homologar essas partes. Uma URL de retorno não comprova pagamento; somente a API do provedor pode confirmar o status.
+Não colocar segredos no frontend, APK, logs ou GitHub.
+
+## Endpoints
+
+- `POST /api/saas/mercadopago/checkout`: proprietário autenticado, inicia assinatura mensal pendente e grava vínculo entre empresa e ID do provedor. Impede múltiplas tentativas pendentes nos primeiros 15 minutos.
+- `GET /api/saas/mercadopago/subscriptions`: histórico de vínculos do tenant autenticado.
+- `POST /api/saas/mercadopago/sync/{subscriptionId}`: reconciliação manual, restrita ao proprietário e a IDs associados à sua empresa.
+- `POST /api/webhooks/mercadopago`: exige assinatura HMAC-SHA256 válida, timestamp recente e ID na URL. O payload da notificação nunca é aceito como comprovação de pagamento.
+
+## Segurança e reconciliação
+
+A reconciliação busca `GET /preapproval/{id}` na API do Mercado Pago, confere o ID e `external_reference` contra a empresa gravada e só então altera o status local. Apenas a assinatura mais recente da empresa controla seu acesso. A rotina em segundo plano consulta assinaturas desatualizadas em lotes de até 100 a cada 15 minutos.
+
+Estados: `authorized -> active`, `paused -> suspended`, `cancelled -> cancelled`, `pending -> pending`, demais -> `past_due`. O acesso da empresa depende do status local de assinatura, com a validação já existente no JWT.
+
+## Homologação antes de cobranças reais
+
+A migração cria `MercadoPagoSubscriptions`. O CI verifica migrações, API, frontend e Android sem credenciais reais. Antes de ativar cobranças, configurar as três variáveis, registrar a URL pública de webhook e executar testes de ponta a ponta com assinatura de teste, renovação, atraso, cancelamento, notificação duplicada e recuperação após suspensão.
 
 Documentação oficial: https://www.mercadopago.com.br/developers/pt/docs/subscriptions/overview
