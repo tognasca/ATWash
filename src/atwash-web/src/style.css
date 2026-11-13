@@ -161,3 +161,43 @@ header>div{gap:8px}
 @media(max-width:1000px){.aw-workspace{grid-template-columns:minmax(0,1fr) 270px}.aw-service-grid{grid-template-columns:repeat(auto-fill,minmax(135px,1fr))}.aw-kpis article{padding:12px;gap:7px}}
 @media(max-width:760px){.aw-workspace{display:block}.aw-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.aw-kpis article{min-height:75px}.aw-cart{display:none;position:fixed;z-index:90;inset:12px 12px 78px;overflow-y:auto;box-shadow:0 0 0 100vmax #16091e88}.aw-cart.aw-cart-open{display:flex}.aw-cart-close{display:block}.aw-mobile-cart{display:flex;justify-content:space-between;align-items:center;position:sticky;bottom:10px;z-index:80;width:100%;margin:14px 0;box-shadow:0 8px 22px #64107b44}.aw-service-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.aw-identity{grid-template-columns:1fr}.aw-service-illustration{height:85px}.aw-heading h2{font-size:23px}}
 @media(max-width:380px){.aw-kpis strong{font-size:22px}.aw-kpis span{font-size:11px}.aw-service-body{padding:9px}.aw-service-bottom b{font-size:13px}}
+
+/* Small screens: no horizontal overflow; one-tap customer/vehicle selection. */
+html,body,#root{width:100%;max-width:100%;overflow-x:clip}
+main,.panel,.aw-attendance,.aw-workspace,.aw-left,.aw-catalog,.aw-customer,.aw-service-grid,.aw-cart{min-width:0;max-width:100%}
+.aw-search-label{display:block;margin:14px 0 10px;font-weight:700}
+.aw-search-label input{margin-top:8px;font-size:16px}
+.aw-customer-matches{display:flex;flex-direction:column;gap:8px;max-height:310px;overflow-y:auto}
+.aw-person-choice{display:flex;align-items:center;gap:12px;text-align:left;background:#faf7fc;color:#252a32;border:1px solid #e9dbea;border-radius:13px;width:100%;padding:12px;min-width:0}
+.aw-person-choice:hover{background:#f1e5f5!important}
+.aw-person-choice>span:nth-child(2){flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;overflow-wrap:anywhere}
+.aw-person-choice small{font-weight:500;color:#71667a}
+.aw-person-choice>b{font-size:24px;color:#64107b}
+.aw-person-avatar{display:grid;place-items:center;flex-shrink:0;width:43px;height:43px;border-radius:50%;background:#e8d7ef;color:#64107b;font-size:21px}
+.aw-new-person{width:100%;margin-top:10px;background:#f3e9f6;color:#64107b;border:1px dashed #b88ac8}
+.aw-easy-form{display:grid;grid-template-columns:1fr;gap:12px;margin-top:14px;padding:14px;border:1px solid #eee1f2;border-radius:14px}
+.aw-easy-form input{font-size:16px}
+.aw-selected-person{display:flex;align-items:center;gap:12px;padding:13px;background:#f5edf8;border-radius:13px;margin:14px 0}
+.aw-selected-person>div{display:flex;flex-direction:column;gap:4px}.aw-selected-person small{color:#74667a}
+.aw-vehicle-title{margin:18px 0 10px!important}
+.aw-vehicle-choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,155px),1fr));gap:9px}
+.aw-vehicle-choice{display:flex;flex-direction:column;gap:4px;align-items:flex-start;text-align:left;padding:13px;background:#fff;color:#252a32;border:1px solid #e7dceb;border-radius:13px;min-width:0;overflow-wrap:anywhere}
+.aw-vehicle-choice>span{font-size:25px}.aw-vehicle-choice strong{font-size:17px}
+.aw-vehicle-choice small{color:#75687c}.aw-vehicle-choice b{color:#64107b;margin-top:6px}
+.aw-vehicle-active{border:2px solid #64107b;background:#fbf4ff}
+.aw-add-vehicle{margin-top:12px}
+@media(max-width:760px){
+ main{width:100%;padding:10px;overflow-x:clip}
+ header,header>div,.aw-heading,.aw-workspace,.aw-left,.aw-customer,.aw-catalog{min-width:0}
+ .aw-heading{align-items:flex-start}
+ .aw-heading p{font-size:13px}
+ .aw-service-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .aw-service-card{width:100%;min-width:0}
+ .aw-service-body strong{overflow-wrap:anywhere}
+ .aw-tabs{min-width:0}.aw-tabs button{padding:10px 6px;font-size:13px;white-space:normal}
+ .aw-kpis article{min-width:0;flex-direction:column;align-items:flex-start}
+ .aw-kpis span{overflow-wrap:anywhere}
+ .aw-customer .aw-section-title{flex-wrap:wrap}
+ .aw-vehicle-choices{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .aw-cart{max-width:none}
+}
