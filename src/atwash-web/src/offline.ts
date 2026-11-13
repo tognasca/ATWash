@@ -57,32 +57,36 @@ export async function loadSnapshot(tenant:string):Promise<Snapshot|undefined>{
  return snapshot;
 }
 export async function queueStatus(tenant:string,orderId:string,from:number,to:number){
- if(to!==from+1 || to>3)throw new Error('Apenas avanço de etapas de lavagem pode ser enfileirado offline.');
+ if(to!==from+1||to>3)throw new Error('Apenas avanço de etapas de lavagem pode ser enfileirado offline.');
  const item:Pending={id:newId(),tenant,kind:'status',orderId,from,to,createdAt:Date.now()};
  const db=await open();
- const inserted=await new Promise<boolean>((resolve,reject)=>{
-  const tx=db.transaction('pending','readwrite');
-  const s=tx.objectStore('pending');
-  let added=false;
-  const req=s.getAll();
+ await new Promise<void>((resolve,reject)=>{
+  const tx=db.transaction(['snapshots','pending'],'readwrite');
+  const pending=tx.objectStore('pending');
+  const snapshots=tx.objectStore('snapshots');
+  const req=pending.getAll();
   req.onsuccess=()=>{
    const same=(req.result as Pending[]).filter((x):x is Extract<Pending,{kind:'status'}>=>x.tenant===tenant&&x.kind==='status'&&x.orderId===orderId).sort((a,b)=>a.createdAt-b.createdAt);
    const last=same.at(-1);
    if(last&&last.to!==from){tx.abort();return}
    if(same.some(x=>x.from===from&&x.to===to))return;
-   s.add(item);added=true;
+   const snapshotReq=snapshots.get(tenant);
+   snapshotReq.onsuccess=()=>{
+    const snapshot=snapshotReq.result as Snapshot|undefined;
+    if(!snapshot){tx.abort();return}
+    const order=snapshot.orders.find(x=>x.id===orderId);
+    if(!order||order.status!==from){tx.abort();return}
+    order.status=to;
+    snapshots.put(snapshot,tenant);
+    pending.add(item);
+   };
   };
-  tx.oncomplete=()=>{db.close();resolve(added)};
+  tx.oncomplete=()=>{db.close();resolve()};
   tx.onabort=()=>{db.close();reject(new Error('Etapa offline inconsistente. Sincronize antes de continuar.'))};
   tx.onerror=()=>{db.close();reject(tx.error)};
  });
- if(!inserted)return;
- const snapshot=await loadSnapshot(tenant);
- if(snapshot){
-  const order=snapshot.orders.find(x=>x.id===orderId);
-  if(order){order.status=to;await saveSnapshot(tenant,snapshot)}
- }
 }
+
 function newId():string{
  return createOperationId();
 }
