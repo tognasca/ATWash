@@ -243,3 +243,9 @@ main,.panel,.aw-attendance,.aw-workspace,.aw-left,.aw-catalog,.aw-customer,.aw-s
 .aw-order-actions>button{min-width:0;width:100%;min-height:50px;white-space:normal;line-height:1.25;padding:10px}
 .aw-order-actions>button:only-child{grid-column:1/-1}
 @media(max-width:380px){.aw-order-actions{grid-template-columns:1fr}}
+
+/* Login: accessible show/hide password control. */
+.aw-password-field{position:relative;width:100%}
+.aw-password-field input{padding-right:62px}
+.aw-password-toggle{position:absolute;right:5px;top:5px;min-height:36px;width:46px;padding:3px;border-radius:8px;background:transparent;color:#64107b;font-size:22px}
+.aw-password-toggle:hover:not(:disabled){background:#f4eaf7}
