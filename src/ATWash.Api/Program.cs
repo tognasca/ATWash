@@ -10,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AtWashDbContext>(o => o.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 builder.Services.AddOpenApi();
 builder.Services.AddHttpClient("mercadopago",client=>client.Timeout=TimeSpan.FromSeconds(15));
+builder.Services.AddHostedService<MercadoPagoReconciliationWorker>();
 builder.Services.AddHealthChecks();
 builder.Services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
 builder.Services.AddSingleton<TokenIssuer>();
