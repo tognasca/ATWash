@@ -237,3 +237,9 @@ main,.panel,.aw-attendance,.aw-workspace,.aw-left,.aw-catalog,.aw-customer,.aw-s
  .aw-order-price{margin-left:auto}
  .aw-orders-section>.aw-section-title{flex-wrap:wrap}
 }
+
+/* Explicit stage and payment actions, both touch friendly. */
+.aw-order-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.aw-order-actions>button{min-width:0;width:100%;min-height:50px;white-space:normal;line-height:1.25;padding:10px}
+.aw-order-actions>button:only-child{grid-column:1/-1}
+@media(max-width:380px){.aw-order-actions{grid-template-columns:1fr}}
