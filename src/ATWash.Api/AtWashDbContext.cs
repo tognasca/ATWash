@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 namespace ATWash.Api;
 public sealed class AtWashDbContext(DbContextOptions<AtWashDbContext> options) : DbContext(options)
 {
+    public DbSet<MercadoPagoSubscription> MercadoPagoSubscriptions => Set<MercadoPagoSubscription>();
     public DbSet<RegisteredDevice> RegisteredDevices => Set<RegisteredDevice>();
     public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
     public DbSet<TenantSubscription> TenantSubscriptions => Set<TenantSubscription>();
@@ -28,6 +29,8 @@ public sealed class AtWashDbContext(DbContextOptions<AtWashDbContext> options) :
     public DbSet<BankReconciliation> BankReconciliations => Set<BankReconciliation>();
     protected override void OnModelCreating(ModelBuilder model)
     {
+        model.Entity<MercadoPagoSubscription>().HasIndex(x=>x.ProviderId).IsUnique();
+        model.Entity<MercadoPagoSubscription>().HasIndex(x=>new{x.TenantId,x.CreatedAt});
         model.Entity<RegisteredDevice>().HasIndex(x=>new{x.TenantId,x.UserId});
         model.Entity<RegisteredDevice>().HasOne<AppUser>().WithMany().HasForeignKey(x=>x.UserId).OnDelete(DeleteBehavior.Restrict);
         model.Entity<SubscriptionPlan>().Property(x=>x.MonthlyPrice).HasPrecision(18,2);
