@@ -249,3 +249,20 @@ main,.panel,.aw-attendance,.aw-workspace,.aw-left,.aw-catalog,.aw-customer,.aw-s
 .aw-password-field input{padding-right:62px}
 .aw-password-toggle{position:absolute;right:5px;top:5px;min-height:36px;width:46px;padding:3px;border-radius:8px;background:transparent;color:#64107b;font-size:22px}
 .aw-password-toggle:hover:not(:disabled){background:#f4eaf7}
+
+/* Selected vehicle collapses into a compact summary. */
+.aw-vehicle-compact{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#f7f2f9;border:1px solid #e8d9ee;border-radius:12px;padding:12px;font-size:14px;overflow-wrap:anywhere}
+.aw-vehicle-compact button{min-height:40px;white-space:nowrap}
+/* Payment stays visible regardless of scroll position. */
+.aw-payment-overlay{position:fixed;inset:0;z-index:2000;background:rgba(23,11,30,.64);display:flex;justify-content:center;align-items:center;padding:16px;overscroll-behavior:contain}
+.aw-payment-dialog{width:min(100%,640px);max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain;border-radius:18px;background:white;box-shadow:0 20px 70px #170b1e55}
+.aw-payment-dialog .payment-panel{margin:0;border:0;box-shadow:none;min-width:0}
+.aw-payment-dialog .payment-panel>.actions:first-child{position:sticky;top:0;z-index:2;background:white;padding:10px 0;align-items:center}
+.aw-payment-dialog .payment-panel>.actions:first-child h2{font-size:clamp(17px,3vw,22px);margin:0}
+.aw-payment-tools{flex-wrap:wrap}
+.aw-pix-panel{display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:18px;border:1px solid #e7d5ed;border-radius:16px;background:#faf6fc}
+.aw-pix-panel h3,.aw-pix-panel p{margin:0}
+.aw-pix-panel img{align-self:center;max-width:100%;height:auto;background:#fff;border:8px solid #fff;border-radius:12px}
+.aw-pix-panel textarea{width:100%;max-width:100%;resize:vertical;overflow-wrap:anywhere}
+.aw-pix-panel .aw-pix-warning{font-size:13px;color:#7c4b00;background:#fff3d7;padding:12px;border-radius:10px}
+@media(max-width:600px){.aw-payment-overlay{padding:0;align-items:stretch}.aw-payment-dialog{max-height:100dvh;width:100%;border-radius:0}.aw-payment-dialog .payment-panel{padding:16px}.aw-vehicle-compact button{width:100%}}
