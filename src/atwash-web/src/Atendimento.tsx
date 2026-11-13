@@ -106,10 +106,10 @@ export default function Atendimento({token,customers,vehicles,services,products,
     </>}
     {o.paymentStatus===2&&<p>Pagamento confirmado.</p>}
    </div>}
-   {canWrite&&o.status<3&&<button type="button" className="aw-order-primary" disabled={busy} onClick={()=>void advance(o)}>{['Iniciar lavagem','Ir para acabamento','Marcar como pronto'][o.status]}</button>}
-   {canWrite&&o.status===3&&<button type="button" className="aw-order-primary" disabled={!online||busy} onClick={()=>setPaymentOrderId(o.id)}>Receber pagamento</button>}
-   {canWrite&&o.status<3&&o.paymentStatus===2&&<p className="aw-hint">Pagamento já confirmado.</p>}
-   {canWrite&&o.status<4&&o.status!==3&&<button type="button" className="secondary aw-order-pay" disabled={!online||busy} onClick={()=>setPaymentOrderId(o.id)}>Pagamento / fechamento</button>}
+   {canWrite&&o.status<4&&<div className="aw-order-actions">
+    {o.status<3&&<button type="button" className="aw-order-primary" disabled={busy} onClick={()=>void advance(o)}>{['Iniciar lavagem','Avançar para acabamento','Marcar como pronto'][o.status]}</button>}
+    <button type="button" className={o.status===3?'aw-order-primary':'secondary aw-order-pay'} disabled={!online||busy} onClick={()=>setPaymentOrderId(o.id)}>{o.paymentStatus===2?'Ver pagamento':'Receber pagamento'}</button>
+   </div>}
   </article>;
  })}
  </div>
