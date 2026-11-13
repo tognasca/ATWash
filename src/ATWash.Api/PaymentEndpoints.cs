@@ -112,7 +112,7 @@ public static class PaymentEndpoints
             var order = await db.Orders.SingleOrDefaultAsync(o => o.TenantId == tenant && o.Id == id, ct);
             if (order is null) return Results.NotFound();
             if (order.Status == OrderStatus.Delivered) return Results.Ok(new { order.Id, order.Status, AlreadyDelivered = true });
-            if (order.Status != OrderStatus.Ready) return Results.Conflict("A lavagem precisa estar marcada como pronta.");
+            if (order.Status == OrderStatus.Cancelled) return Results.Conflict("Uma comanda cancelada não pode ser encerrada.");
             var paid = await db.Payments.Where(p => p.TenantId == tenant && p.OrderId == id)
                 .SumAsync(p => (decimal?)p.Amount, ct) ?? 0m;
             var refunded = await (from refund in db.PaymentRefunds
