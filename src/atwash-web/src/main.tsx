@@ -38,17 +38,14 @@ function App(){
 
  useEffect(()=>{if(token)void reload(token).catch(e=>notifyError(String(e)))},[]);
  useEffect(()=>{
-  const onOnline=()=>{setOnline(true);if(token)void syncPending(token).then(()=>reload(token)).catch(e=>notifyError('Sincronização pendente: '+String(e)))};
+  const onOnline=()=>{if(token)void reload(token).catch(e=>notifyError('Sincronização pendente: '+String(e)));else setOnline(true)};
   const onOffline=()=>setOnline(false);
   // Retry pending operations after connectivity is restored and when the app
   // returns to the foreground. A periodic retry covers missed browser events.
   const retry=async()=>{
    if(!token||!navigator.onLine||document.visibilityState!=='visible')return;
    try{
-    if(await pendingCount(tenantFromToken(token))>0){
-     await syncPending(token);
-     await reload(token);
-    }
+    await reload(token);
    }catch{/* Keep pending operations intact for manual conflict review. */}
   };
   const onVisible=()=>{if(document.visibilityState==='visible')void retry()};
@@ -65,17 +62,19 @@ function App(){
  async function reload(t=token){
   const tenant=tenantFromToken(t);
   try{
-   if(await pendingCount(tenant)>0)await syncPending(t);
+   if(navigator.onLine&&await pendingCount(tenant)>0)await syncPending(t);
    const [c,v,s,p,o]=await Promise.all([
     api<Customer[]>('/customers',t),api<Vehicle[]>('/vehicles',t),
     api<Service[]>('/services',t),api<Product[]>('/products',t),api<Order[]>('/orders',t)
    ]);
+   setOnline(true);
    setCustomers(c);setVehicles(v);setServices(s);setProducts(p);setOrders(o);
    await saveSnapshot(tenant,{customers:c,vehicles:v,services:s,products:p,orders:o});
   }catch(e){
    // HTTP failures (including expired/revoked sessions) are not connectivity failures.
    // Only fall back to the local snapshot when the network request itself failed.
    if(e instanceof ApiError)throw e;
+   setOnline(false);
    const cached=await loadSnapshot(tenant);
    if(!cached)throw new Error('Sem dados offline. Conecte-se e entre ao menos uma vez.');
    setCustomers(cached.customers);setVehicles(cached.vehicles);setServices(cached.services);
