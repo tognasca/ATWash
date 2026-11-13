@@ -16,9 +16,12 @@ export default function PaymentPanel({order,token,onClose,onChanged,onError,canC
  const [busy,setBusy]=useState(false);
  const [pixPayload,setPixPayload]=useState('');
  const [pixQr,setPixQr]=useState('');
+ const [pixBusy,setPixBusy]=useState(false);
+ const [copied,setCopied]=useState(false);
  async function generatePix(){
+  setPixBusy(true);setCopied(false);
   try{const result=await api<{payload:string}>('/orders/'+order.id+'/pix',token);const qr=await QRCode.toDataURL(result.payload,{errorCorrectionLevel:'M',margin:3,width:320});setPixPayload(result.payload);setPixQr(qr)}
-  catch(e){onError(String(e))}
+  catch(e){onError(String(e))}finally{setPixBusy(false)}
  }
  async function receipt(){
   const win=window.open('','_blank','width=480,height=720');
@@ -33,6 +36,7 @@ export default function PaymentPanel({order,token,onClose,onChanged,onError,canC
  const [operationId,setOperationId]=useState(()=>createOperationId());
  async function load(){const result=await api<Ledger>('/orders/'+order.id+'/payments',token);setLedger(result);setAmount(result.remaining.toFixed(2));setTendered(result.remaining.toFixed(2))}
  useEffect(()=>{void load().catch(e=>onError(String(e)))},[order.id,token]);
+ useEffect(()=>{const onKey=(e:KeyboardEvent)=>{if(e.key==='Escape')onClose()};document.addEventListener('keydown',onKey);return()=>document.removeEventListener('keydown',onKey)},[onClose]);
  const numeric=(s:string)=>Number(s.replace(',','.'));
  const paymentAmount=numeric(amount),given=numeric(tendered);
  async function confirm(){
@@ -56,8 +60,8 @@ export default function PaymentPanel({order,token,onClose,onChanged,onError,canC
  }
  return <section className="panel payment-panel"><div className="actions"><h2>Pagamento · Comanda #{order.number}</h2><button className="secondary" onClick={onClose}>Fechar</button></div>
  <div className="payment-summary"><span>Total: <strong>{currency(ledger?.total??order.total)}</strong></span><span>Recebido: <strong>{currency(ledger?.paid??0)}</strong></span><span>Falta: <strong>{currency(ledger?.remaining??order.total)}</strong></span></div>
- <div className="actions"><button type="button" className="secondary" onClick={()=>void receipt()}>Imprimir comprovante</button>{ledger&&ledger.remaining>0&&<button type="button" className="secondary" onClick={()=>void generatePix()}>Gerar Pix copia e cola</button>}</div>
- {pixPayload&&<div className="pix-code"><p>Pix QR Code e copia e cola — confira o crédito antes de confirmar:</p>{pixQr&&<img src={pixQr} alt="QR Code Pix da comanda" width={260} height={260} style={{maxWidth:"100%",height:"auto",background:"white",padding:8,borderRadius:12}}/>}<textarea readOnly value={pixPayload} rows={4}/><button type="button" onClick={()=>void navigator.clipboard.writeText(pixPayload).catch(e=>onError(String(e)))}>Copiar código Pix</button></div>}
+ <div className="actions aw-payment-tools"><button type="button" className="secondary" onClick={()=>void receipt()}>Imprimir comprovante</button>{ledger&&ledger.remaining>0&&<button type="button" disabled={pixBusy} onClick={()=>void generatePix()}>{pixBusy?"Gerando Pix...":"Gerar QR Code Pix"}</button>}</div>
+ {pixPayload&&<div className="pix-code aw-pix-panel"><h3>Pagamento por Pix</h3><p>Mostre o QR Code ao cliente ou copie o código para enviar.</p><strong>Valor pendente: {currency(ledger?.remaining??order.total)}</strong>{pixQr&&<img src={pixQr} alt="QR Code Pix da comanda" width={260} height={260}/>}<label>Código Pix copia e cola<textarea readOnly aria-label="Código Pix copia e cola" value={pixPayload} rows={3}/></label><button type="button" onClick={()=>void navigator.clipboard.writeText(pixPayload).then(()=>setCopied(true)).catch(()=>onError('Não foi possível copiar automaticamente. Selecione o código acima.'))}>{copied?'✓ Código copiado':'Copiar código Pix'}</button><p className="aw-pix-warning">Atenção: gerar o QR Code não confirma o pagamento. Confira o crédito na conta antes de registrar o recebimento.</p></div>}
  {ledger&&ledger.remaining>0&&<form onSubmit={e=>{e.preventDefault();void confirm()}}>
  <label>Forma de pagamento<select value={method} onChange={e=>{setMethod(Number(e.target.value) as Method);setReference('')}}><option value={0}>Dinheiro</option><option value={1}>Cartão (maquininha externa)</option>{canConfirmPix&&<option value={2}>Pix já recebido (confirmação manual)</option>}</select></label>
  <label>Valor a registrar (R$)<input inputMode="decimal" required value={amount} onChange={e=>setAmount(e.target.value)}/></label>
