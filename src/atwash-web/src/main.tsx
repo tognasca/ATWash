@@ -7,6 +7,7 @@ import Dashboard from './Dashboard';
 import PlatformAdmin from './PlatformAdmin';
 import {saveSnapshot,loadSnapshot,syncPending,tenantFromToken,pendingCount,listPending,discardPending} from './offline';
 import {DialogProvider,useDialog} from './Dialog';
+import {createOperationId} from './operationId';
 import './style.css';
 
 function cachedSession():{token:string;role:string}|null{
@@ -21,7 +22,7 @@ function App(){
  const dialog=useDialog();
  const notifyError=(message:string)=>{if(message.trim())dialog.show(message,'error')};
  const [token,setToken]=useState(()=>cachedSession()?.token??'');
- const [deviceId,setDeviceId]=useState(()=>{const key='atwash-device-id';let id=localStorage.getItem(key);if(!id){id=crypto.randomUUID();localStorage.setItem(key,id)}return id});
+ const [deviceId,setDeviceId]=useState(()=>{const key='atwash-device-id';let id=localStorage.getItem(key);if(!id){id=createOperationId();localStorage.setItem(key,id)}return id});
  const [role,setRole]=useState(()=>cachedSession()?.role??'');
  const [screen,setScreen]=useState<'operation'|'admin'|'dashboard'>('operation');
  const [email,setEmail]=useState('');
@@ -93,7 +94,7 @@ function App(){
    setRole(me.role);setScreen('operation');setToken(result.accessToken);setPassword('');
   }catch(e){if(e instanceof ApiError && e.status===401)dialog.show('E-mail ou senha incorretos. Verifique os dados e tente novamente.','error');else dialog.show(e instanceof ApiError&&e.status===429?'Muitas tentativas de acesso. Aguarde um minuto e tente novamente.':'Não foi possível entrar. Verifique a conexão e tente novamente.','error')}finally{setBusy(false)}
  }
- if(!token)return <main className="login"><section className="panel"><div className="brand"><img className="brand-logo" src="/atwashcontrol-logo.png" alt="ATWashControl — Gestão de Lava-Rápido" onError={e=>{e.currentTarget.style.display="none";e.currentTarget.nextElementSibling?.removeAttribute("hidden")}}/><span className="brand-fallback" hidden>ATWash<span>Control</span></span></div><p>Seu lava-rápido na palma da mão.</p><form onSubmit={login}><label>E-mail<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Senha<input type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label><button disabled={busy}>Entrar</button></form><button className="secondary" type="button" onClick={()=>{if(!window.confirm('Redefinir este dispositivo? As pendências offline antigas não serão sincronizadas automaticamente.'))return;const next=crypto.randomUUID();localStorage.setItem('atwash-device-id',next);setDeviceId(next)}}>Registrar como novo dispositivo</button></section></main>;
+ if(!token)return <main className="login"><section className="panel"><div className="brand"><img className="brand-logo" src="/atwashcontrol-logo.png" alt="ATWashControl — Gestão de Lava-Rápido" onError={e=>{e.currentTarget.style.display="none";e.currentTarget.nextElementSibling?.removeAttribute("hidden")}}/><span className="brand-fallback" hidden>ATWash<span>Control</span></span></div><p>Seu lava-rápido na palma da mão.</p><form onSubmit={login}><label>E-mail<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Senha<input type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label><button disabled={busy}>Entrar</button></form><button className="secondary" type="button" onClick={()=>{if(!window.confirm('Redefinir este dispositivo? As pendências offline antigas não serão sincronizadas automaticamente.'))return;const next=createOperationId();localStorage.setItem('atwash-device-id',next);setDeviceId(next)}}>Registrar como novo dispositivo</button></section></main>;
  const isAdmin=role==='Owner'||role==='Manager';
  return <main><header><h1>AT<span>Wash</span></h1><div><button className={screen==='operation'?'':'secondary'} onClick={()=>setScreen('operation')}>Atendimento</button>{isAdmin&&<button className={screen==='dashboard'?'':'secondary'} onClick={()=>setScreen('dashboard')}>Dashboard</button>}{isAdmin&&<button className={screen==='admin'?'':'secondary'} onClick={()=>setScreen('admin')}>Administração</button>}<button className="secondary" onClick={()=>{sessionStorage.removeItem('atwash-session');setToken('');setRole('');setScreen('operation')}}>Sair</button></div></header>
 
