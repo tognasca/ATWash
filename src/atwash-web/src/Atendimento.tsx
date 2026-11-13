@@ -11,8 +11,6 @@ const servicePhotos:{match:RegExp;url:string}[]=[
  {match:/higieniza[cç][aã]o interna|limpeza interna|bancos|estofad|aspira[cç][aã]o|interior/,url:'https://images.unsplash.com/photo-1507136566006-cfc505b114fc?auto=format&fit=crop&w=700&q=80'},
  {match:/roda|pneu|pretinho|calota/,url:'https://images.unsplash.com/photo-1486496572940-2bb2341fdbdf?auto=format&fit=crop&w=700&q=80'},
  {match:/poliment|cristaliza[cç][aã]o|vitrifica[cç][aã]o|revitaliza[cç][aã]o|brilho/,url:'https://images.unsplash.com/photo-1607860108855-64acf2078ed9?auto=format&fit=crop&w=700&q=80'},
- {match:/enceramento|cera/,url:'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&w=700&q=80'},
- {match:/lavagem completa|lavagem premium/,url:'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=700&q=80'},
  {match:/lavagem simples|lavagem externa|lavar carro/,url:'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&w=700&q=80'}
 ];
 function servicePhoto(name:string){return servicePhotos.find(p=>p.match.test(name.toLowerCase()))?.url}
