@@ -72,3 +72,36 @@ header>div{gap:8px}
  footer{line-height:1.6}
 }
 @media(prefers-reduced-motion:reduce){button{transition:none}}
+
+/* Responsive touch cards: order controls remain available without horizontal scrolling. */
+@media(max-width:900px){
+ .order-cards{overflow:visible}
+ .order-cards table,.order-cards tbody,.order-cards tr,.order-cards td{display:block;min-width:0;width:100%}
+ .order-cards thead{display:none}
+ .order-cards tbody{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:14px}
+ .order-cards tr{background:#fff;border:1px solid #e9e1eb;border-radius:16px;padding:14px;box-shadow:0 3px 14px #102f5410}
+ .order-cards td{border:0;padding:9px 0;display:flex;flex-direction:column;gap:6px;overflow-wrap:anywhere}
+ .order-cards td+td{border-top:1px solid #f2edf4}
+ .order-cards td::before{font-size:12px;font-weight:700;letter-spacing:.02em;color:#73667a}
+ .order-cards td:nth-child(1)::before{content:"Comanda"}
+ .order-cards td:nth-child(2)::before{content:"Veículo"}
+ .order-cards td:nth-child(3)::before{content:"Responsável"}
+ .order-cards td:nth-child(4)::before{content:"Etapa"}
+ .order-cards td:nth-child(5)::before{content:"Valor"}
+ .order-cards td:nth-child(6)::before{content:"Serviço extra"}
+ .order-cards td:nth-child(7)::before{content:"Produtos e insumos"}
+ .order-cards td:nth-child(8)::before{content:"Próxima ação"}
+ .order-cards td:nth-child(9)::before{content:"Pagamento"}
+ .order-cards td:empty{display:none}
+ .order-cards .actions{flex-wrap:wrap}
+ .order-cards .actions>select{flex:1 1 170px}
+ .order-cards button{min-height:48px}
+}
+@media(max-width:600px){
+ .kanban-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible;gap:8px}
+ .kanban-column{min-width:0;min-height:120px;padding:9px}
+ .kanban-column h3{font-size:13px}
+ .kanban-card{padding:9px;font-size:13px}
+ .kanban-card strong{overflow-wrap:anywhere}
+ .kanban-card button{padding:10px 5px;font-size:12px}
+}
