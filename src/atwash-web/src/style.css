@@ -323,3 +323,10 @@ main,.panel,.aw-attendance,.aw-workspace,.aw-left,.aw-catalog,.aw-customer,.aw-s
 .aw-app-content .aw-orders-section{border-radius:15px}
 @media(max-width:1020px){.aw-app-shell{grid-template-columns:175px minmax(0,1fr)}.aw-app-sidebar{padding-inline:7px}.aw-sidebar-brand strong{font-size:17px}.aw-app-content{padding-inline:14px}.aw-app-topbar{margin-inline:-14px;padding-inline:16px}}
 @media(max-width:760px){.aw-app-shell{display:block}.aw-app-sidebar{position:static;height:auto;padding:10px 12px}.aw-sidebar-brand{padding:3px 0 8px;border:0}.aw-sidebar-brand small,.aw-sidebar-foot{display:none}.aw-sidebar-nav{flex-direction:row;overflow-x:auto;gap:6px;margin-top:7px;padding-bottom:3px}.aw-sidebar-nav button{flex:0 0 auto;width:auto;min-height:40px;padding:9px 12px;font-size:12px}.aw-app-content{padding:0 10px 20px}.aw-app-topbar{margin:0 -10px 12px;padding:12px;align-items:flex-start;flex-direction:column}.aw-topbar-title h1{font-size:20px}.aw-topbar-actions{width:100%;justify-content:space-between}.aw-app-content .aw-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.aw-app-content .aw-heading{display:none}}
+
+/* Photographic service cards inspired by the approved attendance reference. */
+.aw-service-photo{display:block;position:relative;height:112px;overflow:hidden;background:linear-gradient(135deg,#e8e5ed,#c8d6e1)}
+.aw-service-photo img{display:block;width:100%;height:100%;object-fit:cover;object-position:center;transition:transform .2s ease}
+.aw-service-card:not(:disabled):hover .aw-service-photo img{transform:scale(1.045)}
+.aw-service-card.aw-selected .aw-service-photo:after{content:"✓";position:absolute;top:8px;right:8px;display:grid;place-items:center;width:25px;height:25px;border-radius:50%;background:#64107b;color:white;font-size:15px;font-weight:800;box-shadow:0 2px 8px #0004}
+@media(prefers-reduced-motion:reduce){.aw-service-photo img{transition:none}}
