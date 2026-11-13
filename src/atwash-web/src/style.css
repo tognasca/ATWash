@@ -105,3 +105,17 @@ header>div{gap:8px}
  .kanban-card strong{overflow-wrap:anywhere}
  .kanban-card button{padding:10px 5px;font-size:12px}
 }
+
+@media(max-width:900px){
+ .catalog-cards{overflow:visible}
+ .catalog-cards table,.catalog-cards tbody,.catalog-cards tr,.catalog-cards td{display:block;width:100%;min-width:0}
+ .catalog-cards thead{display:none}
+ .catalog-cards tbody{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:12px}
+ .catalog-cards tr{border:1px solid #e9e1eb;border-radius:14px;padding:14px;background:#fff;box-shadow:0 2px 10px #102f5410}
+ .catalog-cards td{padding:8px 0;border:0;overflow-wrap:anywhere}
+ .catalog-cards td+td{border-top:1px solid #f2edf4}
+ .catalog-cards td:first-child{font-weight:700;font-size:16px}
+ .catalog-cards td:nth-child(2)::before{content:"Preço: ";font-weight:600;color:#73667a}
+ .catalog-cards td:nth-child(3):not(:last-child)::before{content:"Estoque: ";font-weight:600;color:#73667a}
+ .catalog-cards td:last-child button{margin:4px 6px 4px 0}
+}
