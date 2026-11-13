@@ -217,30 +217,50 @@ async function performSync(token:string):Promise<number>{
     const result=await api<{id:string;number:string}>('/orders',token,'POST',{vehicleId:item.vehicleId,serviceIds:item.serviceIds,clientId:item.tempId});
     realId=result.id;number=result.number;
    }
-   const snapshot=await loadSnapshot(tenant);
-   if(snapshot){
-    if(item.kind==='customer'){
-     const entity=snapshot.customers.find(x=>x.id===item.tempId);if(entity)entity.id=realId;
-     snapshot.vehicles.forEach(x=>{if(x.customerId===item.tempId)x.customerId=realId});
-    }else if(item.kind==='vehicle'){
-     const entity=snapshot.vehicles.find(x=>x.id===item.tempId);if(entity)entity.id=realId;
-     snapshot.orders.forEach(x=>{if(x.vehicleId===item.tempId)x.vehicleId=realId});
-    }else{
-     const entity=snapshot.orders.find(x=>x.id===item.tempId);if(entity){entity.id=realId;entity.number=number??entity.number}
-    }
-    await saveSnapshot(tenant,snapshot);
-   }
-   // Rewrite references in dependent pending actions before marking this action complete.
-   const remaining=await store<Pending[]>('pending','readonly',s=>s.getAll());
-   for(const next of remaining.filter(x=>x.tenant===tenant&&x.id!==item.id)){
-    let changed=false;
-    if(next.kind==='vehicle'&&next.customerId===item.tempId){next.customerId=realId;changed=true}
-    if(next.kind==='order'&&next.vehicleId===item.tempId){next.vehicleId=realId;changed=true}
-    if(next.kind==='status'&&next.orderId===item.tempId){next.orderId=realId;changed=true}
-    if(changed)await store('pending','readwrite',s=>s.put(next));
-   }
+   // Commit the server acknowledgement, dependent ID rewrites and removal in
+   // one IndexedDB transaction. A crash cannot leave orphaned temporary IDs.
+   await new Promise<void>((resolve,reject)=>{
+    const dbPromise=open();
+    void dbPromise.then(db=>{
+     const tx=db.transaction(['snapshots','pending'],'readwrite');
+     const snapshots=tx.objectStore('snapshots');
+     const pending=tx.objectStore('pending');
+     const snapshotRequest=snapshots.get(tenant);
+     snapshotRequest.onsuccess=()=>{
+      const snapshot=snapshotRequest.result as Snapshot|undefined;
+      if(snapshot){
+       if(item.kind==='customer'){
+        const entity=snapshot.customers.find(x=>x.id===item.tempId);if(entity)entity.id=realId;
+        snapshot.vehicles.forEach(x=>{if(x.customerId===item.tempId)x.customerId=realId});
+       }else if(item.kind==='vehicle'){
+        const entity=snapshot.vehicles.find(x=>x.id===item.tempId);if(entity)entity.id=realId;
+        snapshot.orders.forEach(x=>{if(x.vehicleId===item.tempId)x.vehicleId=realId});
+       }else{
+        const entity=snapshot.orders.find(x=>x.id===item.tempId);
+        if(entity){entity.id=realId;entity.number=number??entity.number}
+       }
+       snapshots.put(snapshot,tenant);
+      }
+      const allRequest=pending.getAll();
+      allRequest.onsuccess=()=>{
+       for(const next of allRequest.result as Pending[]){
+        if(next.tenant!==tenant||next.id===item.id)continue;
+        let changed=false;
+        if(next.kind==='vehicle'&&next.customerId===item.tempId){next.customerId=realId;changed=true}
+        if(next.kind==='order'&&next.vehicleId===item.tempId){next.vehicleId=realId;changed=true}
+        if(next.kind==='status'&&next.orderId===item.tempId){next.orderId=realId;changed=true}
+        if(changed)pending.put(next);
+       }
+       pending.delete(item.id);
+      };
+     };
+     tx.oncomplete=()=>{db.close();resolve()};
+     tx.onabort=()=>{db.close();reject(tx.error??new Error('Falha ao confirmar sincronização local.'))};
+     tx.onerror=()=>{db.close();reject(tx.error)};
+    }).catch(reject);
+   });
   }
-  await store('pending','readwrite',s=>s.delete(item.id));
+  if(item.kind==='status')await store('pending','readwrite',s=>s.delete(item.id));
   count++;
  }
  return count;
