@@ -26,6 +26,9 @@ Configure no backend `ATWASH_CORS_ORIGINS=https://localhost` (acrescente outros 
 
 Para gerar APK de teste no Android Studio, use **Build > Build Bundle(s) / APK(s) > Build APK(s)**. Para publicar, gere e assine uma versão release, configure ícones adaptativos Android, políticas de privacidade e teste em tablet físico.
 
+## APK configurado pelo GitHub Actions
+No GitHub, acesse **Actions → Build and integration tests → Run workflow** e informe `android_api_url` como a origem HTTPS pública da API, por exemplo `https://api.exemplo.com.br` (sem `/api`). O fluxo valida a URL e a incorpora ao bundle Android. Se o campo estiver vazio, o APK permanece sem endereço remoto configurado. O APK gerado é **debug**, não uma versão release assinada para clientes.
+
 ## CI e homologação
 O workflow `.github/workflows/build.yml`:
 1. Compila API .NET 10.
