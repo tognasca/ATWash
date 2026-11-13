@@ -6,16 +6,16 @@ import {api,currency,type Customer,type Vehicle,type Service,type Product,type O
 // Curated photographs of real detailing processes; each catalog category gets its own image.
 // No generic car shots, repeated image fallback, or emoji placeholders.
 const servicePhotos:{match:RegExp;url:string;position?:string}[]=[
- {match:/aspira[cç][aã]o|aspirar/,url:'https://lirp.cdn-website.com/2d8ab408/dms3rep/multi/opt/Full%2BCar%2BDeep%2BClean-640w.png',position:'center top'},
- {match:/higieniza[cç][aã]o interna|limpeza interna|bancos|estofad/,url:'https://content.app-sources.com/s/970591715528428101/thumbnails/640x480/Images/Full_Interior_Image-6264845.png?format=webp',position:'center bottom'},
- {match:/lavagem de motor|limpeza de motor|motor/,url:'https://img.grouponcdn.com/metro_draft_service/2UpESm9CXpMP88Eg4z9NbD4Byoas/2U-1158x1154/v1/t2800x1696.jpg',position:'left bottom'},
- {match:/higieniza[cç][aã]o de ar|ar condicionado|ventila[cç][aã]o/,url:'https://i.shgcdn.com/980297aa-55dd-4d71-839d-4b3e97cc157b/-/format/auto/-/preview/3000x3000/-/quality/lighter/',position:'left center'},
- {match:/poliment|cristaliza[cç][aã]o/,url:'https://cdn.prod.website-files.com/68a506949befd25caf9ad118/6985ac3dc68523b77af916bd_car-wash-carlisle-pa-car-detailing.jpeg',position:'center center'},
- {match:/enceramento|cera/,url:'https://www.nextgenautocare.co.in/assets/images/services/17.jpg',position:'right bottom'},
- {match:/vitrifica[cç][aã]o|cer[aâ]mic/,url:'https://images.unsplash.com/photo-1607860108855-64acf2078ed9?auto=format&fit=crop&w=700&q=80'},
- {match:/revitaliza[cç][aã]o|pl[aá]stic/,url:'https://media.karousell.com/media/photos/products/2024/9/13/interior_detailing_tier_2__sha_1726223090_6c3bbcc7_progressive.jpg',position:'right top'},
- {match:/lavagem completa|lavagem premium/,url:'https://www.nextgenautocare.co.in/assets/images/services/17.jpg',position:'left top'},
- {match:/lavagem simples|lavagem externa|lavar carro/,url:'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&w=700&q=80'}
+ {match:/aspira[cç][aã]o|aspirar/,url:'/images/aspiracao.jpg',position:'center top'},
+ {match:/higieniza[cç][aã]o interna|limpeza interna|bancos|estofad/,url:'/images/higienizacao-interna.jpg',position:'center bottom'},
+ {match:/lavagem de motor|limpeza de motor|motor/,url:'/images/motor.jpg',position:'left bottom'},
+ {match:/higieniza[cç][aã]o de ar|ar condicionado|ventila[cç][aã]o/,url:'/images/ar-condicionado.jpg',position:'left center'},
+ {match:/poliment|cristaliza[cç][aã]o/,url:'/images/polimento.jpg',position:'center center'},
+ {match:/enceramento|cera/,url:'/images/enceramento.jpg',position:'right bottom'},
+ {match:/vitrifica[cç][aã]o|cer[aâ]mic/,url:'/images/vitrificacao.jpg'},
+ {match:/revitaliza[cç][aã]o|pl[aá]stic/,url:'/images/plasticos.jpg',position:'right top'},
+ {match:/lavagem completa|lavagem premium/,url:'/images/lavagem-completa.jpg',position:'left top'},
+ {match:/lavagem simples|lavagem externa|lavar carro/,url:'/images/lavagem-simples.jpg'}
 ];
 function servicePhoto(name:string){return servicePhotos.find(p=>p.match.test(name.trim().toLowerCase()))}
 type Props={token:string;customers:Customer[];vehicles:Vehicle[];services:Service[];products:Product[];orders:Order[];reload:()=>Promise<void>;onError:(error:string)=>void;canConfirmPix:boolean;canWrite:boolean;online:boolean;onQueued:()=>void};
