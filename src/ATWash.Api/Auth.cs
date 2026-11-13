@@ -59,11 +59,11 @@ public static class AuthEndpoints
             var valid = hasher.VerifyHashedPassword(candidate, candidate.PasswordHash, request.Password);
             if (user is null || valid == PasswordVerificationResult.Failed) return Results.Unauthorized();
             var tenant = await db.Tenants.FindAsync([user.TenantId], ct);
-            if (tenant is null || !tenant.IsActive) return Results.Unauthorized();
+            if (tenant is null || !tenant.IsActive) return Results.Json(new { message = "Empresa desativada. Contate o administrador." }, statusCode: 403);
             var subscription=await db.TenantSubscriptions.AsNoTracking().SingleOrDefaultAsync(x=>x.TenantId==user.TenantId,ct);
             if(subscription!=null&&(subscription.Status is not ("active" or "trial")||
                (subscription.ExpiresAt.HasValue&&subscription.ExpiresAt.Value<=DateTimeOffset.UtcNow)))
-                return Results.Unauthorized();
+                return Results.Json(new { message = "Assinatura inativa ou expirada. Contate o administrador." }, statusCode: 403);
             if (request.DeviceId == Guid.Empty) return Results.BadRequest("Identificador de dispositivo inválido.");
             var deviceId=request.DeviceId ?? Guid.NewGuid();
             await using var deviceTx=await db.Database.BeginTransactionAsync(ct);
@@ -71,7 +71,7 @@ public static class AuthEndpoints
                 $"SELECT pg_advisory_xact_lock(hashtextextended({user.TenantId.ToString()}, 0))",ct);
             var device=await db.RegisteredDevices.SingleOrDefaultAsync(x=>x.Id==deviceId,ct);
             if(device!=null && (device.RevokedAt!=null || device.UserId!=user.Id || device.TenantId!=user.TenantId))
-                return Results.Unauthorized();
+                return Results.Conflict("Este dispositivo foi revogado ou pertence a outro usuário. Peça ao administrador para liberar o acesso.");
             if(device==null){
                 if(subscription!=null){
                     var plan=await db.SubscriptionPlans.AsNoTracking().SingleAsync(x=>x.Id==subscription.PlanId,ct);
