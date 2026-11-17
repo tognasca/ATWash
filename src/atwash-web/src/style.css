@@ -424,3 +424,32 @@ main,.panel,.aw-attendance,.aw-workspace,.aw-left,.aw-catalog,.aw-customer,.aw-s
 
 /* Authentication feedback for revoked or expired sessions. */
 .aw-session-notice{padding:13px 15px;border-radius:10px;background:#fff3e8;border:1px solid #e9c59e;color:#75421c;font-size:13px;line-height:1.5;text-align:left}
+
+/* Public commercial onboarding */
+.aw-public-signup{max-width:1150px;margin:auto;padding:24px 20px 65px}
+.aw-signup-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:34px;gap:14px}
+.aw-signup-head a:first-child{font-size:25px;font-weight:850;color:#2d183b;text-decoration:none}
+.aw-signup-head a:first-child span{color:#7512a6}
+.aw-signup-head a:last-child,.aw-signup-entry a{color:#70129d;font-weight:700;text-decoration:none}
+.aw-signup-intro{text-align:center;margin:25px auto 28px;max-width:700px}
+.aw-signup-intro>span{font-size:11px;letter-spacing:.15em;color:#7b28a6;font-weight:800}
+.aw-signup-intro h1{font-size:clamp(27px,4vw,42px);line-height:1.16;margin:12px 0}
+.aw-signup-intro p{font-size:14px}
+.aw-signup-plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;margin-bottom:25px}
+.aw-signup-plan{display:flex;flex-direction:column;align-items:flex-start;gap:14px;text-align:left;padding:24px;border:2px solid #eae0ef;background:#fff;border-radius:17px;color:#32203f;box-shadow:0 5px 25px #2a103010;cursor:pointer}
+.aw-signup-plan.selected{border-color:#7926b6;background:linear-gradient(160deg,#fff,#f9f2fe)}
+.aw-signup-plan small{font-size:13px;font-weight:800;color:#721a9b}
+.aw-signup-plan strong{font-size:clamp(20px,2.3vw,29px)}
+.aw-signup-plan strong span{font-size:12px;font-weight:500;color:#776981}
+.aw-signup-plan>span{font-size:12px;color:#71647c}
+.aw-signup-plan b{font-size:12px;color:#7015a0;margin-top:auto}
+.aw-signup-form{display:grid;grid-template-columns:1fr 1.3fr;gap:26px;align-items:start;background:white;border:1px solid #ece4f1;border-radius:18px;padding:30px;box-shadow:0 5px 25px #2a103010}
+.aw-signup-form h2{font-size:25px;color:#2d183b}
+.aw-signup-form form{display:flex;flex-direction:column;gap:13px}
+.aw-signup-form form label{font-size:12px;color:#55485e}
+.aw-signup-form form input{width:100%;margin-top:5px;min-height:43px}
+.aw-signup-form form button{min-height:46px}
+.aw-signup-form form small{font-size:11px;color:#776981}
+.aw-signup-error{padding:11px;background:#fff0ed;color:#9b2b24;border-radius:9px;font-size:12px}
+.aw-signup-entry{font-size:13px;text-align:center;margin-top:20px}
+@media(max-width:750px){.aw-signup-plans{grid-template-columns:1fr}.aw-signup-form{grid-template-columns:1fr;padding:20px}.aw-signup-plan{padding:18px}}
