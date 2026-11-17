@@ -560,3 +560,9 @@ main,.panel,.aw-attendance,.aw-workspace,.aw-left,.aw-catalog,.aw-customer,.aw-s
 .aw-market-hero-detail small{display:block;color:#85788b;font-size:10px;margin-top:5px}
 @media(max-width:950px){.aw-marketing .aw-market-hero-premium{padding:35px 24px 65px;gap:24px}.aw-marketing .aw-market-hero-premium h1{font-size:clamp(36px,4.4vw,52px)}.aw-marketing .aw-market-hero-premium .aw-market-hero-art{min-height:440px}.aw-market-hero-detail{right:-10px}}
 @media(max-width:700px){.aw-marketing .aw-market-hero-premium{grid-template-columns:1fr;min-height:auto;padding:28px 18px 55px;gap:24px}.aw-marketing .aw-market-hero-premium .aw-market-hero-copy{padding:10px 0}.aw-marketing .aw-market-hero-premium h1{font-size:clamp(37px,9vw,49px);margin:22px 0}.aw-marketing .aw-market-hero-premium .aw-market-hero-copy>p{font-size:14px;line-height:1.8}.aw-marketing .aw-market-hero-premium .aw-market-hero-trust{margin-top:27px;padding-top:18px}.aw-marketing .aw-market-hero-premium .aw-market-hero-art{min-height:340px;margin-right:9px;border-radius:8px 48px 8px 8px}.aw-marketing .aw-market-hero-premium .aw-market-hero-art>img,.aw-marketing .aw-market-hero-premium .aw-market-hero-art:after{border-radius:8px 48px 8px 8px}.aw-market-hero-detail{right:-10px;top:18px;padding:10px 12px}.aw-market-hero-image-caption{left:19px;bottom:22px;font-size:9px}}
+
+/* Display the complete ATWashControl wordmark at a readable size */
+.aw-marketing .aw-market-logo{flex:0 0 auto;display:inline-flex;align-items:center;line-height:0}
+.aw-marketing .aw-market-logo img{display:block;width:205px;height:auto;max-width:205px;max-height:78px;object-fit:contain}
+@media(max-width:700px){.aw-marketing .aw-market-logo img{width:160px;max-width:160px;max-height:65px}}
+@media(max-width:390px){.aw-marketing .aw-market-logo img{width:138px;max-width:138px}}
