@@ -526,3 +526,11 @@ main,.panel,.aw-attendance,.aw-workspace,.aw-left,.aw-catalog,.aw-customer,.aw-s
 @media(max-width:700px){.aw-market-header{min-height:70px;padding:12px 16px}.aw-market-logo{font-size:16px}.aw-market-logo img{max-width:34px}.aw-market-header-actions{gap:12px}.aw-market-header-actions>a:first-child{font-size:12px}.aw-market-header-actions .aw-market-button{padding:11px 12px;font-size:11px}.aw-market-hero{grid-template-columns:1fr;margin:0 auto 30px;padding:35px 18px;gap:26px}.aw-market-hero h1{font-size:38px}.aw-market-hero-art{min-height:290px}.aw-market-section{padding:50px 18px}.aw-market-feature-grid,.aw-market-step-grid,.aw-market-pricing-grid{grid-template-columns:1fr}.aw-market-price-card{padding:27px 24px}.aw-market-final{margin:25px 18px 45px;padding:30px 24px;display:block}.aw-market-final .aw-market-button{margin-top:12px}.aw-market-footer{padding:30px 18px}.aw-market-footer div{margin-left:0;width:100%;flex-wrap:wrap}}
 
 .aw-signup-form .aw-signup-mode{background:transparent;border:1px solid #d7b7e4;color:#64107b;padding:11px 14px;border-radius:9px;font-size:12px;font-weight:750;cursor:pointer;box-shadow:none;min-height:auto}
+
+/* Login: device troubleshooting is secondary, not part of normal sign-in */
+.aw-login-device-help{margin-top:14px;text-align:left}
+.aw-login-help-toggle{width:100%;border:0;background:transparent;color:#64107b;text-decoration:underline;text-underline-offset:3px;font-size:12px;font-weight:700;cursor:pointer;padding:9px 4px;box-shadow:none}
+.aw-login-device-panel{border:1px solid #e7d9ed;background:#faf7fc;border-radius:12px;padding:16px;margin-top:7px}
+.aw-login-device-panel>strong{font-size:13px;color:#382043}
+.aw-login-device-panel p{font-size:12px;line-height:1.65;color:#64536c;margin:9px 0}
+.aw-login-device-panel .aw-login-new-device{width:100%;margin-top:8px;font-size:12px;white-space:normal}
