@@ -91,6 +91,7 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapAuth();
+app.MapPublicRegistration();
 app.MapOperations();
 app.MapInventory();
 app.MapOperationsManagement();
@@ -104,6 +105,7 @@ await AdminBootstrap.RunAsync(app.Services, app.Configuration);
 await using (var catalogScope = app.Services.CreateAsyncScope())
 {
     var catalogDb = catalogScope.ServiceProvider.GetRequiredService<AtWashDbContext>();
+    await PublicRegistration.SeedPlansAsync(catalogDb);
     await DefaultServiceCatalog.SeedMissingCatalogsAsync(catalogDb);
 }
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
