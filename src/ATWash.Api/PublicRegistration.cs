@@ -24,7 +24,7 @@ public static class PublicRegistration
 
     public static void MapPublicRegistration(this WebApplication app)
     {
-        var group=app.MapGroup("/api/public").RequireRateLimiting("login");
+        var group=app.MapGroup("/api/public");
         group.MapGet("/plans",async(AtWashDbContext db,CancellationToken ct)=>
             Results.Ok(await db.SubscriptionPlans.AsNoTracking()
                 .Where(x=>x.IsActive&&(x.Name=="Essencial"||x.Name=="Profissional"||x.Name=="Empresarial"))
@@ -72,7 +72,7 @@ public static class PublicRegistration
                  checkoutUri.Host.EndsWith(".mercadopago.com.br",StringComparison.OrdinalIgnoreCase)))
                 return Results.Conflict("Não foi possível recuperar o link da assinatura. Contate o suporte.");
             return Results.Ok(new{subscriptionStatus="pending",checkoutUrl=url});
-        });
+        }).RequireRateLimiting("login");
 
         group.MapPost("/register",async(PublicRegistrationInput input,AtWashDbContext db,
             IPasswordHasher<AppUser> hasher,IHttpClientFactory clients,IConfiguration config,CancellationToken ct)=>{
@@ -129,6 +129,6 @@ public static class PublicRegistration
                 TenantId=tenant.Id,ProviderId=id!,ProviderStatus="pending",LocalStatus="pending"});
             await db.SaveChangesAsync(ct);await tx.CommitAsync(ct);
             return Results.Ok(new{checkoutUrl=url,subscriptionStatus="pending"});
-        });
+        }).RequireRateLimiting("login");
     }
 }
