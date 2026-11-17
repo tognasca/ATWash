@@ -48,7 +48,7 @@ public static class SaasEndpoints {
   api.MapGet("/saas/subscription",async(ClaimsPrincipal p,AtWashDbContext db,CancellationToken ct)=>{
    if(!IsManager(p)||!GetTenant(p,out var t))return Results.Forbid();
    var subscription=await db.TenantSubscriptions.AsNoTracking().SingleOrDefaultAsync(x=>x.TenantId==t,ct);
-   return Results.Ok(new{Subscription=subscription,Provisioning="manual",BillingIntegration=false});
+   return Results.Ok(new{Subscription=subscription,Provisioning="public-checkout",BillingIntegration=true});
   });
  }
 }
