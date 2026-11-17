@@ -581,3 +581,19 @@ main,.panel,.aw-attendance,.aw-workspace,.aw-left,.aw-catalog,.aw-customer,.aw-s
 .aw-marketing .aw-market-signature-main a:hover{color:#e4c2ee}
 .aw-marketing .aw-market-signature-main a span{margin-left:12px}
 @media(max-width:700px){.aw-marketing .aw-market-signature-banner{min-height:170px}.aw-marketing .aw-market-signature-content{width:calc(100% - 38px);padding:27px 0}.aw-marketing .aw-market-signature-main{display:block;margin-top:13px}.aw-marketing .aw-market-signature-main h2{font-size:clamp(23px,6vw,30px)}.aw-marketing .aw-market-signature-main a{display:inline-block;margin-top:19px;font-size:11px}.aw-marketing .aw-market-signature-kicker{font-size:9px;letter-spacing:.13em}}
+
+/* Full-width replacement HERO. Deliberately independent of legacy .aw-market-hero styles. */
+.aw-marketing .aw-market-hero-wide{position:relative;isolation:isolate;display:flex;align-items:center;width:100%;min-height:430px;margin:0;overflow:hidden;background:#18131b url('/images/polimento.jpg') 65% 50%/cover no-repeat;color:#fff}
+.aw-marketing .aw-market-hero-wide-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(17,12,21,.96) 0%,rgba(22,15,26,.9) 38%,rgba(25,16,29,.55) 72%,rgba(25,16,29,.35) 100%)}
+.aw-marketing .aw-market-hero-wide-inner{width:min(1180px,calc(100% - 72px));margin:0 auto;padding:63px 0 67px}
+.aw-marketing .aw-market-hero-wide-kicker{font-size:10px;font-weight:750;letter-spacing:.21em;color:#e6d3e9}
+.aw-marketing .aw-market-hero-wide-kicker span{padding:0 9px;color:#ac8fb7}
+.aw-marketing .aw-market-hero-wide h1{font-size:clamp(36px,4.2vw,62px);line-height:1.12;letter-spacing:-.047em;font-weight:720;max-width:870px;color:#fff;margin:21px 0}
+.aw-marketing .aw-market-hero-wide h1 em{font-style:normal;color:#e8c8ed;font-weight:550}
+.aw-marketing .aw-market-hero-wide p{max-width:580px;color:#f1eaf2d9;font-size:15px;line-height:1.75;margin:0}
+.aw-marketing .aw-market-hero-wide-actions{display:flex;align-items:center;gap:28px;flex-wrap:wrap;margin-top:29px}
+.aw-marketing .aw-market-hero-wide .aw-market-button{border-radius:7px;padding:14px 22px;background:#7b3b8c;color:#fff;box-shadow:none}
+.aw-marketing .aw-market-hero-wide-link{color:#fff;text-decoration:none;font-size:13px;font-weight:700;border-bottom:1px solid #e8c8ed;padding-bottom:7px}
+.aw-marketing .aw-market-hero-wide-link span{margin-left:8px}
+.aw-marketing .aw-market-hero-wide-footnote{position:absolute;right:35px;bottom:22px;font-size:9px;letter-spacing:.22em;font-weight:700;color:#fff9}
+@media(max-width:700px){.aw-marketing .aw-market-hero-wide{min-height:390px;background-position:64% center}.aw-marketing .aw-market-hero-wide-shade{background:linear-gradient(90deg,rgba(17,12,21,.96),rgba(22,15,26,.76))}.aw-marketing .aw-market-hero-wide-inner{width:calc(100% - 38px);padding:52px 0 66px}.aw-marketing .aw-market-hero-wide h1{font-size:clamp(32px,8vw,43px)}.aw-marketing .aw-market-hero-wide p{font-size:13px}.aw-marketing .aw-market-hero-wide-actions{gap:19px}.aw-marketing .aw-market-hero-wide-footnote{right:19px;bottom:15px}}
