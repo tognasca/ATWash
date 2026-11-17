@@ -42,7 +42,16 @@ public static class OperationsManagementEndpoints {
   if(e==null)return Results.NotFound();
   if(await db.Users.AnyAsync(x=>x.Email==email&&x.Id!=e.UserId,ct))return Results.Conflict("E-mail já utilizado.");
   await using var accessTx=await db.Database.BeginTransactionAsync(ct);
+  await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({t.ToString()}, 0))",ct);
   var user=e.UserId.HasValue?await db.Users.SingleOrDefaultAsync(x=>x.TenantId==t&&x.Id==e.UserId,ct):null;
+  if(user==null){
+   var planName=await (from sub in db.TenantSubscriptions
+     join plan in db.SubscriptionPlans on sub.PlanId equals plan.Id
+     where sub.TenantId==t select plan.Name).SingleOrDefaultAsync(ct);
+   var maxUsers=planName switch{"Essencial"=>2,"Profissional"=>5,"Empresarial"=>15,_=>int.MaxValue};
+   if(await db.Users.CountAsync(x=>x.TenantId==t&&x.IsActive,ct)>=maxUsers)
+    return Results.Conflict("Limite de usuários do plano atingido. Solicite uma mudança de plano.");
+  }
   if(user==null){user=new AppUser{TenantId=t,Email=email,PasswordHash="",Role=i.Role};db.Users.Add(user);await db.SaveChangesAsync(ct);e.UserId=user.Id;}
   user.Email=email;user.Role=i.Role;user.IsActive=e.IsActive;
   user.PasswordHash=hasher.HashPassword(user,i.Password);
