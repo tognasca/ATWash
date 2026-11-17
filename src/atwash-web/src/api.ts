@@ -12,6 +12,7 @@ export async function api<T>(path:string,token:string,method='GET',body?:unknown
  const response=await fetch(API_BASE+path,{method,headers:{...(token?{Authorization:'Bearer '+token}:{}),'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
  if(!response.ok){
   const message=(await response.text()).replace(/^"|"$/g,'');
+  if(response.status===401&&token)window.dispatchEvent(new CustomEvent('atwash:session-expired',{detail:{token}}));
   throw new ApiError(response.status,message||'Falha HTTP '+response.status);
  }
  if(response.status===204)return undefined as T;
