@@ -597,3 +597,56 @@ main,.panel,.aw-attendance,.aw-workspace,.aw-left,.aw-catalog,.aw-customer,.aw-s
 .aw-marketing .aw-market-hero-wide-link span{margin-left:8px}
 .aw-marketing .aw-market-hero-wide-footnote{position:absolute;right:35px;bottom:22px;font-size:9px;letter-spacing:.22em;font-weight:700;color:#fff9}
 @media(max-width:700px){.aw-marketing .aw-market-hero-wide{min-height:390px;background-position:64% center}.aw-marketing .aw-market-hero-wide-shade{background:linear-gradient(90deg,rgba(17,12,21,.96),rgba(22,15,26,.76))}.aw-marketing .aw-market-hero-wide-inner{width:calc(100% - 38px);padding:52px 0 66px}.aw-marketing .aw-market-hero-wide h1{font-size:clamp(32px,8vw,43px)}.aw-marketing .aw-market-hero-wide p{font-size:13px}.aw-marketing .aw-market-hero-wide-actions{gap:19px}.aw-marketing .aw-market-hero-wide-footnote{right:19px;bottom:15px}}
+
+
+/* Landing page header: isolate mobile layout from the application header rules. */
+.aw-marketing .aw-market-header{
+  flex-direction:row;
+  flex-wrap:nowrap;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:0;
+  padding-bottom:15px;
+  min-width:0;
+}
+.aw-marketing .aw-market-header-actions{
+  display:flex;
+  flex-direction:row;
+  flex-wrap:nowrap;
+  align-items:center;
+  justify-content:flex-end;
+  width:auto;
+  min-width:0;
+  gap:14px;
+}
+.aw-marketing .aw-market-header-actions a{
+  flex:0 0 auto;
+  white-space:nowrap;
+}
+@media(max-width:700px){
+  .aw-marketing .aw-market-header{
+    min-height:66px;
+    padding:9px 14px;
+    gap:8px;
+  }
+  .aw-marketing .aw-market-logo{min-width:0;flex:0 1 auto;}
+  .aw-marketing .aw-market-logo img{
+    width:clamp(112px,38vw,160px);
+    max-width:100%;
+    max-height:54px;
+  }
+  .aw-marketing .aw-market-header-actions{gap:9px;}
+  .aw-marketing .aw-market-header-actions>a:first-child{font-size:12px;}
+  .aw-marketing .aw-market-header-actions .aw-market-button{
+    padding:10px 11px;
+    font-size:11px;
+    line-height:1.2;
+    border-radius:10px;
+  }
+}
+@media(max-width:360px){
+  .aw-marketing .aw-market-header{padding-inline:10px;gap:6px;}
+  .aw-marketing .aw-market-logo img{width:112px;}
+  .aw-marketing .aw-market-header-actions{gap:7px;}
+  .aw-marketing .aw-market-header-actions .aw-market-button{padding:9px 8px;font-size:10px;}
+}
