@@ -34,6 +34,19 @@ function App(){
  const [syncing,setSyncing]=useState(false);
  const [showPending,setShowPending]=useState(false);
  const [pendingItems,setPendingItems]=useState<{id:string;kind:string;description:string;createdAt:number}[]>([]);
+ const [sessionNotice,setSessionNotice]=useState('');
+ useEffect(()=>{
+  if(!token)return;
+  const handleUnauthorized=(event:Event)=>{
+   const rejected=(event as CustomEvent<{token:string}>).detail?.token;
+   if(rejected!==token)return;
+   sessionStorage.removeItem('atwash-session');
+   setToken('');setRole('');setScreen('operation');
+   setSessionNotice('Sua sessão não foi autorizada. Ela pode ter expirado ou o dispositivo, usuário ou assinatura pode ter sido bloqueado. Entre novamente. Se persistir, solicite a verificação do dispositivo ao administrador.');
+  };
+  window.addEventListener('atwash:session-expired',handleUnauthorized);
+  return ()=>window.removeEventListener('atwash:session-expired',handleUnauthorized);
+ },[token]);
  async function reviewPending(){try{setPendingItems(await listPending(tenantFromToken(token)));setShowPending(true)}catch(e){notifyError(String(e))}}
  async function discardStatus(id:string){if(!window.confirm('Descartar esta atualização local? O estado do servidor será mantido.'))return;try{const t=tenantFromToken(token);await discardPending(t,id);setPendingItems(await listPending(t));setQueued(await pendingCount(t));await reload(token)}catch(e){notifyError(String(e))}}
 
@@ -84,7 +97,7 @@ function App(){
   setQueued(await pendingCount(tenant));
  }
  async function login(e:FormEvent){
-  e.preventDefault();setBusy(true);
+  e.preventDefault();setBusy(true);setSessionNotice('');
   let authenticated=false;
   try{
    const result=await api<{accessToken:string}>('/auth/login','','POST',{email,password,deviceId,deviceName:navigator.userAgent.slice(0,100)});
@@ -102,7 +115,7 @@ function App(){
    else dialog.show(authenticated?'Senha aceita, mas houve falha ao carregar os dados. Verifique a conexão.':'Não foi possível conectar. Verifique a conexão e tente novamente.','error');
   }finally{setBusy(false)}
  }
- if(!token)return <main className="login"><section className="panel"><div className="brand"><img className="brand-logo" src="/atwashcontrol-logo.png" alt="ATWashControl — Gestão de Lava-Rápido" onError={e=>{e.currentTarget.style.display="none";e.currentTarget.nextElementSibling?.removeAttribute("hidden")}}/><span className="brand-fallback" hidden>ATWash<span>Control</span></span></div><p>Seu lava-rápido na palma da mão.</p><form onSubmit={login}><label>E-mail<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Senha<div className="aw-password-field"><input type={showPassword?'text':'password'} required autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)}/><button type="button" className="aw-password-toggle" aria-label={showPassword?'Ocultar senha':'Mostrar senha'} aria-pressed={showPassword} onClick={()=>setShowPassword(v=>!v)}>{showPassword?'🙈':'👁'}</button></div></label><button disabled={busy}>Entrar</button></form><button className="secondary" type="button" onClick={()=>{if(!window.confirm('Redefinir este dispositivo? As pendências offline antigas não serão sincronizadas automaticamente.'))return;const next=createOperationId();localStorage.setItem('atwash-device-id',next);setDeviceId(next)}}>Registrar como novo dispositivo</button></section></main>;
+ if(!token)return <main className="login"><section className="panel"><div className="brand"><img className="brand-logo" src="/atwashcontrol-logo.png" alt="ATWashControl — Gestão de Lava-Rápido" onError={e=>{e.currentTarget.style.display="none";e.currentTarget.nextElementSibling?.removeAttribute("hidden")}}/><span className="brand-fallback" hidden>ATWash<span>Control</span></span></div><p>Seu lava-rápido na palma da mão.</p>{sessionNotice&&<p role="alert" className="aw-session-notice">{sessionNotice}</p>}<form onSubmit={login}><label>E-mail<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Senha<div className="aw-password-field"><input type={showPassword?'text':'password'} required autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)}/><button type="button" className="aw-password-toggle" aria-label={showPassword?'Ocultar senha':'Mostrar senha'} aria-pressed={showPassword} onClick={()=>setShowPassword(v=>!v)}>{showPassword?'🙈':'👁'}</button></div></label><button disabled={busy}>Entrar</button></form><button className="secondary" type="button" onClick={()=>{if(!window.confirm('Redefinir este dispositivo? As pendências offline antigas não serão sincronizadas automaticamente.'))return;const next=createOperationId();localStorage.setItem('atwash-device-id',next);setDeviceId(next)}}>Registrar como novo dispositivo</button></section></main>;
  const isAdmin=role==='Owner'||role==='Manager';
  return <main className="aw-app-shell"><aside className="aw-app-sidebar" aria-label="Navegação principal"><div className="aw-sidebar-brand"><strong>ATWash<span>Control</span></strong><small>Lava-Rápido Inteligente</small></div><nav className="aw-sidebar-nav"><button className={screen==='dashboard'?'aw-nav-active':''} disabled={!isAdmin} onClick={()=>setScreen('dashboard')}>⌂ <span>Início</span></button><button className={screen==='operation'?'aw-nav-active':''} onClick={()=>setScreen('operation')}>▣ <span>Atendimento</span></button>{isAdmin&&<button className={screen==='admin'?'aw-nav-active':''} onClick={()=>setScreen('admin')}>⚙ <span>Administração</span></button>}<button onClick={()=>{setScreen('operation');document.querySelector('.aw-orders-section')?.scrollIntoView({behavior:'smooth'})}}>▤ <span>Comandas</span></button></nav><div className="aw-sidebar-foot"><strong>ATWashControl</strong><small>Seu lava-rápido na palma da mão.</small></div></aside><div className="aw-app-content"><header className="aw-app-topbar"><div className="aw-topbar-title"><span className="aw-topbar-icon">♧</span><div><h1>{screen==='operation'?'Atendimento':screen==='dashboard'?'Início':'Administração'}</h1><small>{screen==='operation'?'Nova comanda, serviços, produtos e acompanhamento.':'ATWashControl · Gestão de lava-rápido'}</small></div></div><div className="aw-topbar-actions"><span className={online?'aw-topbar-online':'aw-topbar-offline'}>{online?'● Online':'● Offline'}</span><span className="aw-topbar-role">{role==='Owner'?'Proprietário':role==='Manager'?'Gerente':role==='Attendant'?'Atendente':'Lavador'}</span><button className="secondary" onClick={()=>{sessionStorage.removeItem('atwash-session');setToken('');setRole('');setScreen('operation')}}>Sair</button></div></header>
  {screen==='operation'?<Atendimento token={token} customers={customers} vehicles={vehicles} services={services} products={products} orders={orders} reload={reload} onError={notifyError} canConfirmPix={isAdmin} canWrite={role!=='Washer'} online={online} onQueued={()=>setQueued(x=>x+1)}/>:isAdmin&&screen==='dashboard'?<Dashboard token={token} onError={notifyError}/>:isAdmin?<Admin token={token} role={role} services={services} products={products} reload={reload} onError={notifyError}/>:null}
