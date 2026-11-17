@@ -12,6 +12,33 @@ import {DialogProvider,useDialog} from './Dialog';
 import {createOperationId} from './operationId';
 import './style.css';
 
+// Keep the installed PWA updated without clearing IndexedDB or offline queues.
+// Reload automatically only on public pages; authenticated operators may have
+// unsynchronised work, so their active screen is never forcibly reloaded.
+if ('serviceWorker' in navigator) {
+ let reloading=false;
+ navigator.serviceWorker.addEventListener('controllerchange',()=>{
+  if(reloading)return;
+  if(window.location.pathname==='/' || window.location.pathname==='/cadastro'){
+   reloading=true;
+   window.location.reload();
+  }
+ });
+ const checkForUpdates=()=>{
+  if(!navigator.onLine)return;
+  void navigator.serviceWorker.getRegistrations().then(registrations=>
+   Promise.all(registrations.map(registration=>registration.update().catch(()=>undefined)))
+  ).catch(()=>undefined);
+ };
+ window.addEventListener('load',checkForUpdates);
+ window.addEventListener('pageshow',checkForUpdates);
+ document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible')checkForUpdates();
+ });
+ window.setInterval(checkForUpdates,15*60*1000);
+}
+
+
 function cachedSession():{token:string;role:string}|null{
  try{const raw=sessionStorage.getItem('atwash-session');if(!raw)return null;
   const session=JSON.parse(raw) as {token:string;role:string};
