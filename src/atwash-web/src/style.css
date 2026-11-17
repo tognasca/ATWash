@@ -453,3 +453,74 @@ main,.panel,.aw-attendance,.aw-workspace,.aw-left,.aw-catalog,.aw-customer,.aw-s
 .aw-signup-error{padding:11px;background:#fff0ed;color:#9b2b24;border-radius:9px;font-size:12px}
 .aw-signup-entry{font-size:13px;text-align:center;margin-top:20px}
 @media(max-width:750px){.aw-signup-plans{grid-template-columns:1fr}.aw-signup-form{grid-template-columns:1fr;padding:20px}.aw-signup-plan{padding:18px}}
+
+/* ATWashControl public marketing site — scoped to prevent regressions in app screens */
+.aw-marketing{background:#fff;color:#25182d;min-height:100vh;font-family:Inter,system-ui,Arial,sans-serif}
+.aw-marketing *{box-sizing:border-box}
+.aw-marketing a{text-decoration:none}
+.aw-market-header{max-width:1200px;margin:auto;min-height:88px;padding:15px 24px;display:flex;align-items:center;justify-content:space-between;gap:22px}
+.aw-market-logo{display:flex;align-items:center;gap:10px;color:#29172d;font-size:20px;font-weight:850;white-space:nowrap}
+.aw-market-logo img{max-width:46px;max-height:46px;object-fit:contain}
+.aw-market-logo span span,.aw-market-footer strong span{color:#7a168e}
+.aw-market-header nav,.aw-market-header-actions{display:flex;align-items:center;gap:25px}
+.aw-market-header nav a,.aw-market-header-actions>a:first-child{font-size:13px;color:#5c5362;font-weight:650}
+.aw-market-button{display:inline-flex;align-items:center;justify-content:center;gap:15px;background:#64107b;color:#fff!important;padding:15px 22px;border-radius:10px;font-size:13px;font-weight:800;box-shadow:0 8px 25px #64107b27;white-space:nowrap}
+.aw-market-button:hover{background:#4d0c63}
+.aw-market-hero{max-width:1200px;margin:18px auto 70px;padding:30px 24px;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:50px;min-height:490px}
+.aw-market-eyebrow{display:flex;align-items:center;gap:9px;color:#75238e;font-size:11px;font-weight:800;letter-spacing:.1em}
+.aw-market-eyebrow span{width:9px;height:9px;border-radius:50%;background:#a754c5}
+.aw-market-hero h1{font-size:clamp(36px,4.4vw,59px);line-height:1.09;letter-spacing:-.05em;margin:20px 0 22px;font-weight:850}
+.aw-market-hero h1 em{color:#64107b;font-style:normal}
+.aw-market-hero-copy>p{font-size:16px;line-height:1.85;color:#6a6070;max-width:540px}
+.aw-market-hero-actions{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:30px}
+.aw-market-secondary{padding:14px 12px;color:#503a5b;font-size:13px;font-weight:750}
+.aw-market-hero-trust{display:flex;gap:20px;flex-wrap:wrap;margin-top:31px;font-size:12px;font-weight:700;color:#776d7d}
+.aw-market-hero-art{position:relative;min-height:430px;border-radius:24px;overflow:hidden;background:#e9e0e8;box-shadow:0 25px 60px #291b3030}
+.aw-market-hero-art>img{width:100%;height:100%;position:absolute;inset:0;object-fit:cover;object-position:center}
+.aw-market-hero-art:after{content:'';position:absolute;inset:0;background:linear-gradient(0deg,#190e25b8,transparent 65%)}
+.aw-market-floating{position:absolute;z-index:1;bottom:25px;left:26px;right:26px;color:white;display:flex;flex-direction:column;gap:8px}
+.aw-market-floating span{font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+.aw-market-floating strong{font-size:25px;max-width:380px;line-height:1.2}
+.aw-market-floating small{font-size:12px;opacity:.85}
+.aw-market-section{padding:76px 24px;max-width:1200px;margin:auto;scroll-margin-top:20px}
+.aw-market-section-head{text-align:center;max-width:710px;margin:0 auto 38px}
+.aw-market-section-head>span,.aw-market-final span{color:#8d2cac;font-size:11px;letter-spacing:.15em;font-weight:850}
+.aw-market-section-head h2{font-size:clamp(26px,3.5vw,39px);line-height:1.18;letter-spacing:-.035em;margin:13px 0}
+.aw-market-section-head p{font-size:14px;line-height:1.8;color:#71677a}
+.aw-market-feature-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.aw-market-feature-grid article{border:1px solid #eee6f1;border-radius:16px;padding:25px;background:#fff;box-shadow:0 6px 25px #210c2d09}
+.aw-market-feature-num{font-size:14px;font-weight:850;color:#a456b9;margin-bottom:35px}
+.aw-market-feature-grid h3,.aw-market-step-grid h3{font-size:16px;margin:0 0 11px;color:#30213b}
+.aw-market-feature-grid p,.aw-market-step-grid p{font-size:13px;line-height:1.75;color:#736879;margin:0}
+.aw-market-pricing{max-width:none;background:#faf7fc}
+.aw-market-pricing>.aw-market-section-head,.aw-market-pricing-grid,.aw-market-pricing-note{max-width:1152px;margin-left:auto;margin-right:auto}
+.aw-market-pricing-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:stretch}
+.aw-market-price-card{position:relative;border:1px solid #e8ddeb;border-radius:18px;background:#fff;padding:32px 28px;display:flex;flex-direction:column;box-shadow:0 9px 30px #28133109}
+.aw-market-price-card.featured{border:2px solid #7b259a;box-shadow:0 12px 35px #64107b1a}
+.aw-market-popular{position:absolute;top:-15px;left:50%;transform:translateX(-50%);border-radius:30px;padding:8px 15px;background:#64107b;color:white;font-size:10px;font-weight:850;white-space:nowrap;letter-spacing:.08em}
+.aw-market-plan-name{font-size:17px;font-weight:850}
+.aw-market-price-card>p{font-size:13px;color:#766a7e;margin:10px 0 25px}
+.aw-market-price{font-size:33px;font-weight:850;letter-spacing:-.04em}
+.aw-market-price small{font-size:13px;color:#817488;font-weight:500;letter-spacing:0}
+.aw-market-price-rule{height:1px;background:#eee7f0;margin:25px 0}
+.aw-market-price-card ul{list-style:none;padding:0;margin:0 0 30px;display:flex;flex-direction:column;gap:15px;flex:1}
+.aw-market-price-card li{font-size:13px;color:#574c60;line-height:1.4}
+.aw-market-price-card li:before{content:'✓';font-weight:900;color:#77269b;margin-right:11px}
+.aw-market-price-card>a{width:100%;text-align:center}
+.aw-market-outline{display:inline-flex;align-items:center;justify-content:center;gap:12px;border:1px solid #d5b6df;color:#64107b;padding:14px 18px;border-radius:10px;font-size:13px;font-weight:800}
+.aw-market-pricing-note,.aw-market-loading{font-size:12px;text-align:center;color:#766d7b;margin-top:25px}
+.aw-market-error{max-width:600px;margin:0 auto 20px;padding:12px;border-radius:9px;background:#fff0ed;color:#9b302c;text-align:center}
+.aw-market-step-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.aw-market-step-grid article{border-top:2px solid #e8d7ee;padding-top:22px}
+.aw-market-step-grid b{display:block;color:#a35cb9;font-size:24px;margin-bottom:20px}
+.aw-market-final{max-width:1152px;margin:45px auto 75px;padding:50px;background:#28132e;border-radius:22px;color:white;display:flex;align-items:center;justify-content:space-between;gap:30px}
+.aw-market-final h2{font-size:clamp(25px,3vw,36px);line-height:1.2;max-width:650px;margin:14px 0}
+.aw-market-final p{color:#d8cbdc;font-size:14px}
+.aw-market-final .aw-market-button{background:#fff;color:#64107b!important}
+.aw-market-footer{border-top:1px solid #eee8f0;max-width:1200px;margin:auto;padding:35px 24px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.aw-market-footer strong{font-size:18px}
+.aw-market-footer p,.aw-market-footer small{font-size:12px;color:#83778a;margin:0}
+.aw-market-footer div{margin-left:auto;display:flex;gap:20px}
+.aw-market-footer div a{font-size:12px;color:#67576e}
+@media(max-width:950px){.aw-market-header nav{display:none}.aw-market-hero{gap:25px}.aw-market-feature-grid,.aw-market-step-grid{grid-template-columns:repeat(2,1fr)}.aw-market-pricing-grid{gap:10px}.aw-market-price-card{padding:26px 18px}}
+@media(max-width:700px){.aw-market-header{min-height:70px;padding:12px 16px}.aw-market-logo{font-size:16px}.aw-market-logo img{max-width:34px}.aw-market-header-actions{gap:12px}.aw-market-header-actions>a:first-child{font-size:12px}.aw-market-header-actions .aw-market-button{padding:11px 12px;font-size:11px}.aw-market-hero{grid-template-columns:1fr;margin:0 auto 30px;padding:35px 18px;gap:26px}.aw-market-hero h1{font-size:38px}.aw-market-hero-art{min-height:290px}.aw-market-section{padding:50px 18px}.aw-market-feature-grid,.aw-market-step-grid,.aw-market-pricing-grid{grid-template-columns:1fr}.aw-market-price-card{padding:27px 24px}.aw-market-final{margin:25px 18px 45px;padding:30px 24px;display:block}.aw-market-final .aw-market-button{margin-top:12px}.aw-market-footer{padding:30px 18px}.aw-market-footer div{margin-left:0;width:100%;flex-wrap:wrap}}
