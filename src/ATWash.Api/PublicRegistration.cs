@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace ATWash.Api;
 
 public sealed record PublicRegistrationInput(string CompanyName,string Email,string Password,Guid PlanId);
+public sealed record ResumeRegistrationInput(string Email,string Password);
 
 public static class PublicRegistration
 {
@@ -28,6 +29,50 @@ public static class PublicRegistration
             Results.Ok(await db.SubscriptionPlans.AsNoTracking()
                 .Where(x=>x.IsActive&&(x.Name=="Essencial"||x.Name=="Profissional"||x.Name=="Empresarial"))
                 .OrderBy(x=>x.MonthlyPrice).Select(x=>new{x.Id,x.Name,x.MonthlyPrice,x.MaxDevices}).ToListAsync(ct)));
+
+        group.MapPost("/resume",async(ResumeRegistrationInput input,AtWashDbContext db,
+            IPasswordHasher<AppUser> hasher,IHttpClientFactory clients,IConfiguration config,CancellationToken ct)=>{
+            var email=input.Email?.Trim().ToLowerInvariant();
+            if(string.IsNullOrWhiteSpace(email)||string.IsNullOrWhiteSpace(input.Password))
+                return Results.Unauthorized();
+            var matches=await db.Users.Where(x=>x.Email==email&&x.IsActive).Take(2).ToListAsync(ct);
+            var owner=matches.Count==1?matches[0]:null;
+            if(owner==null||owner.Role!=UserRole.Owner||
+                hasher.VerifyHashedPassword(owner,owner.PasswordHash,input.Password)==PasswordVerificationResult.Failed)
+                return Results.Unauthorized();
+            var sub=await db.TenantSubscriptions.AsNoTracking().SingleOrDefaultAsync(x=>x.TenantId==owner.TenantId,ct);
+            if(sub==null)return Results.NotFound();
+            if(sub.Status=="active")return Results.Conflict("Sua assinatura já está ativa. Entre no sistema.");
+            if(sub.Status!="pending")return Results.Conflict("Sua assinatura exige atendimento do suporte.");
+            var binding=await db.MercadoPagoSubscriptions.AsNoTracking()
+                .Where(x=>x.TenantId==owner.TenantId)
+                .OrderByDescending(x=>x.CreatedAt).FirstOrDefaultAsync(ct);
+            if(binding==null)return Results.NotFound();
+            var token=config["MERCADOPAGO_ACCESS_TOKEN"];
+            if(string.IsNullOrWhiteSpace(token))return Results.Problem("Assinaturas temporariamente indisponíveis.",statusCode:503);
+            using var request=new HttpRequestMessage(HttpMethod.Get,"https://api.mercadopago.com/preapproval/"+Uri.EscapeDataString(binding.ProviderId));
+            request.Headers.Authorization=new AuthenticationHeaderValue("Bearer",token);
+            using var response=await clients.CreateClient("mercadopago").SendAsync(request,ct);
+            if(!response.IsSuccessStatusCode)return Results.Problem("Não foi possível consultar a assinatura.",statusCode:502);
+            using var doc=JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+            var root=doc.RootElement;
+            if(!root.TryGetProperty("id",out var idEl)||idEl.GetString()!=binding.ProviderId||
+               !root.TryGetProperty("external_reference",out var refEl)||refEl.GetString()!=owner.TenantId.ToString("D"))
+                return Results.Problem("Assinatura não corresponde à empresa.",statusCode:502);
+            var status=root.TryGetProperty("status",out var statusEl)?statusEl.GetString():null;
+            if(status=="authorized"){
+                var success=await MercadoPagoBilling.ReconcileAsync(binding.ProviderId,db,clients,config,ct);
+                return success?Results.Ok(new{subscriptionStatus="active",checkoutUrl=(string?)null}):
+                    Results.Problem("Não foi possível confirmar a assinatura.",statusCode:502);
+            }
+            if(status!="pending")return Results.Conflict("Esta tentativa não está mais pendente. Contate o suporte para gerar outra cobrança.");
+            var url=root.TryGetProperty("init_point",out var linkEl)?linkEl.GetString():null;
+            if(!Uri.TryCreate(url,UriKind.Absolute,out var checkoutUri)||checkoutUri.Scheme!="https"||
+               !(checkoutUri.Host.Equals("mercadopago.com.br",StringComparison.OrdinalIgnoreCase)||
+                 checkoutUri.Host.EndsWith(".mercadopago.com.br",StringComparison.OrdinalIgnoreCase)))
+                return Results.Conflict("Não foi possível recuperar o link da assinatura. Contate o suporte.");
+            return Results.Ok(new{subscriptionStatus="pending",checkoutUrl=url});
+        });
 
         group.MapPost("/register",async(PublicRegistrationInput input,AtWashDbContext db,
             IPasswordHasher<AppUser> hasher,IHttpClientFactory clients,IConfiguration config,CancellationToken ct)=>{
