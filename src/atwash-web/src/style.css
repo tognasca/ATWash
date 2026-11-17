@@ -534,3 +534,29 @@ main,.panel,.aw-attendance,.aw-workspace,.aw-left,.aw-catalog,.aw-customer,.aw-s
 .aw-login-device-panel>strong{font-size:13px;color:#382043}
 .aw-login-device-panel p{font-size:12px;line-height:1.65;color:#64536c;margin:9px 0}
 .aw-login-device-panel .aw-login-new-device{width:100%;margin-top:8px;font-size:12px;white-space:normal}
+
+/* Sophisticated landing hero — isolated from app UI */
+.aw-marketing .aw-market-hero-premium{max-width:1260px;min-height:600px;gap:clamp(32px,5vw,76px);padding:38px 36px 75px;grid-template-columns:minmax(0,1.03fr) minmax(0,.97fr);margin-top:0;margin-bottom:0}
+.aw-marketing .aw-market-hero-premium .aw-market-hero-copy{padding:30px 0}
+.aw-marketing .aw-market-hero-premium .aw-market-eyebrow{font-size:10px;letter-spacing:.16em;color:#794486;gap:12px}
+.aw-marketing .aw-market-hero-premium .aw-market-eyebrow span{width:7px;height:7px;background:#9b6caa;box-shadow:0 0 0 5px #f2eaf5}
+.aw-marketing .aw-market-hero-premium h1{font-size:clamp(40px,4.5vw,65px);line-height:1.085;letter-spacing:-.055em;font-weight:800;margin:29px 0 25px;color:#211528}
+.aw-marketing .aw-market-hero-premium h1 em{display:block;color:#71318a;font-weight:700;margin-top:5px}
+.aw-marketing .aw-market-hero-premium .aw-market-hero-copy>p{max-width:525px;font-size:15px;line-height:1.95;color:#766b7b}
+.aw-marketing .aw-market-hero-premium .aw-market-hero-actions{margin-top:32px;gap:19px}
+.aw-marketing .aw-market-hero-premium .aw-market-button{border-radius:8px;padding:17px 23px;box-shadow:0 12px 30px #64107b20}
+.aw-marketing .aw-market-hero-premium .aw-market-secondary{color:#49334f}
+.aw-marketing .aw-market-hero-premium .aw-market-hero-trust{border-top:1px solid #eee7f0;padding-top:22px;margin-top:42px;gap:12px 22px}
+.aw-marketing .aw-market-hero-premium .aw-market-hero-trust span{display:inline-flex;align-items:center;gap:8px;font-size:11px;color:#746b78;font-weight:600}
+.aw-marketing .aw-market-hero-premium .aw-market-hero-trust span:before{content:'';width:5px;height:5px;background:#9969a8;border-radius:50%}
+.aw-marketing .aw-market-hero-premium .aw-market-hero-art{min-height:520px;border-radius:8px 78px 8px 8px;overflow:visible;background:#e4dce5;box-shadow:0 35px 70px #2d1b3225}
+.aw-marketing .aw-market-hero-premium .aw-market-hero-art>img{border-radius:8px 78px 8px 8px;object-position:center;filter:saturate(.75) contrast(1.06)}
+.aw-marketing .aw-market-hero-premium .aw-market-hero-art:after{border-radius:8px 78px 8px 8px;background:linear-gradient(0deg,#1b0f25a6 0%,#1b0f2510 50%,#1b0f2500 75%)}
+.aw-market-hero-image-caption{position:absolute;bottom:35px;left:34px;z-index:2;display:flex;align-items:center;gap:13px;color:#fff;font-size:10px;font-weight:750;letter-spacing:.15em}
+.aw-market-hero-caption-line{width:26px;height:1px;background:#fff;opacity:.8}
+.aw-market-hero-detail{position:absolute;right:-20px;top:45px;z-index:3;display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #f0e9f1;box-shadow:0 15px 40px #27122e25;border-radius:12px;padding:15px 20px}
+.aw-market-detail-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:9px;background:#f4eaf7;color:#702d89;font-weight:800}
+.aw-market-hero-detail strong{display:block;color:#34203d;font-size:12px}
+.aw-market-hero-detail small{display:block;color:#85788b;font-size:10px;margin-top:5px}
+@media(max-width:950px){.aw-marketing .aw-market-hero-premium{padding:35px 24px 65px;gap:24px}.aw-marketing .aw-market-hero-premium h1{font-size:clamp(36px,4.4vw,52px)}.aw-marketing .aw-market-hero-premium .aw-market-hero-art{min-height:440px}.aw-market-hero-detail{right:-10px}}
+@media(max-width:700px){.aw-marketing .aw-market-hero-premium{grid-template-columns:1fr;min-height:auto;padding:28px 18px 55px;gap:24px}.aw-marketing .aw-market-hero-premium .aw-market-hero-copy{padding:10px 0}.aw-marketing .aw-market-hero-premium h1{font-size:clamp(37px,9vw,49px);margin:22px 0}.aw-marketing .aw-market-hero-premium .aw-market-hero-copy>p{font-size:14px;line-height:1.8}.aw-marketing .aw-market-hero-premium .aw-market-hero-trust{margin-top:27px;padding-top:18px}.aw-marketing .aw-market-hero-premium .aw-market-hero-art{min-height:340px;margin-right:9px;border-radius:8px 48px 8px 8px}.aw-marketing .aw-market-hero-premium .aw-market-hero-art>img,.aw-marketing .aw-market-hero-premium .aw-market-hero-art:after{border-radius:8px 48px 8px 8px}.aw-market-hero-detail{right:-10px;top:18px;padding:10px 12px}.aw-market-hero-image-caption{left:19px;bottom:22px;font-size:9px}}
