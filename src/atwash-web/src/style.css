@@ -650,3 +650,82 @@ main,.panel,.aw-attendance,.aw-workspace,.aw-left,.aw-catalog,.aw-customer,.aw-s
   .aw-marketing .aw-market-header-actions{gap:7px;}
   .aw-marketing .aw-market-header-actions .aw-market-button{padding:9px 8px;font-size:10px;}
 }
+
+
+/* ATWashControl commercial redesign — scoped to the public landing page only. */
+.aw-marketing .aw-sales-hero{position:relative;isolation:isolate;min-height:clamp(560px,62vw,720px);display:flex;align-items:center;overflow:hidden;background:#17131a;color:#fff}
+.aw-marketing .aw-sales-hero-image{position:absolute;inset:0;z-index:-3;background:url('/images/polimento.jpg') 72% center/cover no-repeat;transform:scale(1.025)}
+.aw-marketing .aw-sales-hero-shade{position:absolute;inset:0;z-index:-2;background:linear-gradient(90deg,rgba(17,13,20,.98) 0%,rgba(22,15,25,.95) 31%,rgba(28,19,31,.76) 55%,rgba(22,16,24,.14) 100%),linear-gradient(0deg,rgba(17,12,21,.32),transparent 45%)}
+.aw-marketing .aw-sales-hero-content{width:min(1200px,calc(100% - 80px));margin:0 auto;padding:95px 0 85px;position:relative}
+.aw-marketing .aw-sales-eyebrow{display:inline-flex;align-items:center;gap:13px;color:#dfc9e4;font-size:10px;font-weight:750;letter-spacing:.22em}
+.aw-marketing .aw-sales-eyebrow-line{width:29px;height:1px;background:#c8a1d2}
+.aw-marketing .aw-sales-hero h1{max-width:790px;font-size:clamp(46px,5.2vw,76px);font-weight:720;letter-spacing:-.055em;line-height:1.09;margin:25px 0 22px;color:#fff}
+.aw-marketing .aw-sales-hero h1 em{display:block;font-style:normal;color:#e6c7eb;font-weight:520}
+.aw-marketing .aw-sales-hero-content>p{max-width:530px;color:#eee7f0;font-size:16px;line-height:1.8;margin:0}
+.aw-marketing .aw-sales-hero-actions{display:flex;flex-wrap:wrap;align-items:center;gap:13px;margin-top:34px}
+.aw-marketing .aw-sales-primary,.aw-marketing .aw-sales-outline{display:inline-flex;align-items:center;justify-content:center;gap:18px;padding:16px 23px;min-height:50px;border-radius:6px;font-size:13px;font-weight:750;text-decoration:none;transition:transform .2s,background .2s}
+.aw-marketing .aw-sales-primary{background:#79328d;color:#fff}
+.aw-marketing .aw-sales-outline{border:1px solid #d5c4d4a6;color:#fff;background:#ffffff10}
+.aw-marketing .aw-sales-primary:hover,.aw-marketing .aw-sales-outline:hover{transform:translateY(-2px)}
+.aw-marketing .aw-sales-primary:hover{background:#8a419f}
+.aw-marketing .aw-sales-hero-note{display:flex;gap:23px;align-items:center;margin-top:70px;font-size:9px;letter-spacing:.18em;font-weight:700;color:#d8c8da}
+.aw-marketing .aw-sales-hero-note span:first-child{color:#fff}
+.aw-marketing .aw-sales-hero-vertical{position:absolute;right:25px;bottom:60px;writing-mode:vertical-rl;letter-spacing:.24em;font-size:9px;font-weight:750;color:#f7eff8c9}
+.aw-marketing .aw-sales-intro{max-width:1200px;margin:auto;padding:28px 30px;display:flex;align-items:center;justify-content:space-between;gap:24px;border-bottom:1px solid #eee7ef}
+.aw-marketing .aw-sales-intro>span{font-size:9px;letter-spacing:.16em;font-weight:800;color:#844c91;white-space:nowrap}
+.aw-marketing .aw-sales-intro p{margin:0;font-size:14px;color:#675a6b}
+.aw-marketing .aw-sales-intro p strong{color:#392c3d}
+.aw-marketing .aw-sales-intro a{white-space:nowrap;color:#6e337d;font-size:12px;font-weight:750;text-decoration:none}
+.aw-marketing .aw-sales-contrast{max-width:1200px;margin:0 auto;padding:84px 30px 30px}
+.aw-marketing .aw-sales-contrast-heading>span,.aw-marketing .aw-sales-demo-copy>span{font-size:10px;letter-spacing:.2em;color:#8c5997;font-weight:800}
+.aw-marketing .aw-sales-contrast-heading h2{max-width:750px;font-size:clamp(31px,4vw,52px);letter-spacing:-.045em;line-height:1.18;color:#291e2d;margin:15px 0 31px}
+.aw-marketing .aw-sales-contrast-heading h2 em{font-style:normal;color:#7a398d}
+.aw-marketing .aw-sales-contrast-grid{display:grid;grid-template-columns:1fr 1fr;gap:17px}
+.aw-marketing .aw-sales-contrast-grid article{padding:36px;border:1px solid #e9e2ea;border-radius:12px;background:#f9f7f9}
+.aw-marketing .aw-sales-contrast-grid .aw-sales-contrast-better{background:#281c2d;border-color:#281c2d;color:#fff}
+.aw-marketing .aw-sales-contrast-tag{font-size:10px;letter-spacing:.15em;font-weight:800;color:#8a6491}
+.aw-marketing .aw-sales-contrast-better .aw-sales-contrast-tag{color:#d5b4dc}
+.aw-marketing .aw-sales-contrast-grid h3{font-size:24px;letter-spacing:-.03em;margin:20px 0 10px;color:#302334}
+.aw-marketing .aw-sales-contrast-better h3{color:#fff}
+.aw-marketing .aw-sales-contrast-grid p{max-width:450px;font-size:14px;line-height:1.8;color:#746978}
+.aw-marketing .aw-sales-contrast-better p{color:#e1d4e4}
+.aw-marketing .aw-sales-contrast-better a{display:inline-block;margin-top:13px;color:#fff;font-size:12px;font-weight:750;text-decoration:none;border-bottom:1px solid #ba93c5;padding-bottom:7px}
+.aw-marketing .aw-sales-features{padding-top:65px}
+.aw-marketing .aw-sales-demo{max-width:1200px;margin:25px auto 85px;padding:0 30px;display:grid;grid-template-columns:.85fr 1.15fr;gap:48px;align-items:center}
+.aw-marketing .aw-sales-demo-copy h2{font-size:clamp(31px,3.6vw,47px);letter-spacing:-.045em;line-height:1.2;color:#291e2d;margin:18px 0}
+.aw-marketing .aw-sales-demo-copy p{font-size:14px;line-height:1.85;color:#736678;max-width:440px}
+.aw-marketing .aw-sales-demo-copy .aw-sales-primary{margin-top:15px}
+.aw-marketing .aw-sales-demo-visual{background:#f5f0f7;border:1px solid #e6dbe9;border-radius:16px;padding:26px;box-shadow:0 25px 65px #2d193214}
+.aw-marketing .aw-sales-demo-top{display:flex;justify-content:space-between;gap:10px;align-items:center;padding-bottom:22px;border-bottom:1px solid #e0d5e4}
+.aw-marketing .aw-sales-demo-top span:first-child{font-size:17px;font-weight:800;color:#5f2572}
+.aw-marketing .aw-sales-demo-top span:last-child{font-size:9px;letter-spacing:.13em;color:#85718a;font-weight:800}
+.aw-marketing .aw-sales-demo-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:22px}
+.aw-marketing .aw-sales-demo-cards>div{min-height:158px;padding:17px 12px;border-radius:10px;background:#fff;border:1px solid #eadfeb;display:flex;flex-direction:column;justify-content:center;gap:10px}
+.aw-marketing .aw-sales-demo-cards small{font-size:9px;letter-spacing:.1em;color:#8c5c98;font-weight:800}
+.aw-marketing .aw-sales-demo-cards strong{font-size:18px;color:#2f2034;letter-spacing:-.02em}
+.aw-marketing .aw-sales-demo-cards span{font-size:11px;line-height:1.5;color:#76677b}
+.aw-marketing .aw-sales-demo-visual>p{margin:16px 0 0;font-size:10px;color:#86778a}
+@media(max-width:800px){
+ .aw-marketing .aw-sales-hero{min-height:570px}
+ .aw-marketing .aw-sales-hero-content{width:calc(100% - 42px);padding:75px 0 60px}
+ .aw-marketing .aw-sales-hero-shade{background:linear-gradient(90deg,rgba(17,13,20,.97),rgba(24,16,28,.84) 60%,rgba(24,16,28,.4))}
+ .aw-marketing .aw-sales-hero h1{font-size:clamp(39px,7vw,57px)}
+ .aw-marketing .aw-sales-intro{flex-wrap:wrap;padding:23px 20px;gap:10px 24px}
+ .aw-marketing .aw-sales-contrast{padding:58px 20px 20px}
+ .aw-marketing .aw-sales-demo{grid-template-columns:1fr;gap:26px;margin-bottom:60px;padding:0 20px}
+}
+@media(max-width:600px){
+ .aw-marketing .aw-sales-hero{min-height:590px}
+ .aw-marketing .aw-sales-hero-image{background-position:63% center}
+ .aw-marketing .aw-sales-hero-shade{background:linear-gradient(90deg,rgba(17,13,20,.97),rgba(24,16,28,.81)),linear-gradient(0deg,rgba(17,13,20,.5),transparent)}
+ .aw-marketing .aw-sales-hero h1{font-size:clamp(38px,10vw,50px)}
+ .aw-marketing .aw-sales-hero-content>p{font-size:14px;line-height:1.7}
+ .aw-marketing .aw-sales-hero-note{margin-top:48px;flex-wrap:wrap;gap:8px 15px}
+ .aw-marketing .aw-sales-hero-vertical{display:none}
+ .aw-marketing .aw-sales-contrast-grid{grid-template-columns:1fr}
+ .aw-marketing .aw-sales-contrast-grid article{padding:27px 23px}
+ .aw-marketing .aw-sales-demo-cards{grid-template-columns:1fr}
+ .aw-marketing .aw-sales-demo-cards>div{min-height:95px}
+ .aw-marketing .aw-sales-intro a{white-space:normal}
+}
+@media(prefers-reduced-motion:reduce){.aw-marketing .aw-sales-primary,.aw-marketing .aw-sales-outline{transition:none}}
