@@ -25,7 +25,9 @@ export default defineConfig({
     navigateFallback: '/index.html',
     globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
     runtimeCaching: [],
-    navigateFallbackDenylist: [/^\/api\//]
+    // The public landing page must always be fetched from the network; do not serve a stale precached index.html for '/'.
+    // Keep offline navigation fallback for the authenticated application routes.
+    navigateFallbackDenylist: [/^\/$/, /^\/api\//]
    }
   })
  ],
