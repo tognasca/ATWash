@@ -73,7 +73,7 @@ export default function Atendimento({token,customers,vehicles,services,products,
  };
  const [orderFilter,setOrderFilter]=useState(()=>readView().status);
  const [employeeFilter,setEmployeeFilter]=useState(()=>readView().employee);
- useEffect(()=>{localStorage.setItem(filterKey,JSON.stringify({status:orderFilter,employee:employeeFilter}))},[filterKey,orderFilter,employeeFilter]);
+ useEffect(()=>{try{localStorage.setItem(filterKey,JSON.stringify({status:orderFilter,employee:employeeFilter}))}catch{/* Storage may be unavailable on locked-down tablets. */}},[filterKey,orderFilter,employeeFilter]);
  const [orderQuery,setOrderQuery]=useState('');
  const [expandedOrder,setExpandedOrder]=useState<string|null>(null);
  const [catalogTab,setCatalogTab]=useState<'services'|'products'>('services');
