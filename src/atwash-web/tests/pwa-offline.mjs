@@ -38,7 +38,7 @@ try{
  offline=true;
  await context.setOffline(true);
  await page.reload();
- await page.getByText('● Offline',{exact:true}).waitFor();
+ await page.locator('.aw-topbar-offline').waitFor();
  await page.getByLabel('Encontrar cliente').fill('Cliente Flex');
  await page.getByRole('button',{name:/Cliente Flex/}).click();
  await page.getByLabel('Categoria do veículo').selectOption('3');
