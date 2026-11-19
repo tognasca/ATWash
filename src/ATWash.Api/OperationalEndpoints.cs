@@ -124,11 +124,11 @@ public static class OperationalEndpoints
         {
             if (!CanManageServices(principal) || !TryTenant(principal, out var tenant)) return Results.Forbid();
             var name = input.Name?.Trim();
-            if (string.IsNullOrWhiteSpace(name) || name.Length > 160 || input.Price < 0 || input.Price > 1000000)
+            if (string.IsNullOrWhiteSpace(name) || name.Length > 160 || input.Price < 0 || input.Price > 1000000 || !ValidCategoryPrices(input.CategoryPrices))
                 return Results.BadRequest("Invalid service name or price");
             if (await db.Services.AnyAsync(x => x.TenantId == tenant && x.Name.ToLower() == name.ToLower(), ct))
                 return Results.Conflict("Service already exists");
-            var service = new WashService { TenantId = tenant, Name = name, Price = input.Price };
+            var service = new WashService { TenantId = tenant, Name = name, Price = input.Price, CategoryPrices = input.CategoryPrices };
             db.Services.Add(service);
             await db.SaveChangesAsync(ct);
             return Results.Created($"/api/services/{service.Id}", service);
@@ -138,7 +138,7 @@ public static class OperationalEndpoints
         {
             if (!CanManageServices(principal) || !TryTenant(principal, out var tenant)) return Results.Forbid();
             var name = input.Name?.Trim();
-            if (string.IsNullOrWhiteSpace(name) || name.Length > 160 || input.Price < 0 || input.Price > 1000000)
+            if (string.IsNullOrWhiteSpace(name) || name.Length > 160 || input.Price < 0 || input.Price > 1000000 || !ValidCategoryPrices(input.CategoryPrices))
                 return Results.BadRequest("Invalid service name or price");
             var service = await db.Services.SingleOrDefaultAsync(x => x.Id == id && x.TenantId == tenant, ct);
             if (service is null) return Results.NotFound();
@@ -146,6 +146,7 @@ public static class OperationalEndpoints
                 return Results.Conflict("Service already exists");
             service.Name = name;
             service.Price = input.Price;
+            if (input.CategoryPrices != null) service.CategoryPrices = input.CategoryPrices;
             await db.SaveChangesAsync(ct);
             return Results.Ok(service);
         });
@@ -294,6 +295,8 @@ public static class OperationalEndpoints
             if (!await db.Vehicles.AnyAsync(x => x.TenantId == tenant && x.Id == input.VehicleId, ct))
                 return Results.BadRequest("Invalid vehicle");
             if (input.ClientId == Guid.Empty) return Results.BadRequest("Identificador inválido.");
+            if (input.VehicleCategory is VehicleCategory category && !Enum.IsDefined(category))
+                return Results.BadRequest("Categoria de veículo inválida.");
             var serviceIds = input.ServiceIds?.Distinct().ToArray() ?? [];
             if (serviceIds.Length is < 1 or > 30) return Results.BadRequest("Select 1 to 30 services");
             var services = await db.Services.AsNoTracking().Where(x => x.TenantId == tenant && serviceIds.Contains(x.Id)).ToListAsync(ct);
@@ -307,7 +310,8 @@ public static class OperationalEndpoints
                 {
                     var existingServices = await db.OrderItems.AsNoTracking().Where(x => x.TenantId == tenant && x.OrderId == clientOrderId)
                         .Select(x => x.ServiceId).ToArrayAsync(ct);
-                    if (existing.VehicleId != input.VehicleId || existing.BranchId != input.BranchId || input.ServiceIds == null ||
+                    if (existing.VehicleId != input.VehicleId || existing.BranchId != input.BranchId ||
+                        existing.VehicleCategory != input.VehicleCategory || input.ServiceIds == null ||
                         !existingServices.OrderBy(x => x).SequenceEqual(input.ServiceIds.Distinct().OrderBy(x => x)))
                         return Results.Conflict("Identificador de comanda já utilizado.");
                     return Results.Ok(new { existing.Id, existing.Number, existing.Total, AlreadyProcessed = true });
@@ -318,16 +322,20 @@ public static class OperationalEndpoints
                 !await db.Branches.AnyAsync(x => x.TenantId == tenant && x.Id == branchId, ct))
                 return Results.BadRequest("Unidade inválida.");
 
+            var total = services.Sum(x => x.PriceFor(input.VehicleCategory));
+            if (input.ExpectedTotal.HasValue && input.ExpectedTotal.Value != total)
+                return Results.Conflict("O preço dos serviços mudou. Confira os valores antes de abrir a comanda.");
+
             var numbers = await db.Orders.AsNoTracking().Where(x => x.TenantId == tenant).Select(x => x.Number).ToListAsync(ct);
             var next = numbers.Select(x => long.TryParse(x, out var n) && n > 0 ? n : 0).DefaultIfEmpty(0).Max() + 1;
             var order = new WashOrder { Id = input.ClientId ?? Guid.NewGuid(), TenantId = tenant, Number = next.ToString("D6"),
-                VehicleId = input.VehicleId, ServiceId = services[0].Id, BranchId = input.BranchId,
-                Total = services.Sum(x => x.Price), Status = OrderStatus.Waiting, PaymentStatus = PaymentStatus.Pending };
+                VehicleId = input.VehicleId, ServiceId = services[0].Id, BranchId = input.BranchId, VehicleCategory = input.VehicleCategory,
+                Total = total, Status = OrderStatus.Waiting, PaymentStatus = PaymentStatus.Pending };
             db.Orders.Add(order);
             foreach (var service in services)
                 db.OrderItems.Add(new WashOrderItem { TenantId = tenant, OrderId = order.Id,
-                    ServiceId = service.Id, ServiceName = service.Name, UnitPrice = service.Price,
-                    Quantity = 1, Total = service.Price });
+                    ServiceId = service.Id, ServiceName = service.Name, UnitPrice = service.PriceFor(input.VehicleCategory),
+                    Quantity = 1, Total = service.PriceFor(input.VehicleCategory) });
             await db.SaveChangesAsync(ct);
             await numberTx.CommitAsync(ct);
             return Results.Created($"/api/orders/{order.Id}", new { order.Id, order.Number, order.Total });
@@ -345,15 +353,20 @@ public static class OperationalEndpoints
             if (service is null) return Results.BadRequest("Invalid service");
             if (await db.OrderItems.AnyAsync(x => x.TenantId == tenant && x.OrderId == id && x.ServiceId == input.ServiceId, ct))
                 return Results.Conflict("Service already added");
+            var price = service.PriceFor(order.VehicleCategory);
             db.OrderItems.Add(new WashOrderItem { TenantId = tenant, OrderId = id, ServiceId = service.Id,
-                ServiceName = service.Name, UnitPrice = service.Price, Quantity = 1, Total = service.Price });
-            order.Total += service.Price;
+                ServiceName = service.Name, UnitPrice = price, Quantity = 1, Total = price });
+            order.Total += price;
             await db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
             return Results.Ok(new { order.Id, order.Total });
         });
 
     }
+
+    private static bool ValidCategoryPrices(Dictionary<VehicleCategory, decimal>? prices) =>
+        prices == null || prices.All(entry => Enum.IsDefined(entry.Key) &&
+            entry.Value is >= 0 and <= 1000000 && decimal.Round(entry.Value, 2) == entry.Value);
 
     private static bool TryTenant(ClaimsPrincipal principal, out Guid tenant) =>
         Guid.TryParse(principal.FindFirstValue("tenant_id"), out tenant) && tenant != Guid.Empty;
@@ -371,7 +384,8 @@ public sealed record CustomerInput(string Name, string? Phone, Guid? ClientId = 
 public sealed record VehicleInput(Guid CustomerId, string Plate, string Model, string? Brand, string? Color, Guid? ClientId = null);
 public sealed record ProductInput(string Name, decimal Price, decimal Stock);
 public sealed record OrderStatusInput(OrderStatus Status, OrderStatus? ExpectedStatus = null);
-public sealed record ServiceInput(string Name, decimal Price);
+public sealed record ServiceInput(string Name, decimal Price, Dictionary<VehicleCategory, decimal>? CategoryPrices = null);
 public sealed record BranchInput(string Name);
-public sealed record OrderInput(Guid VehicleId, Guid[] ServiceIds, Guid? ClientId = null, Guid? BranchId = null);
+public sealed record OrderInput(Guid VehicleId, Guid[] ServiceIds, Guid? ClientId = null, Guid? BranchId = null,
+    VehicleCategory? VehicleCategory = null, decimal? ExpectedTotal = null);
 public sealed record AddOrderServiceInput(Guid ServiceId);

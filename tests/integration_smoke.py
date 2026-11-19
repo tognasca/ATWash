@@ -43,6 +43,18 @@ def main():
     assert request("GET", "/auth/me")["role"] == "Owner"
     services = request("GET", "/services")
     assert services, "Default services must be seeded for new tenant"
+    flex = request("GET", "/flex/settings")
+    assert flex["stageNames"][1] == "Lavando" and not flex["packages"]
+    flexible_service = request("POST", "/services",
+        {"name": "Serviço Flex", "price": 40, "categoryPrices": {"Suv": 65}}, (201,))
+    assert flexible_service["categoryPrices"]["Suv"] == 65
+    package = {"name": "Pacote Flex", "serviceIds": [services[0]["id"], flexible_service["id"]]}
+    settings = {"stageNames": ["Recepção", "Lavagem", "Secagem", "Liberado"], "packages": [package]}
+    request("PUT", "/flex/settings", {**settings, "stageNames": ["Inválido"]}, (400,))
+    request("PUT", "/flex/settings", {**settings, "packages": [{**package,
+        "serviceIds": [services[0]["id"], str(uuid.uuid4())]}]}, (400,))
+    request("PUT", "/flex/settings", settings)
+    assert request("GET", "/flex/settings") == settings
     customer_input={"name":"Cliente Integração","phone":"11999999999","clientId":str(uuid.uuid4())}
     customer = request("POST", "/customers", customer_input, (201,))
     assert request("POST", "/customers", customer_input, (200,))["id"] == customer["id"]
@@ -55,6 +67,12 @@ def main():
     assert renamed in request("GET", "/branches")
     order_input={"vehicleId":vehicle["id"],"serviceIds":[services[0]["id"]],"clientId":str(uuid.uuid4())}
     request("POST", "/orders", {**order_input, "branchId": str(uuid.uuid4())}, (400,))
+    category_order = {"vehicleId": vehicle["id"], "serviceIds": [flexible_service["id"]],
+        "vehicleCategory": 3, "clientId": str(uuid.uuid4())}
+    request("POST", "/orders", {**category_order, "expectedTotal": 40}, (409,))
+    priced = request("POST", "/orders", {**category_order, "expectedTotal": 65}, (201,))
+    assert priced["total"] == 65
+    assert request("GET", f"/orders/{priced['id']}/items")[0]["unitPrice"] == 65
     order_input["branchId"] = branch["id"]
     order = request("POST", "/orders", order_input, (201,))
     request("POST", "/orders", {**order_input, "branchId": None}, (409,))
@@ -160,7 +178,7 @@ def main():
     platform("PUT",f"/tenants/{tenant['id']}/subscription",
         {"planId":plan["id"],"status":"suspended","expiresAt":None})
     request("POST","/auth/login",{"email":"new-tenant@atwash.test",
-        "password":"IntegrationTenantPassword2026!"},(401,))
+        "password":"IntegrationTenantPassword2026!"},(403,))
     platform("PUT",f"/tenants/{tenant['id']}/subscription",
         {"planId":plan["id"],"status":"active","expiresAt":None})
     owner_first=request("POST","/auth/login",{"email":"new-tenant@atwash.test",
@@ -168,7 +186,7 @@ def main():
     assert owner_first["accessToken"]
     platform("PUT",f"/tenants/{tenant['id']}/status?active=false",expected=(200,))
     request("POST","/auth/login",{"email":"new-tenant@atwash.test",
-        "password":"IntegrationTenantPassword2026!"},(401,))
+        "password":"IntegrationTenantPassword2026!"},(403,))
     # Verify platform roles and immediate invalidation of existing JWTs.
     platform("PUT",f"/tenants/{tenant['id']}/status?active=true")
     account=platform("POST",f"/tenants/{tenant['id']}/users",{"email":"security-test@atwash.test","password":"TestOnlySecurityPassword2026!","role":"Manager"},(201,))
@@ -177,6 +195,7 @@ def main():
     TOKEN=worker["accessToken"]
     assert request("GET","/auth/me")["role"]=="Manager"
     assert branch["id"] not in [b["id"] for b in request("GET", "/branches")]
+    assert request("GET", "/flex/settings") == flex
     request("PUT", f"/branches/{branch['id']}", {"name": "Outra empresa"}, (404,))
     assert request("GET", f"/dashboard?branchId={branch['id']}")["orders"] == 0
     TOKEN=previous

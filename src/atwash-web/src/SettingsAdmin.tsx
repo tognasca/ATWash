@@ -1,18 +1,19 @@
 import {useEffect,useState} from 'react';
-import {api,currency} from './api';
+import {api,currency,type Service} from './api';
 import {useDialog} from './Dialog';
 import PixAdmin from './PixAdmin';
 import BranchAdmin from './BranchAdmin';
+import FlexSettingsAdmin from './FlexSettingsAdmin';
 
 type Device={id:string;name:string;userId:string;createdAt:string;revokedAt:string|null};
 type Plan={id:string;name:string;monthlyPrice:number;maxDevices:number};
 type Subscription={subscription:{planId:string;status:string;startsAt:string;expiresAt:string|null}|null};
 type Billing={providerId:string;providerStatus:string;localStatus:string;createdAt:string;lastSyncedAt:string|null};
-type Props={token:string;role:string;reload:()=>Promise<void>;onError:(message:string)=>void};
+type Props={token:string;role:string;services:Service[];reload:()=>Promise<void>;onError:(message:string)=>void};
 
-export default function SettingsAdmin({token,role,reload,onError}:Props){
+export default function SettingsAdmin({token,role,services,reload,onError}:Props){
  const dialog=useDialog();
- const [section,setSection]=useState<'pix'|'devices'|'subscription'|'branches'>('pix');
+ const [section,setSection]=useState<'pix'|'devices'|'subscription'|'branches'|'flex'>('pix');
  const [devices,setDevices]=useState<Device[]>([]);
  const [plans,setPlans]=useState<Plan[]>([]);
  const [subscription,setSubscription]=useState<Subscription|null>(null);
@@ -66,8 +67,10 @@ export default function SettingsAdmin({token,role,reload,onError}:Props){
    <button className={section==='devices'?'':'secondary'} onClick={()=>setSection('devices')}>Dispositivos</button>
    <button className={section==='subscription'?'':'secondary'} onClick={()=>setSection('subscription')}>Plano e cobrança</button>
    <button className={section==='branches'?'':'secondary'} onClick={()=>setSection('branches')}>Unidades</button>
+   <button className={section==='flex'?'':'secondary'} onClick={()=>setSection('flex')}>Etapas e pacotes</button>
    <button className="secondary" disabled={busy} onClick={()=>void refresh()}>Atualizar</button>
   </nav>
+  {section==='flex'&&<FlexSettingsAdmin token={token} services={services} reload={reload} onError={onError}/>}
   {section==='branches'&&<BranchAdmin token={token} reload={reload} onError={onError}/>}
   {section==='pix'&&<PixAdmin token={token} onError={onError}/>}
   {section==='devices'&&<section><h3>Dispositivos autorizados</h3>

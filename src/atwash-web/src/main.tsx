@@ -1,6 +1,6 @@
 import {useEffect,useState,type FormEvent} from 'react';
 import {createRoot} from 'react-dom/client';
-import {api,ApiError,type Customer,type Vehicle,type Service,type Product,type Order,type Branch} from './api';
+import {api,ApiError,type Customer,type Vehicle,type Service,type Product,type Order,type Branch,type FlexSettings,defaultFlexSettings} from './api';
 import Atendimento from './Atendimento';
 import Admin from './Admin';
 import Dashboard from './Dashboard';
@@ -102,19 +102,20 @@ function App(){
  const [vehicles,setVehicles]=useState<Vehicle[]>([]);
  const [services,setServices]=useState<Service[]>([]);
  const [products,setProducts]=useState<Product[]>([]);
+ const [flex,setFlex]=useState(defaultFlexSettings);
  const [branches,setBranches]=useState<Branch[]>([]);
  const [orders,setOrders]=useState<Order[]>([]);
  async function reload(t=token){
   const tenant=tenantFromToken(t);
   try{
    if(navigator.onLine&&await pendingCount(tenant)>0)await syncPending(t);
-   const [c,v,s,p,o,b]=await Promise.all([
+   const [c,v,s,p,o,b,f]=await Promise.all([
     api<Customer[]>('/customers',t),api<Vehicle[]>('/vehicles',t),
-    api<Service[]>('/services',t),api<Product[]>('/products',t),api<Order[]>('/orders',t),api<Branch[]>('/branches',t)
+    api<Service[]>('/services',t),api<Product[]>('/products',t),api<Order[]>('/orders',t),api<Branch[]>('/branches',t),api<FlexSettings>('/flex/settings',t)
    ]);
    setOnline(true);
-   setCustomers(c);setVehicles(v);setServices(s);setProducts(p);setOrders(o);setBranches(b);
-   await saveSnapshot(tenant,{customers:c,vehicles:v,services:s,products:p,orders:o,branches:b});
+   setCustomers(c);setVehicles(v);setServices(s);setProducts(p);setOrders(o);setBranches(b);setFlex(f);
+   await saveSnapshot(tenant,{customers:c,vehicles:v,services:s,products:p,orders:o,branches:b,flex:f});
   }catch(e){
    // HTTP failures (including expired/revoked sessions) are not connectivity failures.
    // Only fall back to the local snapshot when the network request itself failed.
@@ -123,7 +124,7 @@ function App(){
    const cached=await loadSnapshot(tenant);
    if(!cached)throw new Error('Sem dados offline. Conecte-se e entre ao menos uma vez.');
    setCustomers(cached.customers);setVehicles(cached.vehicles);setServices(cached.services);
-   setProducts(cached.products);setOrders(cached.orders);setBranches(cached.branches??[]);
+   setProducts(cached.products);setOrders(cached.orders);setBranches(cached.branches??[]);setFlex(cached.flex??defaultFlexSettings);
   }
   setQueued(await pendingCount(tenant));
  }
@@ -149,7 +150,7 @@ function App(){
  if(!token)return <main className="login"><section className="panel"><div className="brand"><img className="brand-logo" src="/atwashcontrol-logo.png" alt="ATWashControl — Gestão de Lava-Rápido" onError={e=>{e.currentTarget.style.display="none";e.currentTarget.nextElementSibling?.removeAttribute("hidden")}}/><span className="brand-fallback" hidden>ATWash<span>Control</span></span></div><p>Seu lava-rápido na palma da mão.</p>{sessionNotice&&<p role="alert" className="aw-session-notice">{sessionNotice}</p>}<form onSubmit={login}><label>E-mail<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Senha<div className="aw-password-field"><input type={showPassword?'text':'password'} required autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)}/><button type="button" className="aw-password-toggle" aria-label={showPassword?'Ocultar senha':'Mostrar senha'} aria-pressed={showPassword} onClick={()=>setShowPassword(v=>!v)}>{showPassword?'🙈':'👁'}</button></div></label><button disabled={busy}>Entrar</button></form><div className="aw-login-device-help"><button className="aw-login-help-toggle" type="button" aria-expanded={showDeviceHelp} onClick={()=>setShowDeviceHelp(v=>!v)}>{showDeviceHelp?'Ocultar ajuda com dispositivo':'Problemas para acessar neste dispositivo?'}</button>{showDeviceHelp&&<div className="aw-login-device-panel"><strong>Quando usar esta opção?</strong><p>Normalmente, basta entrar com seu e-mail e senha. O sistema identifica este aparelho automaticamente.</p><p>Se aparecer uma mensagem de dispositivo revogado, já cadastrado para outra pessoa ou limite atingido, peça ao administrador da empresa para liberar o acesso.</p><p><strong>Somente se você estiver configurando um novo aparelho ou navegador:</strong> crie uma nova identificação abaixo. Isso não remove bloqueios nem aumenta o limite do seu plano.</p><button className="secondary aw-login-new-device" type="button" onClick={()=>{if(!window.confirm('Criar uma nova identificação para este navegador? Use apenas em um aparelho novo. Pendências offline antigas podem ficar inacessíveis e um dispositivo revogado continuará bloqueado até liberação do administrador.'))return;const next=createOperationId();localStorage.setItem('atwash-device-id',next);setDeviceId(next);setShowDeviceHelp(false);setSessionNotice('Nova identificação criada neste navegador. Entre com seu e-mail e senha. Se o limite de dispositivos estiver atingido, solicite liberação ao administrador.')}}>Configurar como novo dispositivo</button></div>}</div><p className="aw-signup-entry">Ainda não é cliente? <a href="/cadastro">Conheça os planos e cadastre sua empresa</a></p></section></main>;
  const isAdmin=role==='Owner'||role==='Manager';
  return <main className="aw-app-shell"><aside className="aw-app-sidebar" aria-label="Navegação principal"><div className="aw-sidebar-brand"><strong>ATWash<span>Control</span></strong><small>Lava-Rápido Inteligente</small></div><nav className="aw-sidebar-nav"><button className={screen==='dashboard'?'aw-nav-active':''} disabled={!isAdmin} onClick={()=>setScreen('dashboard')}>⌂ <span>Início</span></button><button className={screen==='operation'?'aw-nav-active':''} onClick={()=>setScreen('operation')}>▣ <span>Atendimento</span></button>{isAdmin&&<button className={screen==='admin'?'aw-nav-active':''} onClick={()=>setScreen('admin')}>⚙ <span>Administração</span></button>}<button onClick={()=>{setScreen('operation');document.querySelector('.aw-orders-section')?.scrollIntoView({behavior:'smooth'})}}>▤ <span>Comandas</span></button></nav><div className="aw-sidebar-foot"><strong>ATWashControl</strong><small>Seu lava-rápido na palma da mão.</small></div></aside><div className="aw-app-content"><header className="aw-app-topbar"><div className="aw-topbar-title"><span className="aw-topbar-icon">♧</span><div><h1>{screen==='operation'?'Atendimento':screen==='dashboard'?'Início':'Administração'}</h1><small>{screen==='operation'?'Nova comanda, serviços, produtos e acompanhamento.':'ATWashControl · Gestão de lava-rápido'}</small></div></div><div className="aw-topbar-actions"><span className={online?'aw-topbar-online':'aw-topbar-offline'}>{online?'● Online':'● Offline'}</span><span className="aw-topbar-role">{role==='Owner'?'Proprietário':role==='Manager'?'Gerente':role==='Attendant'?'Atendente':'Lavador'}</span><button className="secondary" onClick={()=>{sessionStorage.removeItem('atwash-session');setToken('');setRole('');setScreen('operation')}}>Sair</button></div></header>
- {screen==='operation'?<Atendimento token={token} customers={customers} vehicles={vehicles} services={services} products={products} orders={orders} branches={branches} reload={reload} onError={notifyError} canConfirmPix={isAdmin} canWrite={role!=='Washer'} online={online} onQueued={()=>setQueued(x=>x+1)}/>:isAdmin&&screen==='dashboard'?<Dashboard token={token} onError={notifyError}/>:isAdmin?<Admin token={token} role={role} services={services} products={products} reload={reload} onError={notifyError}/>:null}
+ {screen==='operation'?<Atendimento token={token} customers={customers} vehicles={vehicles} services={services} products={products} orders={orders} branches={branches} flex={flex} reload={reload} onError={notifyError} canConfirmPix={isAdmin} canWrite={role!=='Washer'} online={online} onQueued={()=>setQueued(x=>x+1)}/>:isAdmin&&screen==='dashboard'?<Dashboard token={token} onError={notifyError}/>:isAdmin?<Admin token={token} role={role} services={services} products={products} reload={reload} onError={notifyError}/>:null}
  {showPending&&<section className="panel"><h2>Pendências offline</h2><p>Revise operações antes de descartá-las. Apenas mudanças de etapa podem ser descartadas aqui; cadastros dependentes são preservados.</p>{pendingItems.map(x=><div className="actions" key={x.id}><span>{x.description}</span>{x.kind==='status'&&<button className="secondary" onClick={()=>void discardStatus(x.id)}>Descartar etapa</button>}</div>)}<button className="secondary" onClick={()=>setShowPending(false)}>Fechar</button></section>}
  <footer><button className="secondary" onClick={()=>void reviewPending()}>Revisar pendências</button><button className="secondary" disabled={!online||syncing||queued===0} onClick={()=>{setSyncing(true);void syncPending(token).then(()=>reload(token)).catch(e=>notifyError('Conflito de sincronização: '+String(e))).finally(()=>setSyncing(false))}}>Sincronizar pendências ({queued})</button> ATWash · {online?'Online':'Offline — consulta local e etapas de lavagem'} · {queued} etapa(s) pendente(s) · Em homologação</footer></div></main>;
 }

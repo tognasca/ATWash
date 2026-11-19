@@ -93,6 +93,7 @@ app.UseAuthorization();
 app.MapAuth();
 app.MapPublicRegistration();
 app.MapOperations();
+app.MapFlexSettings();
 app.MapInventory();
 app.MapOperationsManagement();
 app.MapSaas();

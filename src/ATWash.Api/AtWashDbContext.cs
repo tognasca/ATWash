@@ -40,6 +40,16 @@ public sealed class AtWashDbContext(DbContextOptions<AtWashDbContext> options) :
         model.Entity<AppUser>().Property(x => x.Role).HasConversion<string>().HasMaxLength(32);
         model.Entity<Customer>().HasAlternateKey(x => new { x.TenantId, x.Id });
         model.Entity<Vehicle>().HasAlternateKey(x => new { x.TenantId, x.Id });
+        model.Entity<Tenant>().Property(x => x.WashPackages)
+            .HasConversion(
+                value => System.Text.Json.JsonSerializer.Serialize(value, (System.Text.Json.JsonSerializerOptions?)null),
+                value => System.Text.Json.JsonSerializer.Deserialize<WashPackage[]>(value, (System.Text.Json.JsonSerializerOptions?)null))
+            .HasColumnType("jsonb");
+        model.Entity<WashService>().Property(x => x.CategoryPrices)
+            .HasConversion(
+                value => System.Text.Json.JsonSerializer.Serialize(value, (System.Text.Json.JsonSerializerOptions?)null),
+                value => System.Text.Json.JsonSerializer.Deserialize<Dictionary<VehicleCategory, decimal>>(value, (System.Text.Json.JsonSerializerOptions?)null))
+            .HasColumnType("jsonb");
         model.Entity<WashService>().HasAlternateKey(x => new { x.TenantId, x.Id });
         model.Entity<Vehicle>().HasIndex(x => new { x.TenantId, x.Plate }).IsUnique();
         model.Entity<Vehicle>().HasOne<Customer>().WithMany().HasForeignKey(x => new { x.TenantId, x.CustomerId }).HasPrincipalKey(x => new { x.TenantId, x.Id }).OnDelete(DeleteBehavior.Restrict);
