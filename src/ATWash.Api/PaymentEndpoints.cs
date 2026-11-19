@@ -113,6 +113,10 @@ public static class PaymentEndpoints
             if (order is null) return Results.NotFound();
             if (order.Status == OrderStatus.Delivered) return Results.Ok(new { order.Id, order.Status, AlreadyDelivered = true });
             if (order.Status == OrderStatus.Cancelled) return Results.Conflict("Uma comanda cancelada não pode ser encerrada.");
+            // Delivery requires the operational workflow to reach Ready for Delivery (status 3).
+            // Financial settlement alone must not bypass washing and finishing stages.
+            if ((int)order.Status != 3)
+                return Results.Conflict("Conclua as etapas da lavagem antes de entregar o veículo.");
             var paid = await db.Payments.Where(p => p.TenantId == tenant && p.OrderId == id)
                 .SumAsync(p => (decimal?)p.Amount, ct) ?? 0m;
             var refunded = await (from refund in db.PaymentRefunds
