@@ -100,6 +100,10 @@ jobs:
         working-directory: src/atwash-web
       - run: npm test
         working-directory: src/atwash-web
+      - run: npx playwright install --with-deps chromium
+        working-directory: src/atwash-web
+      - run: npm run test:browser
+        working-directory: src/atwash-web
   android:
     runs-on: ubuntu-24.04
     steps:
