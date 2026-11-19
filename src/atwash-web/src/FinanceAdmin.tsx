@@ -3,16 +3,18 @@ import {useDialog} from './Dialog';
 import {api,currency} from './api';
 type Cash={open:boolean;session?:{id:string;openingFloat:number;openedAt:string};expectedCash?:number;cashSales?:number;cashRefunds?:number;movements?:{id:string;kind:number;amount:number;reason:string}[]};
 type Props={token:string;onError:(message:string)=>void};
+type ReconciliationSummary={generatedAt:string;totals:{method:string;count:number;gross:number;refunded:number;net:number;reconciledCount:number;pendingCount:number;pendingNet:number}[]};
 const number=(value:string)=>Number(value.replace(',','.'));
 export default function FinanceAdmin({token,onError}:Props){
  const dialog=useDialog();
  const [cash,setCash]=useState<Cash|null>(null);
+ const [summary,setSummary]=useState<ReconciliationSummary|null>(null);
  const [payments,setPayments]=useState<{id:string;orderNumber:string;method:number;amount:number;refunded:number;reconciled:boolean}[]>([]);const [amount,setAmount]=useState('0');const [note,setNote]=useState('');
  const [kind,setKind]=useState(0);const [busy,setBusy]=useState(false);
  const [paymentId,setPaymentId]=useState('');const [bankReference,setBankReference]=useState('');
  const [refundAmount,setRefundAmount]=useState('');const [refundReason,setRefundReason]=useState('');
  const [refundReference,setRefundReference]=useState('');
- async function load(){const [cashResult,paymentResult]=await Promise.all([api<Cash>('/cash/current',token),api<typeof payments>('/finance/payments',token)]);setCash(cashResult);setPayments(paymentResult)}
+ async function load(){const [cashResult,paymentResult,summaryResult]=await Promise.all([api<Cash>('/cash/current',token),api<typeof payments>('/finance/payments',token),api<ReconciliationSummary>('/finance/reconciliation-summary',token)]);setCash(cashResult);setPayments(paymentResult);setSummary(summaryResult)}
  useEffect(()=>{void load().catch(e=>onError(String(e)))},[token]);
  async function run(fn:()=>Promise<unknown>){setBusy(true);onError('');try{await fn();await load();setNote('');setAmount('0');dialog.show('Operação financeira registrada com sucesso.','success')}catch(e){onError(String(e))}finally{setBusy(false)}}
  return <div className="finance-sections"><h3>Controle de caixa</h3>
@@ -25,6 +27,7 @@ export default function FinanceAdmin({token,onError}:Props){
  <h3>Conferência e fechamento</h3><form onSubmit={e=>{e.preventDefault();void (async()=>{if(await dialog.confirm('Fechar o caixa com o valor contado informado?'))await run(()=>api('/cash/close',token,'POST',{countedCash:number(amount),note}))})()}}>
  <label>Dinheiro contado (R$)<input required inputMode="decimal" value={amount} onChange={e=>setAmount(e.target.value)}/></label><label>Observação<input value={note} onChange={e=>setNote(e.target.value)}/></label><button disabled={busy}>Fechar caixa</button></form>
  </>:<form onSubmit={e=>{e.preventDefault();void run(()=>api('/cash/open',token,'POST',{openingFloat:number(amount)}))}}><p>Nenhum caixa aberto.</p><label>Fundo inicial (R$)<input required inputMode="decimal" value={amount} onChange={e=>setAmount(e.target.value)}/></label><button disabled={busy}>Abrir caixa</button></form>}
+ <hr/><h3>Resumo de conciliação</h3><p>Valores não conciliados precisam ser conferidos no extrato da operadora ou banco.</p><div className="tablewrap"><table><thead><tr><th>Forma</th><th>Transações</th><th>Bruto</th><th>Estornos</th><th>Líquido</th><th>Conciliadas</th><th>Pendentes</th><th>Valor pendente</th></tr></thead><tbody>{summary?.totals.map(row=><tr key={row.method}><td>{row.method==='Card'?'Cartão':row.method==='Pix'?'Pix':row.method}</td><td>{row.count}</td><td>{currency(row.gross)}</td><td>{currency(row.refunded)}</td><td>{currency(row.net)}</td><td>{row.reconciledCount}</td><td>{row.pendingCount}</td><td><strong>{currency(row.pendingNet)}</strong></td></tr>)}</tbody></table></div>{summary?.totals.length===0&&<p>Nenhum pagamento eletrônico registrado.</p>}
  <hr/><h3>Pagamentos registrados</h3><div className="tablewrap"><table><thead><tr><th>Comanda</th><th>Forma</th><th>Valor</th><th>Estornado</th><th>Conciliação</th><th></th></tr></thead><tbody>{payments.map(p=><tr key={p.id}><td>#{p.orderNumber}</td><td>{['Dinheiro','Cartão','Pix'][p.method]}</td><td>{currency(p.amount)}</td><td>{currency(p.refunded)}</td><td>{p.reconciled?'Conciliado':'Pendente'}</td><td><button className="secondary" onClick={()=>setPaymentId(p.id)}>Selecionar</button></td></tr>)}</tbody></table></div>
  <hr/><h3>Conciliação bancária manual</h3><p>Confira a transação no extrato antes de vincular. Isto não consulta o banco automaticamente.</p>
  <form onSubmit={e=>{e.preventDefault();void run(()=>api('/payments/'+paymentId+'/reconcile',token,'POST',{bankReference}))}}>
