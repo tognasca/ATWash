@@ -62,8 +62,18 @@ export default function Atendimento({token,customers,vehicles,services,products,
  const [busy,setBusy]=useState(false);
  const [selectedProduct,setSelectedProduct]=useState<Record<string,string>>({});const [productQty,setProductQty]=useState<Record<string,string>>({});const [consume,setConsume]=useState<Record<string,boolean>>({});
  const [paymentOrderId,setPaymentOrderId]=useState<string|null>(null);
- const [orderFilter,setOrderFilter]=useState('active');
- const [employeeFilter,setEmployeeFilter]=useState('all');
+ // Each device remembers its preferred operational view without changing other tenants.
+ const tenantKey=tenantFromToken(token);
+ const filterKey='atwash:workboard:'+tenantKey;
+ const readView=():{status:string;employee:string}=>{
+  try{
+   const value=JSON.parse(localStorage.getItem(filterKey)||'{}') as {status?:string;employee?:string};
+   return {status:['active','all','0','1','2','3'].includes(value.status||'')?value.status!:'active',employee:value.employee||'all'};
+  }catch{return {status:'active',employee:'all'}}
+ };
+ const [orderFilter,setOrderFilter]=useState(()=>readView().status);
+ const [employeeFilter,setEmployeeFilter]=useState(()=>readView().employee);
+ useEffect(()=>{localStorage.setItem(filterKey,JSON.stringify({status:orderFilter,employee:employeeFilter}))},[filterKey,orderFilter,employeeFilter]);
  const [orderQuery,setOrderQuery]=useState('');
  const [expandedOrder,setExpandedOrder]=useState<string|null>(null);
  const [catalogTab,setCatalogTab]=useState<'services'|'products'>('services');
