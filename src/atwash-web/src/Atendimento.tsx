@@ -63,6 +63,7 @@ export default function Atendimento({token,customers,vehicles,services,products,
  const [selectedProduct,setSelectedProduct]=useState<Record<string,string>>({});const [productQty,setProductQty]=useState<Record<string,string>>({});const [consume,setConsume]=useState<Record<string,boolean>>({});
  const [paymentOrderId,setPaymentOrderId]=useState<string|null>(null);
  const [orderFilter,setOrderFilter]=useState('active');
+ const [employeeFilter,setEmployeeFilter]=useState('all');
  const [orderQuery,setOrderQuery]=useState('');
  const [expandedOrder,setExpandedOrder]=useState<string|null>(null);
  const [catalogTab,setCatalogTab]=useState<'services'|'products'>('services');
@@ -133,8 +134,9 @@ export default function Atendimento({token,customers,vehicles,services,products,
  <div className="aw-section-title"><div><h2>Comandas</h2><p>Toque na comanda para ver os detalhes e realizar outras ações.</p></div><strong>{orders.filter(o=>o.status<4).length} em aberto</strong></div>
  <input aria-label="Pesquisar comandas" placeholder="Buscar placa, cliente ou número..." value={orderQuery} onChange={e=>setOrderQuery(e.target.value)}/>
  <div className="aw-order-filters">{[{id:'active',name:'Em aberto'},{id:'0',name:'Aguardando'},{id:'1',name:'Lavando'},{id:'2',name:'Acabamento'},{id:'3',name:'Prontas'},{id:'all',name:'Todas'}].map(f=><button key={f.id} type="button" className={orderFilter===f.id?'':'secondary'} aria-pressed={orderFilter===f.id} onClick={()=>setOrderFilter(f.id)}>{f.name}</button>)}</div>
+ <label className="aw-search-label">Responsável pela lavagem<select aria-label="Filtrar comandas por funcionário" value={employeeFilter} onChange={e=>setEmployeeFilter(e.target.value)}><option value="all">Todos os funcionários</option><option value="unassigned">Sem responsável</option>{employees.filter(e=>e.isActive).map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></label>
  <div className="aw-order-grid">
- {orders.filter(o=>(orderFilter==='all'||(orderFilter==='active'?o.status<4:o.status===Number(orderFilter)))&&(()=>{
+ {orders.filter(o=>(orderFilter==='all'||(orderFilter==='active'?o.status<4:o.status===Number(orderFilter)))&&(employeeFilter==='all'||(employeeFilter==='unassigned'?!o.employeeId:o.employeeId===employeeFilter))&&(()=>{
   const v=vehicles.find(v=>v.id===o.vehicleId);const cl=customers.find(c=>c.id===v?.customerId);const q=orderQuery.trim().toLowerCase();
   return !q||[o.number,v?.plate,v?.model,cl?.name].some(x=>x?.toLowerCase().includes(q));
  })()).map(o=>{
@@ -162,7 +164,7 @@ export default function Atendimento({token,customers,vehicles,services,products,
   </article>;
  })}
  </div>
- {orders.filter(o=>(orderFilter==='all'||(orderFilter==='active'?o.status<4:o.status===Number(orderFilter)))&&(()=>{
+ {orders.filter(o=>(orderFilter==='all'||(orderFilter==='active'?o.status<4:o.status===Number(orderFilter)))&&(employeeFilter==='all'||(employeeFilter==='unassigned'?!o.employeeId:o.employeeId===employeeFilter))&&(()=>{
  const v=vehicles.find(v=>v.id===o.vehicleId);const cl=customers.find(c=>c.id===v?.customerId);const q=orderQuery.trim().toLowerCase();return !q||[o.number,v?.plate,v?.model,cl?.name].some(x=>x?.toLowerCase().includes(q));
  })()).length===0&&<p className="aw-empty">Nenhuma comanda encontrada.</p>}
  </section></>;
