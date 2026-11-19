@@ -6,8 +6,12 @@ public sealed class Tenant
     public Guid Id { get; set; } = Guid.NewGuid();
     public required string Name { get; set; }
     public bool IsDemo { get; set; }
+    public string[]? WashStageNames { get; set; }
+    public WashPackage[]? WashPackages { get; set; }
     public bool IsActive { get; set; } = true;
 }
+public sealed record WashPackage(string Name, Guid[] ServiceIds);
+
 public sealed class Branch : ITenantEntity
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -31,12 +35,18 @@ public sealed class Vehicle : ITenantEntity
     public string? Brand { get; set; }
     public string? Color { get; set; }
 }
+public enum VehicleCategory { Motorcycle = 1, PassengerCar, Suv, Pickup, Van }
 public sealed class WashService : ITenantEntity
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid TenantId { get; set; }
     public required string Name { get; set; }
     public decimal Price { get; set; }
+    public Dictionary<VehicleCategory, decimal>? CategoryPrices { get; set; }
+
+    public decimal PriceFor(VehicleCategory? category) =>
+        category is VehicleCategory key && CategoryPrices?.TryGetValue(key, out var value) == true
+            ? value : Price;
 }
 public sealed class Product : ITenantEntity
 {
@@ -75,6 +85,8 @@ public sealed class WashOrder : ITenantEntity
     public PaymentStatus PaymentStatus { get; set; }
     public decimal Total { get; set; }
     public Guid? EmployeeId { get; set; }
+    public Guid? BranchId { get; set; }
+    public VehicleCategory? VehicleCategory { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 

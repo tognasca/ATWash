@@ -1,12 +1,12 @@
 import {createOperationId} from './operationId';
-import {api,type Customer,type Vehicle,type Service,type Product,type Order} from './api';
+import {api,servicePrice,type Customer,type Vehicle,type Service,type Product,type Order,type Branch,type FlexSettings} from './api';
 
-export type Snapshot = {customers:Customer[];vehicles:Vehicle[];services:Service[];products:Product[];orders:Order[]};
+export type Snapshot = {customers:Customer[];vehicles:Vehicle[];services:Service[];products:Product[];orders:Order[];branches?:Branch[];flex?:FlexSettings};
 type Pending =
  | {id:string;tenant:string;kind:'status';orderId:string;from:number;to:number;createdAt:number}
  | {id:string;tenant:string;kind:'customer';tempId:string;name:string;phone:string;createdAt:number}
  | {id:string;tenant:string;kind:'vehicle';tempId:string;customerId:string;plate:string;model:string;createdAt:number}
- | {id:string;tenant:string;kind:'order';tempId:string;vehicleId:string;serviceIds:string[];createdAt:number};
+ | {id:string;tenant:string;kind:'order';tempId:string;vehicleId:string;serviceIds:string[];branchId?:string;vehicleCategory?:number;expectedTotal?:number;createdAt:number};
 const DB_NAME='atwash-offline-v1';
 function open():Promise<IDBDatabase>{
  return new Promise((resolve,reject)=>{
@@ -130,14 +130,18 @@ export async function createOfflineVehicle(tenant:string,customerId:string,plate
   snapshot.vehicles.push(vehicle);return vehicle;
  });
 }
-export async function createOfflineOrder(tenant:string,vehicleId:string,serviceIds:string[]):Promise<Order>{
+export async function createOfflineOrder(tenant:string,vehicleId:string,serviceIds:string[],branchId?:string,vehicleCategory?:number):Promise<Order>{
  const tempId=newId();
- return appendOffline(tenant,{id:newId(),tenant,kind:'order',tempId,vehicleId,serviceIds:[...serviceIds],createdAt:Date.now()},snapshot=>{
+ const operation:Pending={id:newId(),tenant,kind:'order',tempId,vehicleId,serviceIds:[...serviceIds],branchId,vehicleCategory,createdAt:Date.now()};
+ return appendOffline(tenant,operation,snapshot=>{
   if(!snapshot.vehicles.some(x=>x.id===vehicleId))throw new Error('Veículo não encontrado.');
+  if(branchId&&!snapshot.branches?.some(x=>x.id===branchId))throw new Error("Unidade indisponível offline.");
   const unique=[...new Set(serviceIds)];
   const selected=snapshot.services.filter(x=>unique.includes(x.id));
   if(selected.length!==unique.length||selected.length===0||selected.length>30)throw new Error('Serviços inválidos.');
-  const order:Order={id:tempId,number:'OFF-'+tempId.slice(0,8),vehicleId,total:selected.reduce((s,x)=>s+x.price,0),status:0,paymentStatus:0};
+  const total=Math.round(selected.reduce((sum,service)=>sum+servicePrice(service,vehicleCategory),0)*100)/100;
+  operation.expectedTotal=total;
+  const order:Order={id:tempId,number:'OFF-'+tempId.slice(0,8),vehicleId,branchId,vehicleCategory,total,status:0,paymentStatus:0};
   snapshot.orders.unshift(order);return order;
  });
 }
@@ -149,6 +153,42 @@ export async function listPending(tenant:string):Promise<{id:string;kind:string;
    x.kind==='customer'?'Cliente '+x.name:x.kind==='vehicle'?'Veículo '+x.plate:'Nova comanda '+x.tempId
  }));
 }
+export async function quotePendingOrder(token:string,id:string){
+ const tenant=tenantFromToken(token);
+ const item=await store<Pending|undefined>('pending','readonly',s=>s.get(id));
+ if(item?.kind!=='order'||item.tenant!==tenant)throw new Error('Comanda pendente não encontrada.');
+ const services=await api<Service[]>('/services',token);
+ const selected=services.filter(service=>item.serviceIds.includes(service.id));
+ if(selected.length!==new Set(item.serviceIds).size)throw new Error('A comanda contém serviços removidos do catálogo.');
+ const total=Math.round(selected.reduce((sum,service)=>sum+servicePrice(service,item.vehicleCategory),0)*100)/100;
+ return {previous:item.expectedTotal,total};
+}
+
+export async function acceptPendingOrderQuote(tenant:string,id:string,quote:{previous?:number;total:number}){
+ const db=await open();
+ return new Promise<void>((resolve,reject)=>{
+  const tx=db.transaction(['snapshots','pending'],'readwrite');
+  const pending=tx.objectStore('pending');
+  const snapshots=tx.objectStore('snapshots');
+  const request=pending.get(id);
+  request.onsuccess=()=>{
+   const item=request.result as Pending|undefined;
+   if(item?.kind!=='order'||item.tenant!==tenant||item.expectedTotal!==quote.previous){tx.abort();return}
+   const snapshotRequest=snapshots.get(tenant);
+   snapshotRequest.onsuccess=()=>{
+    const snapshot=snapshotRequest.result as Snapshot|undefined;
+    const order=snapshot?.orders.find(order=>order.id===item.tempId);
+    if(!snapshot||!order){tx.abort();return}
+    order.total=quote.total;
+    snapshots.put(snapshot,tenant);
+    pending.put({...item,expectedTotal:quote.total});
+   };
+  };
+  tx.oncomplete=()=>{db.close();resolve()};
+  tx.onabort=()=>{db.close();reject(tx.error??new Error('A pendência mudou. Atualize a lista e tente novamente.'))};
+ });
+}
+
 export async function discardPending(tenant:string,id:string){
  const all=await store<Pending[]>('pending','readonly',s=>s.getAll());
  const item=all.find(x=>x.tenant===tenant&&x.id===id);
@@ -219,7 +259,7 @@ async function performSync(token:string):Promise<number>{
     const result=await api<{id:string}>('/vehicles',token,'POST',{customerId:item.customerId,plate:item.plate,model:item.model,clientId:item.tempId});
     realId=result.id;
    }else{
-    const result=await api<{id:string;number:string}>('/orders',token,'POST',{vehicleId:item.vehicleId,serviceIds:item.serviceIds,clientId:item.tempId});
+    const result=await api<{id:string;number:string}>('/orders',token,'POST',{vehicleId:item.vehicleId,serviceIds:item.serviceIds,branchId:item.branchId,vehicleCategory:item.vehicleCategory,expectedTotal:item.expectedTotal,clientId:item.tempId});
     realId=result.id;number=result.number;
    }
    // Commit the server acknowledgement, dependent ID rewrites and removal in
