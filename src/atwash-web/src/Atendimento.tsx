@@ -145,6 +145,11 @@ export default function Atendimento({token,customers,vehicles,services,products,
  <input aria-label="Pesquisar comandas" placeholder="Buscar placa, cliente ou número..." value={orderQuery} onChange={e=>setOrderQuery(e.target.value)}/>
  <div className="aw-order-filters">{[{id:'active',name:'Em aberto'},{id:'0',name:'Aguardando'},{id:'1',name:'Lavando'},{id:'2',name:'Acabamento'},{id:'3',name:'Prontas'},{id:'all',name:'Todas'}].map(f=><button key={f.id} type="button" className={orderFilter===f.id?'':'secondary'} aria-pressed={orderFilter===f.id} onClick={()=>setOrderFilter(f.id)}>{f.name}</button>)}</div>
  <label className="aw-search-label">Responsável pela lavagem<select aria-label="Filtrar comandas por funcionário" value={employeeFilter} onChange={e=>setEmployeeFilter(e.target.value)}><option value="all">Todos os funcionários</option><option value="unassigned">Sem responsável</option>{employees.filter(e=>e.isActive).map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></label>
+ <div className="aw-kpis" aria-label="Indicadores da equipe">
+ <article><strong>{orders.filter(o=>o.status<4&&(employeeFilter==='all'||(employeeFilter==='unassigned'?!o.employeeId:o.employeeId===employeeFilter))).length}</strong><span>Comandas em aberto no filtro</span></article>
+ <article><strong>{orders.filter(o=>o.status===3&&(employeeFilter==='all'||(employeeFilter==='unassigned'?!o.employeeId:o.employeeId===employeeFilter))).length}</strong><span>Prontas para entrega</span></article>
+ <article><strong>{orders.filter(o=>o.status<4&&!o.employeeId).length}</strong><span>Sem responsável</span></article>
+ </div>
  <div className="aw-order-grid">
  {orders.filter(o=>(orderFilter==='all'||(orderFilter==='active'?o.status<4:o.status===Number(orderFilter)))&&(employeeFilter==='all'||(employeeFilter==='unassigned'?!o.employeeId:o.employeeId===employeeFilter))&&(()=>{
   const v=vehicles.find(v=>v.id===o.vehicleId);const cl=customers.find(c=>c.id===v?.customerId);const q=orderQuery.trim().toLowerCase();
