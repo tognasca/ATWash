@@ -19,8 +19,9 @@ try{
   'flex/settings':{stageNames:['Recepção','Lavagem','Secagem','Liberado'],packages:[{name:'Completo',serviceIds:['wash','wax']}]}
  };
  let synced;
+ let offline=false;
  await context.route('**/api/**',async route=>{
-  if(!await page.evaluate(()=>navigator.onLine))return route.abort();
+  if(offline)return route.abort();
   const path=new URL(route.request().url()).pathname.slice(5);
   if(path==='orders'&&route.request().method()==='POST'){
    const body=route.request().postDataJSON();
@@ -34,6 +35,7 @@ try{
  await page.getByRole('button',{name:'Recepção',exact:true}).waitFor();
  await page.evaluate(async()=>{await navigator.serviceWorker.ready});
  await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);
+ offline=true;
  await context.setOffline(true);
  await page.reload();
  await page.getByText('● Offline',{exact:true}).waitFor();
@@ -45,6 +47,7 @@ try{
  await page.getByRole('button',{name:/Abrir comanda.*85/}).click();
  await page.getByRole('button',{name:'Sincronizar pendências (1)'}).waitFor();
  assert.equal(synced,undefined);
+ offline=false;
  await context.setOffline(false);
  await page.getByRole('button',{name:'Sincronizar pendências (0)'}).waitFor();
  const {clientId,...order}=synced;
