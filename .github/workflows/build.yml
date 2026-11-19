@@ -100,8 +100,16 @@ jobs:
         working-directory: src/atwash-web
       - run: npm test
         working-directory: src/atwash-web
-      - run: npx playwright install --with-deps chromium
+      - name: Prepare Chromium for PWA validation
+        timeout-minutes: 3
         working-directory: src/atwash-web
+        run: |
+          if command -v google-chrome >/dev/null; then
+            google-chrome --version
+            echo "ATWASH_TEST_CHROME=$(command -v google-chrome)" >> "$GITHUB_ENV"
+          else
+            npx playwright install --only-shell chromium
+          fi
       - run: npm run test:browser
         working-directory: src/atwash-web
   android:

@@ -5,7 +5,7 @@ const server=await preview({preview:{host:'127.0.0.1',port:4177,strictPort:true}
 let browser;
 try{
  const origin='http://127.0.0.1:4177';
- browser=await chromium.launch();
+ browser=await chromium.launch({executablePath:process.env.ATWASH_TEST_CHROME});
  const context=await browser.newContext({viewport:{width:1200,height:900}});
  const page=await context.newPage();
  page.setDefaultTimeout(9000);
