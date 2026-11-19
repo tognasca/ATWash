@@ -121,6 +121,37 @@ public static class FinanceEndpoints
                 order.Total,Refunded=refunds,Paid=payments.Sum(x=>x.Amount)-refunds,order.Status,
                 Notice="Comprovante comercial, não é documento fiscal."});
         });
+        // Read-only reconciliation overview. All aggregates are scoped to the authenticated tenant.
+        api.MapGet("/finance/reconciliation-summary", async (ClaimsPrincipal p, AtWashDbContext db, CancellationToken ct) =>
+        {
+            if (!Manager(p) || !Context(p, out var tenant, out _)) return Results.Forbid();
+            var payments = await db.Payments.AsNoTracking()
+                .Where(x => x.TenantId == tenant && x.Method != PaymentMethod.Cash)
+                .Select(x => new { x.Id, x.Method, x.Amount }).ToListAsync(ct);
+            var paymentIds = payments.Select(x => x.Id).ToArray();
+            var reconciledIds = await db.BankReconciliations.AsNoTracking()
+                .Where(x => x.TenantId == tenant && paymentIds.Contains(x.PaymentId))
+                .Select(x => x.PaymentId).Distinct().ToListAsync(ct);
+            var reconciled = reconciledIds.ToHashSet();
+            var refunds = await db.PaymentRefunds.AsNoTracking()
+                .Where(x => x.TenantId == tenant && paymentIds.Contains(x.PaymentId))
+                .GroupBy(x => x.PaymentId)
+                .Select(x => new { PaymentId = x.Key, Amount = x.Sum(r => r.Amount) }).ToListAsync(ct);
+            var refundedByPayment = refunds.ToDictionary(x => x.PaymentId, x => x.Amount);
+            var totals = payments.GroupBy(x => x.Method).Select(group => new
+            {
+                Method = group.Key.ToString(),
+                Count = group.Count(),
+                Gross = group.Sum(x => x.Amount),
+                Refunded = group.Sum(x => refundedByPayment.GetValueOrDefault(x.Id)),
+                Net = group.Sum(x => x.Amount - refundedByPayment.GetValueOrDefault(x.Id)),
+                ReconciledCount = group.Count(x => reconciled.Contains(x.Id)),
+                PendingCount = group.Count(x => !reconciled.Contains(x.Id)),
+                PendingNet = group.Where(x => !reconciled.Contains(x.Id))
+                    .Sum(x => x.Amount - refundedByPayment.GetValueOrDefault(x.Id))
+            }).ToList();
+            return Results.Ok(new { GeneratedAt = DateTimeOffset.UtcNow, Totals = totals });
+        });
         api.MapGet("/finance/payments",async (ClaimsPrincipal p,AtWashDbContext db,CancellationToken ct)=>{
             if(!Manager(p)||!Context(p,out var tenant,out _))return Results.Forbid();
             var payments=await (from pay in db.Payments.AsNoTracking()
