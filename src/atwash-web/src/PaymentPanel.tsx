@@ -51,12 +51,18 @@ export default function PaymentPanel({order,token,onClose,onChanged,onError,canC
    await api('/orders/'+order.id+'/payments',token,'POST',{operationId,method,amount:paymentAmount,tendered:method===0?given:paymentAmount,reference:reference.trim()||null});
    setOperationId(createOperationId());setReference('');
    if(ledger.remaining-paymentAmount<=0.005){
-    try{
-     await api('/orders/'+order.id+'/deliver',token,'POST');
-     await onChanged();onClose();dialog.show('Pagamento integral confirmado. Comanda encerrada com sucesso.','success');
-    }catch(closeError){
+    // Only a finished wash may be delivered; receiving payment does not skip work stages.
+    if(order.status===3){
+     try{
+      await api('/orders/'+order.id+'/deliver',token,'POST');
+      await onChanged();onClose();dialog.show('Pagamento confirmado e veículo entregue.','success');
+     }catch(closeError){
+      await load();await onChanged();
+      onError('Pagamento registrado. A entrega continua pendente: '+String(closeError));
+     }
+    }else{
      await load();await onChanged();
-     onError('Pagamento registrado, mas não foi possível encerrar a comanda: '+String(closeError));
+     dialog.show('Pagamento integral confirmado. A comanda permanece aberta até a lavagem ficar pronta para entrega.','success');
     }
    }else{
     await load();await onChanged();dialog.show('Pagamento parcial registrado. A comanda continua aberta até quitar o saldo.','success');
@@ -81,7 +87,7 @@ export default function PaymentPanel({order,token,onClose,onChanged,onError,canC
  {method===2&&<p>Este sistema não consulta o banco nem confirma Pix automaticamente. Somente registre após verificar o crédito.</p>}
  <button disabled={busy}>Confirmar recebimento</button></form>}
  {ledger&&<><h3>Pagamentos registrados</h3>{ledger.payments.length===0?<p>Nenhum pagamento registrado.</p>:<ul>{ledger.payments.map(p=><li key={p.id}>{['Dinheiro','Cartão','Pix'][p.method]} · {currency(p.amount)} · {new Date(p.confirmedAt).toLocaleString('pt-BR')}</li>)}</ul>}
- {ledger.remaining===0&&order.status<4&&<button disabled={busy} onClick={()=>void deliver()}>Encerrar comanda paga</button>}
+ {ledger.remaining===0&&order.status===3&&<button disabled={busy} onClick={()=>void deliver()}>Encerrar comanda paga</button>}
  {ledger.remaining===0&&order.status>=4&&<p>Pagamento completo. Comanda finalizada.</p>}</>}
  </section>;
 }
