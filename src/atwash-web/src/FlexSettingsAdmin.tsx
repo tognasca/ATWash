@@ -47,10 +47,14 @@ export default function FlexSettingsAdmin({token,services,reload,onError}:Props)
     const name=event.target.value;
     setSettings({...settings,packages:settings.packages.map((old,i)=>i===index?{...old,name}:old)});
    }}/></label>
-   <label>Serviços<select multiple value={item.serviceIds} onChange={event=>{
-    const serviceIds=Array.from(event.target.selectedOptions,option=>option.value);
-    setSettings({...settings,packages:settings.packages.map((old,i)=>i===index?{...old,serviceIds}:old)});
-   }}>{services.map(service=><option key={service.id} value={service.id}>{service.name}</option>)}</select></label>
+   <div>Serviços incluídos
+    {services.map(service=><label key={service.id}>
+     <input type="checkbox" checked={item.serviceIds.includes(service.id)} onChange={event=>{
+      const serviceIds=event.target.checked?[...item.serviceIds,service.id]:item.serviceIds.filter(id=>id!==service.id);
+      setSettings({...settings,packages:settings.packages.map((old,i)=>i===index?{...old,serviceIds}:old)});
+     }}/>{service.name}
+    </label>)}
+   </div>
    {item.serviceIds.some(id=>!services.some(service=>service.id===id))&&<p>Selecione novamente os serviços deste pacote. Um item saiu do catálogo.</p>}
    <button className="secondary" type="button" onClick={()=>setSettings({...settings,packages:settings.packages.filter((_,i)=>i!==index)})}>Remover pacote</button>
   </fieldset>)}

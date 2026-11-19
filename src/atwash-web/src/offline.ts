@@ -153,6 +153,42 @@ export async function listPending(tenant:string):Promise<{id:string;kind:string;
    x.kind==='customer'?'Cliente '+x.name:x.kind==='vehicle'?'Veículo '+x.plate:'Nova comanda '+x.tempId
  }));
 }
+export async function quotePendingOrder(token:string,id:string){
+ const tenant=tenantFromToken(token);
+ const item=await store<Pending|undefined>('pending','readonly',s=>s.get(id));
+ if(item?.kind!=='order'||item.tenant!==tenant)throw new Error('Comanda pendente não encontrada.');
+ const services=await api<Service[]>('/services',token);
+ const selected=services.filter(service=>item.serviceIds.includes(service.id));
+ if(selected.length!==new Set(item.serviceIds).size)throw new Error('A comanda contém serviços removidos do catálogo.');
+ const total=Math.round(selected.reduce((sum,service)=>sum+servicePrice(service,item.vehicleCategory),0)*100)/100;
+ return {previous:item.expectedTotal,total};
+}
+
+export async function acceptPendingOrderQuote(tenant:string,id:string,quote:{previous?:number;total:number}){
+ const db=await open();
+ return new Promise<void>((resolve,reject)=>{
+  const tx=db.transaction(['snapshots','pending'],'readwrite');
+  const pending=tx.objectStore('pending');
+  const snapshots=tx.objectStore('snapshots');
+  const request=pending.get(id);
+  request.onsuccess=()=>{
+   const item=request.result as Pending|undefined;
+   if(item?.kind!=='order'||item.tenant!==tenant||item.expectedTotal!==quote.previous){tx.abort();return}
+   const snapshotRequest=snapshots.get(tenant);
+   snapshotRequest.onsuccess=()=>{
+    const snapshot=snapshotRequest.result as Snapshot|undefined;
+    const order=snapshot?.orders.find(order=>order.id===item.tempId);
+    if(!snapshot||!order){tx.abort();return}
+    order.total=quote.total;
+    snapshots.put(snapshot,tenant);
+    pending.put({...item,expectedTotal:quote.total});
+   };
+  };
+  tx.oncomplete=()=>{db.close();resolve()};
+  tx.onabort=()=>{db.close();reject(tx.error??new Error('A pendência mudou. Atualize a lista e tente novamente.'))};
+ });
+}
+
 export async function discardPending(tenant:string,id:string){
  const all=await store<Pending[]>('pending','readonly',s=>s.getAll());
  const item=all.find(x=>x.tenant===tenant&&x.id===id);

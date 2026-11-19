@@ -184,7 +184,7 @@ export default function Atendimento({token,customers,vehicles,services,products,
     {o.paymentStatus===2&&<p>Pagamento confirmado.</p>}
    </div>}
    {canWrite&&o.status<4&&<div className="aw-order-actions">
-    {o.status<3&&<button type="button" className="aw-order-primary" disabled={busy} onClick={()=>void advance(o)}>{['Iniciar lavagem','Avançar para acabamento','Marcar como pronto'][o.status]}</button>}
+    {o.status<3&&<button type="button" className="aw-order-primary" disabled={busy} onClick={()=>void advance(o)}>Avançar para {statusNames[o.status+1]}</button>}
     <button type="button" className={o.status===3?'aw-order-primary':'secondary aw-order-pay'} disabled={!online||busy} onClick={()=>setPaymentOrderId(o.id)}>{o.paymentStatus===2?'Ver pagamento':'Receber pagamento'}</button>
    </div>}
   </article>;

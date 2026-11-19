@@ -196,6 +196,14 @@ def main():
     assert request("GET","/auth/me")["role"]=="Manager"
     assert branch["id"] not in [b["id"] for b in request("GET", "/branches")]
     assert request("GET", "/flex/settings") == flex
+    other_customer = request("POST", "/customers", {"name": "Cliente de outra empresa"}, (201,))
+    other_vehicle = request("POST", "/vehicles",
+        {"customerId": other_customer["id"], "plate": "ABC1D23", "model": "Teste"}, (201,))
+    other_service = request("POST", "/services", {"name": "Serviço local", "price": 20}, (201,))
+    request("POST", "/orders", {"vehicleId": other_vehicle["id"],
+        "serviceIds": [other_service["id"]], "branchId": branch["id"]}, (400,))
+    request("PUT", "/flex/settings", {**settings, "packages": [{"name": "Pacote estrangeiro",
+        "serviceIds": [other_service["id"], flexible_service["id"]]}]}, (400,))
     request("PUT", f"/branches/{branch['id']}", {"name": "Outra empresa"}, (404,))
     assert request("GET", f"/dashboard?branchId={branch['id']}")["orders"] == 0
     TOKEN=previous

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import 'fake-indexeddb/auto';
-import {createOfflineOrder,loadSnapshot,pendingCount,saveSnapshot,syncPending} from '../src/offline';
+import {acceptPendingOrderQuote,createOfflineOrder,listPending,loadSnapshot,pendingCount,quotePendingOrder,saveSnapshot,syncPending} from '../src/offline';
 import {defaultFlexSettings} from '../src/api';
 
 test('preserves branch, category and quoted total through offline conflict and retry',async()=>{
@@ -31,16 +31,23 @@ test('preserves branch, category and quoted total through offline conflict and r
  const previousFetch=globalThis.fetch;
  let accept=false;
  globalThis.fetch=async(url,init)=>{
+  if(url==='/api/services')return Response.json([{id:'wash',price:40,categoryPrices:{Suv:70}},{id:'wax',price:20}]);
   assert.equal(url,'/api/orders');
   assert.deepEqual(JSON.parse(String(init?.body)),{
    vehicleId:'vehicle',serviceIds:['wash','wax'],branchId:branch.id,
-   vehicleCategory:3,expectedTotal:85,clientId:order.id
+   vehicleCategory:3,expectedTotal:accept?90:85,clientId:order.id
   });
   return accept?Response.json({id:order.id,number:'000001'},{status:201}):new Response('Preço alterado',{status:409});
  };
  try{
   await assert.rejects(syncPending(token),/Preço alterado/);
   assert.equal(await pendingCount(tenant),1);
+  const [pending]=await listPending(tenant);
+  const quote=await quotePendingOrder(token,pending.id);
+  assert.deepEqual(quote,{previous:85,total:90});
+  await assert.rejects(acceptPendingOrderQuote(other,pending.id,quote));
+  await acceptPendingOrderQuote(tenant,pending.id,quote);
+  assert.equal((await loadSnapshot(tenant))?.orders[0].total,90);
   accept=true;
   assert.equal(await syncPending(token),1);
   assert.equal(await pendingCount(tenant),0);
