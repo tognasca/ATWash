@@ -2,7 +2,7 @@ import {useEffect,useState,type ChangeEvent} from 'react';
 import {useDialog} from './Dialog';
 import PaymentPanel from './PaymentPanel';
 import {queueStatus,tenantFromToken,createOfflineCustomer,createOfflineVehicle,createOfflineOrder} from './offline';
-import {api,currency,type Customer,type Vehicle,type Service,type Product,type Order} from './api';
+import {api,currency,type Customer,type Vehicle,type Service,type Product,type Order,type Branch} from './api';
 // Curated photographs of real detailing processes; each catalog category gets its own image.
 // No generic car shots, repeated image fallback, or emoji placeholders.
 const servicePhotos:{match:RegExp;url:string;position?:string}[]=[
@@ -18,9 +18,12 @@ const servicePhotos:{match:RegExp;url:string;position?:string}[]=[
  {match:/lavagem simples|lavagem externa|lavar carro/,url:'/images/lavagem-simples.jpg'}
 ];
 function servicePhoto(name:string){return servicePhotos.find(p=>p.match.test(name.trim().toLowerCase()))}
-type Props={token:string;customers:Customer[];vehicles:Vehicle[];services:Service[];products:Product[];orders:Order[];reload:()=>Promise<void>;onError:(error:string)=>void;canConfirmPix:boolean;canWrite:boolean;online:boolean;onQueued:()=>void};
-export default function Atendimento({token,customers,vehicles,services,products,orders,reload,onError,canConfirmPix,canWrite,online,onQueued}:Props){
+type Props={token:string;customers:Customer[];vehicles:Vehicle[];services:Service[];products:Product[];orders:Order[];branches:Branch[];reload:()=>Promise<void>;onError:(error:string)=>void;canConfirmPix:boolean;canWrite:boolean;online:boolean;onQueued:()=>void};
+export default function Atendimento({token,customers,vehicles,services,products,orders:allOrders,branches,reload,onError,canConfirmPix,canWrite,online,onQueued}:Props){
  const dialog=useDialog();
+ const [branchId,setBranchId]=useState('');
+ const [branchFilter,setBranchFilter]=useState('');
+ const orders=allOrders.filter(order=>!branchFilter||order.branchId===branchFilter);
  const [employees,setEmployees]=useState<{id:string;name:string;isActive:boolean}[]>([]);
  useEffect(()=>{if(!online)return;void api<typeof employees>('/employees',token).then(setEmployees).catch(()=>{})},[token,online]);
  const [query,setQuery]=useState('');
@@ -90,10 +93,10 @@ export default function Atendimento({token,customers,vehicles,services,products,
  }
 
  const clientVehicles=vehicles.filter(v=>v.customerId===customer?.id);
- const paymentOrder=orders.find(o=>o.id===paymentOrderId);
+ const paymentOrder=allOrders.find(o=>o.id===paymentOrderId);
  const draftServices=services.filter(s=>selected.includes(s.id));
  const draftTotal=draftServices.reduce((sum,s)=>sum+s.price,0);
- const activeOrder=orders.find(o=>o.id===activeOrderId);
+ const activeOrder=allOrders.find(o=>o.id===activeOrderId);
  const visibleServices=services.filter(s=>s.name.toLowerCase().includes(catalogSearch.toLowerCase()));
  const visibleProducts=products.filter(p=>p.name.toLowerCase().includes(catalogSearch.toLowerCase()));
  return <>{paymentOrder&&<div className="aw-payment-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setPaymentOrderId(null)}}><div className="aw-payment-dialog" role="dialog" aria-modal="true" aria-label={'Pagamento da comanda '+paymentOrder.number}><PaymentPanel key={paymentOrder.id} order={paymentOrder} token={token} onClose={()=>setPaymentOrderId(null)} onChanged={reload} onError={onError} canConfirmPix={canConfirmPix}/></div></div>}<section className="aw-attendance">
@@ -134,7 +137,7 @@ export default function Atendimento({token,customers,vehicles,services,products,
  <aside className={'aw-cart panel '+(cartOpen?'aw-cart-open':'')} id="aw-cart">
  <div className="aw-section-title"><h3>{activeOrder?'Comanda #'+activeOrder.number:'Nova comanda'}</h3><button type="button" className="secondary aw-cart-close" onClick={()=>setCartOpen(false)}>Fechar</button></div>
  {customer&&<div className="aw-cart-customer"><strong>{customer.name}</strong><span>{vehicles.find(v=>v.id===vehicleId)?.plate||'Selecione o veículo'}</span></div>}
- {activeOrder?<><div className="aw-cart-line"><strong>Comanda em andamento</strong><span>{['Aguardando','Lavando','Acabamento','Pronto','Entregue','Cancelado'][activeOrder.status]||'—'}</span></div><div className="aw-cart-total"><span>Total atual</span><strong>{currency(activeOrder.total)}</strong></div><button type="button" className="aw-checkout" disabled={!online||!canWrite||activeOrder.status>=4} onClick={()=>{setPaymentOrderId(activeOrder.id);setCartOpen(false)}}>Receber / fechar</button><button type="button" className="secondary" onClick={()=>{setActiveOrderId(null);setSelected([]);}}>Nova comanda</button></>:<><p className="aw-hint">Selecione os serviços para montar sua comanda.</p><div className="aw-cart-items">{draftServices.length?draftServices.map(s=><div className="aw-cart-line" key={s.id}><span>{s.name}</span><strong>{currency(s.price)}</strong><button type="button" className="aw-remove" aria-label={'Remover '+s.name} onClick={()=>setSelected(v=>v.filter(id=>id!==s.id))}>×</button></div>):<div className="aw-empty">Nenhum serviço selecionado</div>}</div><div className="aw-cart-total"><span>Total</span><strong>{currency(draftTotal)}</strong></div><button type="button" className="aw-checkout" disabled={busy||!canWrite||!vehicleId||selected.length===0} onClick={()=>void run(async()=>{if(!vehicleId||selected.length===0)throw new Error('Selecione veículo e serviços');const result=online?await api<{id:string}>('/orders',token,'POST',{vehicleId,serviceIds:selected}):await createOfflineOrder(tenantFromToken(token),vehicleId,selected);setSelected([]);setActiveOrderId(result.id);setCartOpen(false);if(!online)onQueued()})}>Abrir comanda · {currency(draftTotal)}</button></>}
+ {activeOrder?<><div className="aw-cart-line"><strong>Comanda em andamento</strong><span>{['Aguardando','Lavando','Acabamento','Pronto','Entregue','Cancelado'][activeOrder.status]||'—'}</span></div><div className="aw-cart-total"><span>Total atual</span><strong>{currency(activeOrder.total)}</strong></div><button type="button" className="aw-checkout" disabled={!online||!canWrite||activeOrder.status>=4} onClick={()=>{setPaymentOrderId(activeOrder.id);setCartOpen(false)}}>Receber / fechar</button><button type="button" className="secondary" onClick={()=>{setActiveOrderId(null);setSelected([]);}}>Nova comanda</button></>:<><label>Unidade<select value={branchId} onChange={e=>setBranchId(e.target.value)}><option value="">Sem unidade</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></label><p className="aw-hint">Selecione os serviços para montar sua comanda.</p><div className="aw-cart-items">{draftServices.length?draftServices.map(s=><div className="aw-cart-line" key={s.id}><span>{s.name}</span><strong>{currency(s.price)}</strong><button type="button" className="aw-remove" aria-label={'Remover '+s.name} onClick={()=>setSelected(v=>v.filter(id=>id!==s.id))}>×</button></div>):<div className="aw-empty">Nenhum serviço selecionado</div>}</div><div className="aw-cart-total"><span>Total</span><strong>{currency(draftTotal)}</strong></div><button type="button" className="aw-checkout" disabled={busy||!canWrite||!vehicleId||selected.length===0} onClick={()=>void run(async()=>{if(!vehicleId||selected.length===0)throw new Error('Selecione veículo e serviços');const result=online?await api<{id:string}>('/orders',token,'POST',{vehicleId,serviceIds:selected,branchId:branchId||undefined}):await createOfflineOrder(tenantFromToken(token),vehicleId,selected,branchId||undefined);setSelected([]);setActiveOrderId(result.id);setCartOpen(false);if(!online)onQueued()})}>Abrir comanda · {currency(draftTotal)}</button></>}
  <div className="aw-cart-footer">O número da comanda é gerado automaticamente.</div>
  </aside>
  </div>
@@ -144,6 +147,7 @@ export default function Atendimento({token,customers,vehicles,services,products,
  <div className="aw-section-title"><div><h2>Comandas</h2><p>Toque na comanda para ver os detalhes e realizar outras ações.</p></div><strong>{orders.filter(o=>o.status<4).length} em aberto</strong></div>
  <input aria-label="Pesquisar comandas" placeholder="Buscar placa, cliente ou número..." value={orderQuery} onChange={e=>setOrderQuery(e.target.value)}/>
  <div className="aw-order-filters">{[{id:'active',name:'Em aberto'},{id:'0',name:'Aguardando'},{id:'1',name:'Lavando'},{id:'2',name:'Acabamento'},{id:'3',name:'Prontas'},{id:'all',name:'Todas'}].map(f=><button key={f.id} type="button" className={orderFilter===f.id?'':'secondary'} aria-pressed={orderFilter===f.id} onClick={()=>setOrderFilter(f.id)}>{f.name}</button>)}</div>
+ <label className="aw-search-label">Unidade<select value={branchFilter} onChange={e=>setBranchFilter(e.target.value)}><option value="">Todas as unidades</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></label>
  <label className="aw-search-label">Responsável pela lavagem<select aria-label="Filtrar comandas por funcionário" value={employeeFilter} onChange={e=>setEmployeeFilter(e.target.value)}><option value="all">Todos os funcionários</option><option value="unassigned">Sem responsável</option>{employees.filter(e=>e.isActive).map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></label>
  <div className="aw-kpis" aria-label="Indicadores da equipe">
  <article><strong>{orders.filter(o=>o.status<4&&(employeeFilter==='all'||(employeeFilter==='unassigned'?!o.employeeId:o.employeeId===employeeFilter))).length}</strong><span>Comandas em aberto no filtro</span></article>

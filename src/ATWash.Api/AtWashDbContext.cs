@@ -45,6 +45,10 @@ public sealed class AtWashDbContext(DbContextOptions<AtWashDbContext> options) :
         model.Entity<Vehicle>().HasOne<Customer>().WithMany().HasForeignKey(x => new { x.TenantId, x.CustomerId }).HasPrincipalKey(x => new { x.TenantId, x.Id }).OnDelete(DeleteBehavior.Restrict);
         model.Entity<WashOrder>().HasOne<Vehicle>().WithMany().HasForeignKey(x => new { x.TenantId, x.VehicleId }).HasPrincipalKey(x => new { x.TenantId, x.Id }).OnDelete(DeleteBehavior.Restrict);
         model.Entity<WashOrder>().HasOne<WashService>().WithMany().HasForeignKey(x => new { x.TenantId, x.ServiceId }).HasPrincipalKey(x => new { x.TenantId, x.Id }).OnDelete(DeleteBehavior.Restrict);
+        model.Entity<WashOrder>().HasOne<Branch>().WithMany()
+            .HasForeignKey(x => new { x.TenantId, x.BranchId })
+            .HasPrincipalKey(x => new { x.TenantId, x.Id }).OnDelete(DeleteBehavior.Restrict);
+        model.Entity<WashOrder>().HasIndex(x => new { x.TenantId, x.BranchId, x.CreatedAt });
         model.Entity<WashOrder>().HasAlternateKey(x => new { x.TenantId, x.Id });
         model.Entity<WashOrderItem>().HasOne<WashOrder>().WithMany()
             .HasForeignKey(x => new { x.TenantId, x.OrderId })

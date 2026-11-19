@@ -75,6 +75,7 @@ public sealed class WashOrder : ITenantEntity
     public PaymentStatus PaymentStatus { get; set; }
     public decimal Total { get; set; }
     public Guid? EmployeeId { get; set; }
+    public Guid? BranchId { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 

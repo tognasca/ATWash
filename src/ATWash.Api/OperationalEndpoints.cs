@@ -9,6 +9,36 @@ public static class OperationalEndpoints
     {
         var api = app.MapGroup("/api").RequireAuthorization();
 
+        api.MapGet("/branches", async (ClaimsPrincipal principal, AtWashDbContext db, CancellationToken ct) =>
+        {
+            if (!TryTenant(principal, out var tenant)) return Results.Unauthorized();
+            return Results.Ok(await db.Branches.AsNoTracking().Where(x => x.TenantId == tenant)
+                .OrderBy(x => x.Name).Select(x => new { x.Id, x.Name }).ToListAsync(ct));
+        });
+
+        api.MapPost("/branches", async (BranchInput input, ClaimsPrincipal principal, AtWashDbContext db, CancellationToken ct) =>
+        {
+            if (!CanManageServices(principal) || !TryTenant(principal, out var tenant)) return Results.Forbid();
+            var name = input.Name?.Trim();
+            if (string.IsNullOrEmpty(name) || name.Length > 120) return Results.BadRequest("Informe um nome válido para a unidade.");
+            var branch = new Branch { TenantId = tenant, Name = name };
+            db.Branches.Add(branch);
+            await db.SaveChangesAsync(ct);
+            return Results.Created($"/api/branches/{branch.Id}", new { branch.Id, branch.Name });
+        });
+
+        api.MapPut("/branches/{id:guid}", async (Guid id, BranchInput input, ClaimsPrincipal principal, AtWashDbContext db, CancellationToken ct) =>
+        {
+            if (!CanManageServices(principal) || !TryTenant(principal, out var tenant)) return Results.Forbid();
+            var name = input.Name?.Trim();
+            if (string.IsNullOrEmpty(name) || name.Length > 120) return Results.BadRequest("Informe um nome válido para a unidade.");
+            var branch = await db.Branches.SingleOrDefaultAsync(x => x.TenantId == tenant && x.Id == id, ct);
+            if (branch is null) return Results.NotFound();
+            branch.Name = name;
+            await db.SaveChangesAsync(ct);
+            return Results.Ok(new { branch.Id, branch.Name });
+        });
+
         api.MapGet("/customers", async (ClaimsPrincipal principal, AtWashDbContext db, CancellationToken ct) =>
         {
             if (!TryTenant(principal, out var tenant)) return Results.Unauthorized();
@@ -277,17 +307,21 @@ public static class OperationalEndpoints
                 {
                     var existingServices = await db.OrderItems.AsNoTracking().Where(x => x.TenantId == tenant && x.OrderId == clientOrderId)
                         .Select(x => x.ServiceId).ToArrayAsync(ct);
-                    if (existing.VehicleId != input.VehicleId || input.ServiceIds == null ||
+                    if (existing.VehicleId != input.VehicleId || existing.BranchId != input.BranchId || input.ServiceIds == null ||
                         !existingServices.OrderBy(x => x).SequenceEqual(input.ServiceIds.Distinct().OrderBy(x => x)))
                         return Results.Conflict("Identificador de comanda já utilizado.");
                     return Results.Ok(new { existing.Id, existing.Number, existing.Total, AlreadyProcessed = true });
                 }
             }
 
+            if (input.BranchId is Guid branchId &&
+                !await db.Branches.AnyAsync(x => x.TenantId == tenant && x.Id == branchId, ct))
+                return Results.BadRequest("Unidade inválida.");
+
             var numbers = await db.Orders.AsNoTracking().Where(x => x.TenantId == tenant).Select(x => x.Number).ToListAsync(ct);
             var next = numbers.Select(x => long.TryParse(x, out var n) && n > 0 ? n : 0).DefaultIfEmpty(0).Max() + 1;
             var order = new WashOrder { Id = input.ClientId ?? Guid.NewGuid(), TenantId = tenant, Number = next.ToString("D6"),
-                VehicleId = input.VehicleId, ServiceId = services[0].Id,
+                VehicleId = input.VehicleId, ServiceId = services[0].Id, BranchId = input.BranchId,
                 Total = services.Sum(x => x.Price), Status = OrderStatus.Waiting, PaymentStatus = PaymentStatus.Pending };
             db.Orders.Add(order);
             foreach (var service in services)
@@ -338,5 +372,6 @@ public sealed record VehicleInput(Guid CustomerId, string Plate, string Model, s
 public sealed record ProductInput(string Name, decimal Price, decimal Stock);
 public sealed record OrderStatusInput(OrderStatus Status, OrderStatus? ExpectedStatus = null);
 public sealed record ServiceInput(string Name, decimal Price);
-public sealed record OrderInput(Guid VehicleId, Guid[] ServiceIds, Guid? ClientId = null);
+public sealed record BranchInput(string Name);
+public sealed record OrderInput(Guid VehicleId, Guid[] ServiceIds, Guid? ClientId = null, Guid? BranchId = null);
 public sealed record AddOrderServiceInput(Guid ServiceId);

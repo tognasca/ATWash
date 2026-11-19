@@ -49,13 +49,24 @@ def main():
     vehicle_input={"customerId":customer["id"],"plate":"ABC1D23","model":"Teste","clientId":str(uuid.uuid4())}
     vehicle = request("POST", "/vehicles", vehicle_input, (201,))
     assert request("POST", "/vehicles", vehicle_input, (200,))["id"] == vehicle["id"]
+    branch = request("POST", "/branches", {"name": "Unidade Centro"}, (201,))
+    renamed = request("PUT", f"/branches/{branch['id']}", {"name": "Unidade Centro SP"})
+    assert renamed["name"] == "Unidade Centro SP"
+    assert renamed in request("GET", "/branches")
     order_input={"vehicleId":vehicle["id"],"serviceIds":[services[0]["id"]],"clientId":str(uuid.uuid4())}
+    request("POST", "/orders", {**order_input, "branchId": str(uuid.uuid4())}, (400,))
+    order_input["branchId"] = branch["id"]
     order = request("POST", "/orders", order_input, (201,))
+    request("POST", "/orders", {**order_input, "branchId": None}, (409,))
     assert request("POST", "/orders", order_input, (200,))["id"] == order["id"]
     oid = order["id"]
     employee = request("POST", "/employees", {"name":"Lavador integração","role":"Lavador","phone":"11911111111","commissionPercent":10}, (201,))
     assigned = request("PUT", f"/orders/{oid}/employee", {"employeeId":employee["id"]})
     assert assigned["employeeId"] == employee["id"]
+    assert request("GET", f"/orders/{oid}")["branchId"] == branch["id"]
+    report = request("GET", f"/dashboard?branchId={branch['id']}&employeeId={employee['id']}")
+    assert report["orders"] == 1 and report["open"] == 1
+    assert request("GET", f"/dashboard?branchId={branch['id']}&employeeId={uuid.uuid4()}")["orders"] == 0
     assert any(e["id"] == employee["id"] for e in request("GET", "/employees"))
     access = request("POST", f"/employees/{employee['id']}/access",
         {"email":"washer-integration@atwash.test","password":"WasherIntegration2026!","role":3})
@@ -165,6 +176,9 @@ def main():
     previous=TOKEN
     TOKEN=worker["accessToken"]
     assert request("GET","/auth/me")["role"]=="Manager"
+    assert branch["id"] not in [b["id"] for b in request("GET", "/branches")]
+    request("PUT", f"/branches/{branch['id']}", {"name": "Outra empresa"}, (404,))
+    assert request("GET", f"/dashboard?branchId={branch['id']}")["orders"] == 0
     TOKEN=previous
     platform("PUT",f"/tenants/{tenant['id']}/users/{account['id']}",{"role":"Washer","isActive":True})
     TOKEN=worker["accessToken"]

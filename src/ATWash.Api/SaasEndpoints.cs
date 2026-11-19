@@ -18,15 +18,19 @@ public static class SaasEndpoints {
    device.RevokedAt??=DateTimeOffset.UtcNow;
    await db.SaveChangesAsync(ct);return Results.Ok(new{device.Id,device.RevokedAt});
   });
-  api.MapGet("/dashboard",async(ClaimsPrincipal p,AtWashDbContext db,DateTimeOffset? from,DateTimeOffset? to,CancellationToken ct)=>{
+  api.MapGet("/dashboard",async(ClaimsPrincipal p,AtWashDbContext db,DateTimeOffset? from,DateTimeOffset? to,Guid? branchId,Guid? employeeId,CancellationToken ct)=>{
    if(!IsManager(p)||!GetTenant(p,out var t))return Results.Forbid();
    var start=from??DateTimeOffset.UtcNow.AddDays(-30);var end=to??DateTimeOffset.UtcNow;
    if(start>=end||end-start>TimeSpan.FromDays(366))return Results.BadRequest("Período inválido.");
-   var orders=await db.Orders.AsNoTracking().Where(x=>x.TenantId==t&&x.CreatedAt>=start&&x.CreatedAt<end).ToListAsync(ct);
+   var orderQuery=db.Orders.AsNoTracking().Where(x=>x.TenantId==t&&x.CreatedAt>=start&&x.CreatedAt<end);
+   if(branchId.HasValue)orderQuery=orderQuery.Where(x=>x.BranchId==branchId);
+   if(employeeId.HasValue)orderQuery=orderQuery.Where(x=>x.EmployeeId==employeeId);
+   var orders=await orderQuery.ToListAsync(ct);
    var ids=orders.Select(x=>x.Id).ToArray();
    var payments=await db.Payments.AsNoTracking().Where(x=>x.TenantId==t&&ids.Contains(x.OrderId)).ToListAsync(ct);
    var refunds=await db.PaymentRefunds.AsNoTracking().Where(x=>x.TenantId==t&&payments.Select(p=>p.Id).Contains(x.PaymentId)).ToListAsync(ct);
-   var supplies=await db.StockMovements.AsNoTracking().Where(x=>x.TenantId==t&&x.Kind==StockMovementKind.Consumption&&x.CreatedAt>=start&&x.CreatedAt<end).ToListAsync(ct);
+   var supplies=await db.StockMovements.AsNoTracking().Where(x=>x.TenantId==t&&x.Kind==StockMovementKind.Consumption&&x.CreatedAt>=start&&x.CreatedAt<end
+    && ((!branchId.HasValue&&!employeeId.HasValue)||(x.OrderId.HasValue&&ids.Contains(x.OrderId.Value)))).ToListAsync(ct);
    var costs=await db.Products.AsNoTracking().Where(x=>x.TenantId==t).Select(x=>new{x.Id,x.AverageCost}).ToListAsync(ct);
    var costMap=costs.ToDictionary(x=>x.Id,x=>x.AverageCost);
    var gross=payments.Sum(x=>x.Amount);

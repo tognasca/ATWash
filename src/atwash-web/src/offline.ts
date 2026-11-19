@@ -1,12 +1,12 @@
 import {createOperationId} from './operationId';
-import {api,type Customer,type Vehicle,type Service,type Product,type Order} from './api';
+import {api,type Customer,type Vehicle,type Service,type Product,type Order,type Branch} from './api';
 
-export type Snapshot = {customers:Customer[];vehicles:Vehicle[];services:Service[];products:Product[];orders:Order[]};
+export type Snapshot = {customers:Customer[];vehicles:Vehicle[];services:Service[];products:Product[];orders:Order[];branches?:Branch[]};
 type Pending =
  | {id:string;tenant:string;kind:'status';orderId:string;from:number;to:number;createdAt:number}
  | {id:string;tenant:string;kind:'customer';tempId:string;name:string;phone:string;createdAt:number}
  | {id:string;tenant:string;kind:'vehicle';tempId:string;customerId:string;plate:string;model:string;createdAt:number}
- | {id:string;tenant:string;kind:'order';tempId:string;vehicleId:string;serviceIds:string[];createdAt:number};
+ | {id:string;tenant:string;kind:'order';tempId:string;vehicleId:string;serviceIds:string[];branchId?:string;createdAt:number};
 const DB_NAME='atwash-offline-v1';
 function open():Promise<IDBDatabase>{
  return new Promise((resolve,reject)=>{
@@ -130,14 +130,15 @@ export async function createOfflineVehicle(tenant:string,customerId:string,plate
   snapshot.vehicles.push(vehicle);return vehicle;
  });
 }
-export async function createOfflineOrder(tenant:string,vehicleId:string,serviceIds:string[]):Promise<Order>{
+export async function createOfflineOrder(tenant:string,vehicleId:string,serviceIds:string[],branchId?:string):Promise<Order>{
  const tempId=newId();
- return appendOffline(tenant,{id:newId(),tenant,kind:'order',tempId,vehicleId,serviceIds:[...serviceIds],createdAt:Date.now()},snapshot=>{
+ return appendOffline(tenant,{id:newId(),tenant,kind:'order',tempId,vehicleId,serviceIds:[...serviceIds],branchId,createdAt:Date.now()},snapshot=>{
   if(!snapshot.vehicles.some(x=>x.id===vehicleId))throw new Error('Veículo não encontrado.');
+  if(branchId&&!snapshot.branches?.some(x=>x.id===branchId))throw new Error("Unidade indisponível offline.");
   const unique=[...new Set(serviceIds)];
   const selected=snapshot.services.filter(x=>unique.includes(x.id));
   if(selected.length!==unique.length||selected.length===0||selected.length>30)throw new Error('Serviços inválidos.');
-  const order:Order={id:tempId,number:'OFF-'+tempId.slice(0,8),vehicleId,total:selected.reduce((s,x)=>s+x.price,0),status:0,paymentStatus:0};
+  const order:Order={id:tempId,number:'OFF-'+tempId.slice(0,8),vehicleId,branchId,total:selected.reduce((s,x)=>s+x.price,0),status:0,paymentStatus:0};
   snapshot.orders.unshift(order);return order;
  });
 }
@@ -219,7 +220,7 @@ async function performSync(token:string):Promise<number>{
     const result=await api<{id:string}>('/vehicles',token,'POST',{customerId:item.customerId,plate:item.plate,model:item.model,clientId:item.tempId});
     realId=result.id;
    }else{
-    const result=await api<{id:string;number:string}>('/orders',token,'POST',{vehicleId:item.vehicleId,serviceIds:item.serviceIds,clientId:item.tempId});
+    const result=await api<{id:string;number:string}>('/orders',token,'POST',{vehicleId:item.vehicleId,serviceIds:item.serviceIds,branchId:item.branchId,clientId:item.tempId});
     realId=result.id;number=result.number;
    }
    // Commit the server acknowledgement, dependent ID rewrites and removal in
